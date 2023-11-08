@@ -15,7 +15,7 @@ Machine class for basic concept:
         The action space is thus all possible combinations of (J, M) with addition of No-Op action (taken at a timestep)
 """
 
-from custom_environment.job import Job
+from job import Job
 
 
 class Machine:
@@ -85,6 +85,11 @@ class Machine:
     def set_active_recipe(self, recipe) -> bool:
         if recipe in self.known_recipes:
             self.active_recipe = recipe
+            return True
+        return False
+    
+    def can_perform_recipe(self, recipe) -> bool:
+        if recipe in self.known_recipes:
             return True
         return False
 

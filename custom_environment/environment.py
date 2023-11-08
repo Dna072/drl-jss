@@ -18,8 +18,9 @@ Base source:
     - https://stable-baselines3.readthedocs.io/en/master/guide/custom_env.html
 """
 
-from custom_environment.machine import Machine
-from custom_environment.job import Job
+from machine import Machine
+from job import Job
+from itertools import permutations
 
 import gymnasium as gym
 import numpy as np
@@ -97,6 +98,35 @@ class FactoryEnv(gym.Env):
 
         self.max_steps: int = max_steps
         self.time_step: int = 0
+
+    '''
+    Function to return the legal actions in the environment.
+    This assumes that you can only assign jobs to one machine at a time step not considering capacity constraints of the machine
+    '''
+    def get_legal_actions(self) -> list[int]:
+        r = len(self.jobs)
+        
+        actions = []
+
+        for m in self.machines:
+            job_binary_string = ''
+            all_actions = list(set(["".join(p) for p in permutations("01" * r, r)]))
+            
+            for idx, j in enumerate(self.jobs):
+                # Assuming each job has only one recipe, otherwise, we have to use another approach on this
+                for recipe in j.recipes:
+                    if not m.can_perform_recipe(recipe):
+                        #filter through actions and select actions with this index set to 0
+                        print(f"Machine {m.machine_id} cannot perform {recipe} idx {idx}")
+                        all_actions = list(filter(lambda action: action[idx] == '0', all_actions))
+                    
+                
+            print(all_actions)
+            # Convert actions from binary string to integer
+            all_actions = [int(x, 2) for x in all_actions]
+            actions.append(list(all_actions))
+        
+        return actions
 
     def get_obs(self) -> dict[str, np.ndarray[any]]:
         """
@@ -230,26 +260,26 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
         print()
 
     job_one: Job = Job(
-        recipes=["A1", "A2"],
+        recipes=[1],
         job_id=0,
         quantity=3,
         deadline="2024/01/04",
         priority=1,
     )
     job_two: Job = Job(
-        recipes=["A2", "A3"],
+        recipes=[2],
         job_id=1,
         quantity=10,
         deadline="2024/02/04",
         priority=2,
     )
     job_three: Job = Job(
-        recipes=["A3"], job_id=2, quantity=5, deadline="2023/12/04", priority=3
+        recipes=[3], job_id=2, quantity=5, deadline="2023/12/04", priority=3
     )
 
     if is_verbose:
-        job_one.recipe_in_progress("A1")
-        job_one.recipe_completed("A1")
+        #job_one.recipe_in_progress("A1")
+        #job_one.recipe_completed("A1")
 
         print(job_one)
         print("/--------/")
@@ -263,6 +293,9 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
         machines=[machine_one, machine_two, machine_three],
         jobs=[job_one, job_two, job_three],
     )
+
+    print(factory_env.get_legal_actions())
+
     return factory_env
 
 

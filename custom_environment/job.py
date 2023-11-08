@@ -89,9 +89,13 @@ class Job:
     # I didn't add an update recipes because it would add complexity in the future if someone can alter the recipes
 
     def recipe_in_progress(self, recipe) -> None:
-        self.r_pending.remove(recipe)
-        self.r_in_progress.append(recipe)
-        self.status = 1
+        if recipe in self.recipes:
+            self.r_pending.remove(recipe)
+            self.r_in_progress.append(recipe)
+            self.status = 1
+        else:
+            raise Exception(f"Recipe not part of required recipes for job-{self.job_id}") 
+        
 
     def recipe_completed(self, recipe) -> None:
         self.r_completed.append(recipe)
