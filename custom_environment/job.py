@@ -15,6 +15,8 @@ Job class for basic concept:
         The action space is thus all possible combinations of (J, M) with addition of No-Op action (taken at a timestep)
 """
 
+import datetime
+
 
 class Job:
     """
@@ -48,8 +50,11 @@ class Job:
     def get_quantity(self) -> int:
         return self.quantity
 
-    def get_dead_line(self) -> str:
+    def get_deadline(self) -> str:
         return self.deadline
+    
+    def get_deadline_datetime(self) -> datetime:
+        return datetime.datetime.strptime(self.deadline, '%Y/%m/%d') #%H:%M:%S')   
 
     def get_status(self) -> int:
         return self.status  # might come in handy in the future

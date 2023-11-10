@@ -15,8 +15,8 @@ Machine class for basic concept:
         The action space is thus all possible combinations of (J, M) with addition of No-Op action (taken at a timestep)
 """
 
-from job import Job
-
+from custom_environment.job import Job
+import datetime
 
 class Machine:
     """
@@ -37,6 +37,8 @@ class Machine:
         self.status: int = 0  # 0=Free, 1=Busy - assuming you cannot open a machine that is working to add more trays
         self.active_recipe: str = ""
         self.active_jobs: list[Job] = []
+        self.timestamp_current_status = datetime.datetime.now()
+        self.recipe_times: dict[str, np.float32]  = {"R1": 1.0, "R2":2.5}  #minutes:hours
 
     def get_known_recipes(self) -> list[int]:
         return self.known_recipes
@@ -59,6 +61,9 @@ class Machine:
         else:
             return "Busy"
 
+    def get_timestamp_status(self) -> datetime:
+        return self.timestamp_current_status
+        
     def get_active_recipe(self) -> str:
         return self.active_recipe
 
@@ -71,16 +76,22 @@ class Machine:
     def update_tray_capacity(self, new_capacity) -> None:
         self.tray_capacity = new_capacity
 
-    def assign_jobs(self, jobs, recipe) -> bool:
-        is_assigned: bool = self.set_active_recipe(recipe)
-
-        if is_assigned:
-            self.status = 1
-            self.active_jobs.append(jobs)
-
-            for j in jobs:
-                j.recipe_in_progress(recipe)
-        return is_assigned
+    def assign_jobs(self, jobs) -> bool:
+#         print("Assign jobs:",jobs)
+        #find compatible recipe between jobs and machine: recipe=js[0].get_recipes()
+        recipe = (jobs[0].get_recipes())[0]
+#         print(jobs,recipe)
+        if self.get_status()==0:
+            is_assigned: bool = self.set_active_recipe(recipe)        
+            if is_assigned:
+                self.status = 1
+                self.timestamp_current_status = datetime.datetime.now()
+                for j in jobs:
+                    self.active_jobs.append(j)
+                    j.recipe_in_progress(recipe)
+            return is_assigned
+        else:
+            return False #machine is busy!
 
     def set_active_recipe(self, recipe) -> bool:
         if recipe in self.known_recipes:

@@ -24,7 +24,7 @@ from itertools import permutations
 
 import gymnasium as gym
 import numpy as np
-
+import datetime
 
 class FactoryEnv(gym.Env):
     """
@@ -36,6 +36,8 @@ class FactoryEnv(gym.Env):
 
     NO_OP_SPACE = 1
     NO_OP_ACTION = -1
+    
+    REWARD_WEIGHTS = {"Idle":-1,"Deadline":-5}
 
     metadata: dict = {"render_modes": ["vector"]}
 
@@ -61,24 +63,18 @@ class FactoryEnv(gym.Env):
         self.jobs: list[Job] = jobs
 
         self.action_space: gym.spaces.Discrete = gym.spaces.Discrete(
-            len(self.machines) * len(self.jobs) + self.NO_OP_SPACE
-        )
+            2**(len(self.machines) * (len(self.jobs) + self.NO_OP_SPACE))
+            )
 
         self.pending_jobs: list[Job] = self.jobs.copy()
         pending_jobs_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=1, shape=(len(self.jobs),), dtype=np.float32
+            low=0, high=1, shape=(len(self.jobs),), dtype=np.float32 #int for me
         )
 
         machine_space: gym.spaces.Box = gym.spaces.Box(
             low=0,
             high=1,
-            shape=(
-                len(self.machines)
-                * (
-                    len(set().union(*[set(job.get_recipes()) for job in self.jobs]))
-                    + self.NO_OP_SPACE
-                ),
-            ),
+            shape=(len(self.machines)*(len(self.jobs) + self.NO_OP_SPACE),),
             dtype=np.float32,
         )
 
@@ -137,13 +133,12 @@ class FactoryEnv(gym.Env):
             is_pending_jobs[job.get_job_id()] = 1.0
 
         is_machines_active_jobs = np.zeros(
-            (len(self.machines), len(self.jobs) + self.NO_OP_SPACE), dtype=np.float32
+            (len(self.machines),(len(self.jobs) + self.NO_OP_SPACE)), dtype=np.float32
         )
         for machine in self.machines:
+#             print("AJ:",machine.get_active_jobs())
             for job in machine.get_active_jobs():
-                is_machines_active_jobs[
-                    machine.get_machine_id(), job.get_job_id()
-                ] = 1.0
+                is_machines_active_jobs[machine.get_machine_id(), job.get_job_id()] = 1.0
 
         is_completed_jobs = np.zeros(len(self.jobs), dtype=np.uint8)
         for job in self.completed_jobs:
@@ -153,17 +148,69 @@ class FactoryEnv(gym.Env):
             "pending_jobs": is_pending_jobs,
             "machines": is_machines_active_jobs.flatten(),
             "completed_jobs": is_completed_jobs,
+            "achieved_goal": False, #since it is never ending
         }
         return self.current_obs
 
-    def get_reward(self, machine: Machine, job: Job) -> int:
+    def translate_action_to_jobs(self, action):
+        max_len=len(self.machines)*(len(self.jobs)+1) #to fill with zeros to the left
+#         print(max_len)
+        
+        try:
+            bin_act = bin(action)
+            machine_jobs_tuples = []
+            binary_length = len(bin_act)
+            #split the action in achine+actions
+            m = len(self.machines)
+            bin_act_str=str(bin_act.replace("0b","")).zfill(max_len)
+            
+#             print(bin_act_str)
+            part_length = len(bin_act_str) // m
+            machines_binary = [bin_act_str[i * part_length:(i + 1) * part_length] for i in range(m)]
+            for i,machine_binary in enumerate(machines_binary):
+                selected_jobs=[]
+                for j,bit in enumerate(machine_binary):
+                    if bit == '1':
+                        selected_jobs.append(part_length-j-1)
+                machine_jobs_tuples.append((i,selected_jobs)) #(machine,selected_jobs)
+            return machine_jobs_tuples
+        except:
+            return None
+        
+    def compute_reward(self) -> int:
         """
         Compute reward based on minimizing of tardiness and maximizing of machine efficiency
+        REWARD_WEIGHTS = {"Idle":-1,"Deadline":-5,"Completed":4}
         """
-        return 1  # TODO: implement method for computing reward based on tardiness and machine efficiency
-
+        total_time_unused = 0
+        total_time_deadlines = 0
+        for m in self.machines:
+            #compute free time
+            if m.get_status() == 0:
+                total_time_unused += ((datetime.datetime.now() - m.get_timestamp_status()).seconds) // 3600 #round- in hours
+        for j in self.jobs:
+            #i would say i can give partial weights depending on how past the deadline we are. 40% if < 10 hours, 80% < 24hours, 100% >24 hours
+            #calculate deadlines past
+            if j.get_deadline_datetime() < datetime.datetime.now():
+                time_past = ((datetime.datetime.now() - j.get_deadline_datetime()).seconds)//3600
+                if time_past < 10:
+                    total_time_deadlines += 0.4 * time_past
+                elif time_past >= 10 and time_past < 24:
+                    total_time_deadlines += 0.8 * time_past
+                else:
+                    total_time_deadlines += time_past
+        print("Values:\nTTU:",total_time_unused,"\nTTD:",total_time_deadlines)
+        return int(self.REWARD_WEIGHTS["Idle"]*total_time_unused + self.REWARD_WEIGHTS["Deadline"]*total_time_deadlines)
+    
+    def get_jobs(self,ids):
+        requested = []
+        for j in self.jobs:
+            if j.get_job_id() in ids:
+                requested.append(j)
+        return requested
+    
     def step(
-        self, action: np.ndarray
+        self, action: np.float32
     ) -> tuple[dict[str, np.ndarray[any]], int, bool, bool, dict[str, str]]:
         """
         Take a single step in the factory environment
@@ -171,46 +218,72 @@ class FactoryEnv(gym.Env):
         :return: (observation, reward, terminated, truncated, info)
         """
         self.time_step += 1
+        #TBD
+        #Maybe i should check the time and update any necessary machines if their time to complete has finished, on every step
+        
         is_terminated: bool = self.time_step > self.max_steps
+        
+        #action_binary = bin(action)
+        
+        #Jobs to do based on action
+        to_do = self.translate_action_to_jobs(action)
+        #should i first get valid actions or validate the action after 
+#         if action.item() == self.NO_OP_ACTION:
+#             return (
+#                 self.current_obs,
+#                 self.NEUTRAL_REWARD,
+#                 is_terminated,
+#                 False,
+#                 {"Error": "No operation"},
+#             )
 
-        if action.item() == self.NO_OP_ACTION:
+#         job_id: int = action.item(0) // len(self.machines)
+        #print(to_do)
+        if to_do == None:
             return (
-                self.current_obs,
-                self.NEUTRAL_REWARD,
+                self.get_obs(),               #observation
+                self.NEGATIVE_REWARD,         #reward
+                is_terminated,                #terminated
+                True,                         #truncated
+                {"Error": "Invalid Action"},  #info
+            )
+        
+        #job: Job = self.pending_jobs[job_id]
+        #machine_id: int = action.item(0) % len(self.machines)
+        
+        try:
+            for t in to_do:
+                m = t[0]
+                js= t[1]
+    #                 print("Machine:",m,"jobs: ",js)
+                if js != []:
+    #                 print(self.machines[m].get_machine_type())
+    #                 print(self.get_jobs(js))
+                    if self.machines[m].assign_jobs(jobs=self.get_jobs(js)):
+                        ###################################
+                        #TDB: What to do with pending jobs
+                        ###################################
+                        for pj in self.pending_jobs:
+                             print("")
+    #                         if pj.get_job_id() in js:
+    #                             self.pending_jobs.remove(self.get_jobs(pj))
+                        #self.completed_jobs.append(job)
+
+            return (
+                self.get_obs(),
+                self.compute_reward(),
                 is_terminated,
                 False,
-                {"Error": "No operation"},
+                {},
             )
-
-        job_id: int = action.item(0) // len(self.machines)
-        if not 0 <= job_id < len(self.pending_jobs):
+        except:
             return (
                 self.get_obs(),
                 self.NEGATIVE_REWARD,
                 is_terminated,
                 True,
-                {"Error": "Invalid Job"},
+                {"Error": "Invalid job assignment"},
             )
-        job: Job = self.pending_jobs[job_id]
-
-        machine_id: int = action.item(0) % len(self.machines)
-        if self.machines[machine_id].assign_jobs(jobs=[job], recipe=job.get_recipes()):
-            self.pending_jobs.remove(job)
-            self.completed_jobs.append(job)
-            return (
-                self.get_obs(),
-                self.get_reward(self.machines[machine_id], job),
-                is_terminated,
-                False,
-                {},
-            )
-        return (
-            self.get_obs(),
-            self.NEGATIVE_REWARD,
-            is_terminated,
-            True,
-            {"Error": "Invalid job assignment"},
-        )
 
     def reset(
         self, seed: int = None, options: str = None
@@ -243,14 +316,31 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
     :param is_verbose: print statements if True
     :return: custom FactoryEnv environment instance
     """
+# In case we want to pick them from a csv file:
+#     def pickUpJobs(self,path):
+#         jobs_df = pd.read_csv(path+"jobs.csv")
+#         for i,r in jobs_df.iterrows():
+#             r_rec = r["Recipes"].replace("'","")
+#             r_rec = r_rec.split(',')
+#             j = Job(jobId=r["Id"], recipes=r_rec, quantity=r["Quantity"],deadline=r["Deadline"], priority=r["Priority"])
+#             self.jobs.append(j)
+
+#     def pickUpMachines(self,path):
+#         machines_df = pd.read_csv(path+"machines.csv")
+#         for i,m in machines_df.iterrows():
+#             m_rec = m["Recipes"].replace("'","")
+#             m_rec = m_rec.split(',')
+#             m = Machine(m_type=m["Type"], k_recipes=m_rec, cap=m["Capacity"])
+#             self.machines.append(m)
+            
     machine_one: Machine = Machine(
-        k_recipes=[1, 2], machine_id=0, m_type="A", cap=10_000
+        k_recipes=["A1", "A2"], machine_id=0, m_type="A", cap=10_000
     )
     machine_two: Machine = Machine(
-        k_recipes=[3, 2], machine_id=1, m_type="A", cap=10_000
+        k_recipes=["A1", "A2"], machine_id=1, m_type="A", cap=10_000
     )
     machine_three: Machine = Machine(
-        k_recipes=[2], machine_id=2, m_type="A", cap=10_000
+        k_recipes=["A2"], machine_id=2, m_type="A", cap=10_000
     )
 
     if is_verbose:
@@ -270,7 +360,7 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
         recipes=[2],
         job_id=1,
         quantity=10,
-        deadline="2024/02/04",
+        deadline="2023/10/28",
         priority=2,
     )
     job_three: Job = Job(
@@ -303,4 +393,4 @@ if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
     custom_factory_env = init_custom_factory_env(is_verbose=True)
-    print("\nCustom environment check errors:", check_env(custom_factory_env))
+    #print("\nCustom environment check errors:", check_env(custom_factory_env))
