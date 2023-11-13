@@ -15,7 +15,10 @@ DQN agent class for basic concept:
         The action space is thus all possible combinations of (J, M) with addition of No-Op action (taken at a timestep)
 """
 
-from custom_environment.environment import FactoryEnv, init_custom_factory_env
+from custom_environment.environment_factory import init_custom_factory_env
+from stable_baselines3.common.type_aliases import MaybeCallback
+from custom_environment.environment import FactoryEnv
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
 
 
@@ -24,28 +27,37 @@ class Agent:
     DQN agent for learning the custom FactoryEnv environment
     """
 
-    FILE_NAME = "dqn_custom_factory_env"
-    POLICY = (
+    FILE_PATH_NAME: str = "files/dqn_custom_factory_env"
+    POLICY: str = (
         "MultiInputPolicy"  # converts multiple Dictionary inputs into a single vector
     )
-    IS_VERBOSE = 1
+    IS_VERBOSE: int = 1
 
-    def __init__(self, custom_env: FactoryEnv):
-        self.custom_env = custom_env
+    def __init__(self, custom_env: FactoryEnv | Monitor) -> None:
+        self.custom_env: FactoryEnv = custom_env
         self.model: DQN = DQN(
             policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE
         )
 
-    def learn(self, total_time_steps: int = 10_000, log_interval: int = 4):
-        self.model.learn(total_timesteps=total_time_steps, log_interval=log_interval)
+    def learn(
+        self,
+        total_time_steps: int = 10_000,
+        log_interval: int = 4,
+        callback: MaybeCallback = None,
+    ) -> None:
+        self.model.learn(
+            total_timesteps=total_time_steps,
+            log_interval=log_interval,
+            callback=callback,
+        )
 
-    def save(self, file_name: str = FILE_NAME):
+    def save(self, file_name: str = FILE_PATH_NAME) -> None:
         self.model.save(file_name)
 
-    def load(self, file_name: str = FILE_NAME):
+    def load(self, file_name: str = FILE_PATH_NAME) -> None:
         self.model = DQN.load(file_name)
 
-    def evaluate(self):
+    def evaluate(self) -> None:
         obs, info = self.custom_env.reset()
 
         while True:
@@ -53,8 +65,6 @@ class Agent:
             obs, reward, terminated, truncated, info = self.custom_env.step(action)
 
             if terminated or truncated:
-                print(obs)
-                print(reward)
                 obs, info = self.custom_env.reset()
 
 

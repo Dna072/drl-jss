@@ -18,6 +18,7 @@ Machine class for basic concept:
 from custom_environment.job import Job
 import datetime
 
+
 class Machine:
     """
     Machine class
@@ -25,20 +26,23 @@ class Machine:
 
     def __init__(
         self,
-        k_recipes: list[int],
+        k_recipes: list[any],
         machine_id: int = 0,
         m_type: str = "A",
         cap: int = 10_000,
     ) -> None:
         self.machine_id: int = machine_id
         self.machine_type: str = m_type  # A, B, C, D...
-        self.known_recipes: list[int] = k_recipes  # R1, R2, R3...
+        self.known_recipes: list[any] = k_recipes  # R1, R2, R3...
         self.tray_capacity: int = cap
         self.status: int = 0  # 0=Free, 1=Busy - assuming you cannot open a machine that is working to add more trays
         self.active_recipe: str = ""
         self.active_jobs: list[Job] = []
         self.timestamp_current_status = datetime.datetime.now()
-        self.recipe_times: dict[str, np.float32]  = {"R1": 1.0, "R2":2.5}  #minutes:hours
+        self.recipe_times: dict[str, float | int] = {
+            "R1": 1.0,
+            "R2": 2.5,
+        }  # minutes: hours
 
     def get_known_recipes(self) -> list[int]:
         return self.known_recipes
@@ -63,7 +67,7 @@ class Machine:
 
     def get_timestamp_status(self) -> datetime:
         return self.timestamp_current_status
-        
+
     def get_active_recipe(self) -> str:
         return self.active_recipe
 
@@ -77,12 +81,12 @@ class Machine:
         self.tray_capacity = new_capacity
 
     def assign_jobs(self, jobs) -> bool:
-#         print("Assign jobs:",jobs)
-        #find compatible recipe between jobs and machine: recipe=js[0].get_recipes()
+        #         print("Assign jobs:",jobs)
+        # find compatible recipe between jobs and machine: recipe=js[0].get_recipes()
         recipe = (jobs[0].get_recipes())[0]
-#         print(jobs,recipe)
-        if self.get_status()==0:
-            is_assigned: bool = self.set_active_recipe(recipe)        
+        #         print(jobs,recipe)
+        if self.get_status() == 0:
+            is_assigned: bool = self.set_active_recipe(recipe)
             if is_assigned:
                 self.status = 1
                 self.timestamp_current_status = datetime.datetime.now()
@@ -91,14 +95,14 @@ class Machine:
                     j.recipe_in_progress(recipe)
             return is_assigned
         else:
-            return False #machine is busy!
+            return False  # machine is busy!
 
     def set_active_recipe(self, recipe) -> bool:
         if recipe in self.known_recipes:
             self.active_recipe = recipe
             return True
         return False
-    
+
     def can_perform_recipe(self, recipe) -> bool:
         if recipe in self.known_recipes:
             return True
@@ -113,7 +117,7 @@ class Machine:
             f"\nWorking on recipe: {self.active_recipe} for the following Jobs: {self.active_jobs}"
         )
 
-    def reset(self):
+    def reset(self) -> None:
         self.status = 0
         self.active_jobs = []
         self.active_recipe = ""

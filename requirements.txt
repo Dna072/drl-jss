@@ -1,0 +1,8 @@
+stable-baselines3[extra]
+matplotlib
+gymnasium
+pandas
+numpy
+black
+black[jupyter]
+ruff

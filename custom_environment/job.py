@@ -25,14 +25,14 @@ class Job:
 
     def __init__(
         self,
-        recipes: list[str],
+        recipes: list[any],
         job_id: int = 0,
         quantity: int = 0,
         deadline: str = "3000/01/01",
         priority: int = 1,
     ) -> None:
         self.job_id: int = job_id  # String for now, can be numeric
-        self.recipes: list[str] = recipes  # [R1, R2, R3, ...]
+        self.recipes: list[any] = recipes  # [R1, R2, R3, ...]
         self.r_pending: list[str] = recipes.copy()
         self.quantity: int = quantity
         self.deadline: str = deadline  # YYYY/MM/DD
@@ -52,9 +52,9 @@ class Job:
 
     def get_deadline(self) -> str:
         return self.deadline
-    
+
     def get_deadline_datetime(self) -> datetime:
-        return datetime.datetime.strptime(self.deadline, '%Y/%m/%d') #%H:%M:%S')   
+        return datetime.datetime.strptime(self.deadline, "%Y/%m/%d")  # %H:%M:%S')
 
     def get_status(self) -> int:
         return self.status  # might come in handy in the future
@@ -99,8 +99,9 @@ class Job:
             self.r_in_progress.append(recipe)
             self.status = 1
         else:
-            raise Exception(f"Recipe not part of required recipes for job-{self.job_id}") 
-        
+            raise Exception(
+                f"Recipe not part of required recipes for job-{self.job_id}"
+            )
 
     def recipe_completed(self, recipe) -> None:
         self.r_completed.append(recipe)
@@ -120,7 +121,7 @@ class Job:
             f"\nCompleted: {100 * len(self.r_completed) / len(self.recipes)}%"
         )
 
-    def reset(self):
+    def reset(self) -> None:
         self.status = 0
         self.r_pending = self.recipes.copy()
         self.r_in_progress = []
