@@ -25,6 +25,7 @@ class Machine:
     Machine class
     """
 
+    __MAX_JOBS_PER_MACHINE: int = 1
     __AVAILABILITY_STR: dict[bool, str] = {False: "UNAVAILABLE", True: "AVAILABLE"}
 
     def __init__(
@@ -85,8 +86,8 @@ class Machine:
     def get_timestamp_status(self) -> datetime:
         return self.__timestamp_current_status
 
-    def set_timestamp_status(self, timestamp_status: datetime) -> None:
-        self.__timestamp_current_status = timestamp_status
+    def set_timestamp_status(self, timestamp_status_at_step: datetime) -> None:
+        self.__timestamp_current_status = timestamp_status_at_step
 
     def get_time_active(self) -> float:
         return self.__time_active
@@ -96,6 +97,9 @@ class Machine:
 
     def get_active_jobs(self) -> list[Job]:
         return self.__active_jobs
+
+    def get_max_num_jobs(self) -> int:
+        return self.__MAX_JOBS_PER_MACHINE
 
     def set_time_active(self, new_time_active: float) -> None:
         self.__time_active = new_time_active
@@ -113,12 +117,17 @@ class Machine:
     def update_tray_capacity(self, new_capacity: int) -> None:
         self.__tray_capacity = new_capacity
 
-    def assign_job(self, job_to_assign: Job) -> bool:
-        available_valid_recipes: list[Recipe] = [
+    def get_job_valid_recipes(self, job: Job) -> list[Recipe]:
+        return [
             recipe
-            for recipe in job_to_assign.get_recipes()
+            for recipe in job.get_recipes()
             if recipe.get_recipe_type() in self.__valid_recipe_types
         ]
+
+    def assign_job(self, job_to_assign: Job) -> bool:
+        available_valid_recipes: list[Recipe] = self.get_job_valid_recipes(
+            job=job_to_assign
+        )
 
         if available_valid_recipes and self.__is_available:
             next_valid_recipe_to_process: Recipe = available_valid_recipes[0]
@@ -130,7 +139,9 @@ class Machine:
                 self.__is_available = False
                 self.__timestamp_current_status = datetime.datetime.now()
                 self.__active_jobs.append(job_to_assign)
-                job_to_assign.set_recipe_in_progress(next_valid_recipe_to_process)
+                job_to_assign.set_recipe_in_progress(
+                    recipe=next_valid_recipe_to_process
+                )
         return self.__is_available
 
     def remove_job_assignment(self, job: Job) -> None:

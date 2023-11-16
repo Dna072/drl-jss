@@ -30,8 +30,8 @@ class PlotTrainingCallback(BaseCallback):
         self.__best_mean_return: float = -np.inf
         self.__is_save_best_model: bool = is_save_best_model
 
-        if not path.exists(self.__FILE_PATH):
-            makedirs(self.__FILE_PATH)
+        if not path.exists(path=self.__FILE_PATH):
+            makedirs(name=self.__FILE_PATH)
 
     def _on_step(self) -> bool:
         """
@@ -45,12 +45,12 @@ class PlotTrainingCallback(BaseCallback):
             )
 
             if self.__mean_returns[-1] > self.__best_mean_return:
-                self.best_mean_return = self.__mean_returns[-1]
+                self.__best_mean_return = self.__mean_returns[-1]
 
                 if self.__is_save_best_model:
                     save(
-                        self.model.policy.state_dict(),
-                        f"{self.__FILE_PATH}/best_mean_return.pt",
+                        obj=self.model.policy.state_dict(),
+                        f=f"{self.__FILE_PATH}/best_mean_return.pt",
                     )
 
                 if self.verbose:
@@ -84,9 +84,9 @@ class PlotTrainingCallback(BaseCallback):
         Plot training data
         """
         plt.figure(figsize=(10, 6))
-        plt.title("DQN Agent Training Performance")
-        plt.xlabel("Steps")
-        plt.ylabel("Mean Returns")
+        plt.title(label="DQN Agent Training Performance")
+        plt.xlabel(xlabel="Steps")
+        plt.ylabel(ylabel="Mean Returns")
         plt.plot(self.__mean_returns)
         plt.show()
 

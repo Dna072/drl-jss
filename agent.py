@@ -16,7 +16,6 @@ DQN agent class for basic concept:
 """
 
 from custom_environment.environment_factory import init_custom_factory_env
-from callback.plot_training_callback import PlotTrainingCallback
 from stable_baselines3.common.type_aliases import MaybeCallback
 from custom_environment.environment import FactoryEnv
 from stable_baselines3.common.monitor import Monitor
@@ -72,13 +71,12 @@ class Agent:
 
 
 if __name__ == "__main__":
-    # from callback.plot_training_callback import PlotTrainingCallback
+    from callback.plot_training_callback import PlotTrainingCallback
 
-    # plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100)
+    # plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10)
 
     agent = Agent(custom_env=init_custom_factory_env())
 
-    # plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10)
     # agent.learn(total_time_steps=100, log_interval=5, callback=plot_training_callback)
     agent.learn()
 
