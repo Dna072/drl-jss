@@ -25,7 +25,16 @@ class Job:
     Job class
     """
 
-    __MAX_NUM_RECIPES_PER_JOB: int = 1
+    ####################
+    # public constants #
+    ####################
+
+    MAX_NUM_RECIPES_PER_JOB: int = 1
+    MAX_PRIORITY_LEVEL: int = 3
+
+    #####################
+    # private constants #
+    #####################
 
     __STATUS_STR: dict[int, str] = {
         0: "AVAILABLE",
@@ -61,7 +70,7 @@ class Job:
 
         self.__recipes: list[Recipe] = recipes
         self.__recipes_pending: list[Recipe] = recipes.copy()[
-            : self.__MAX_NUM_RECIPES_PER_JOB
+            : self.MAX_NUM_RECIPES_PER_JOB
         ]  # limit num recipes to max per job
         self.__recipes_in_progress: list[Recipe] = []
         self.__recipes_completed: list[Recipe] = []
@@ -121,7 +130,7 @@ class Job:
         return self.__recipes_completed
 
     def get_max_num_recipes(self) -> int:
-        return self.__MAX_NUM_RECIPES_PER_JOB
+        return self.MAX_NUM_RECIPES_PER_JOB
 
     def update_recipes(self, recipes_update: list[Recipe]) -> None:
         self.__recipes = recipes_update
@@ -171,7 +180,7 @@ class Job:
 
     def reset(self) -> None:
         self.__status = 0
-        self.__recipes_pending = self.__recipes.copy()[: self.__MAX_NUM_RECIPES_PER_JOB]
+        self.__recipes_pending = self.__recipes.copy()[: self.MAX_NUM_RECIPES_PER_JOB]
         self.__recipes_in_progress = []
         self.__recipes_completed = []
         self.__timestamp_current_status = None

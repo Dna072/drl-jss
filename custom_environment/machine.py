@@ -1,5 +1,5 @@
 """
-Custom machine class for basic concept:
+Custom Machine class for basic concept:
     1.  All jobs have only one recipe.
     2.  All jobs have a deadline.
     3.  All jobs are inserted into a machine using trays.
@@ -24,6 +24,10 @@ class Machine:
     """
     Machine class
     """
+
+    #####################
+    # private constants #
+    #####################
 
     __MAX_JOBS_PER_MACHINE: int = 1
     __AVAILABILITY_STR: dict[bool, str] = {False: "UNAVAILABLE", True: "AVAILABLE"}
@@ -142,7 +146,7 @@ class Machine:
                 job_to_assign.set_recipe_in_progress(
                     recipe=next_valid_recipe_to_process
                 )
-        return self.__is_available
+        return not self.__is_available
 
     def remove_job_assignment(self, job: Job) -> None:
         self.__active_jobs.remove(job)

@@ -73,11 +73,11 @@ class Agent:
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
 
-    # plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10)
+    # plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100)
 
     agent = Agent(custom_env=init_custom_factory_env())
 
-    # agent.learn(total_time_steps=100, log_interval=5, callback=plot_training_callback)
+    # agent.learn(total_time_steps=100_000, log_interval=5, callback=plot_training_callback)
     agent.learn()
 
     agent.save()

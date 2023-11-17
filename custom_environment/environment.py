@@ -1,5 +1,5 @@
 """
-Custom FactoryEnv class for basic concept:
+Custom FactoryEnvironment class for basic concept:
     1.  All jobs have only one recipe.
     2.  All jobs have a deadline.
     3.  All jobs are inserted into a machine using trays.
@@ -38,14 +38,15 @@ class FactoryEnv(gym.Env):
     # public constants #
     ####################
 
-    INVALID_ACTION_STR: str = "INVALID ACTION"
     NO_OP_STR: str = "NO-OP"
-    IDLE_STR: str = "IDLE"
-    DEADLINE_STR: str = "DEADLINE"
-    COMPLETED_STR: str = "COMPLETED"
+    MACHINE_IDLE_STR: str = "MACHINE_IDLE"
+    MACHINE_UNAVAILABLE_STR: str = "MACHINE UNAVAILABLE"
+    JOB_COMPLETED_ON_TIME_STR: str = "JOB_COMPLETED_ON_TIME"
+    JOB_COMPLETED_NOT_ON_TIME_STR: str = "JOB_COMPLETED_NOT_ON_TIME"
+    INVALID_JOB_RECIPE_STR: str = "INVALID JOB RECIPE"
+    DEADLINE_EXCEEDED_STR: str = "DEADLINE_EXCEEDED"
+    ILLEGAL_ACTION_STR: str = "ILLEGAL ACTION"
     NEUTRAL_STR: str = "NEUTRAL"
-    ILLEGAL_STR: str = "ILLEGAL"
-    UNAVAILABLE_STR: str = "UNAVAILABLE"
 
     MAX_RECIPES_IN_ENV_SYSTEM: int = 2
 
@@ -54,20 +55,22 @@ class FactoryEnv(gym.Env):
     #####################
 
     __BUFFER_LEN: int = 3
-    __NO_OP_ACTION: int = 0
+    __NO_OP_SPACE: int = 1
     __NUM_GOALS = 2  # minimize tardiness, maximize efficiency
 
     __MAX_MACHINES: int = 2
     __MAX_MACHINES_ASSIGNED_JOBS_PER_STEP: int = 1
 
     __REWARD_WEIGHTS: dict[str, int] = {
-        IDLE_STR: -1,
-        DEADLINE_STR: -5,
-        COMPLETED_STR: 5,
-        UNAVAILABLE_STR: 1,
+        NO_OP_STR: -0.5,
+        MACHINE_IDLE_STR: -1,
+        MACHINE_UNAVAILABLE_STR: -1,
+        JOB_COMPLETED_ON_TIME_STR: 10,
+        JOB_COMPLETED_NOT_ON_TIME_STR: 5,
+        INVALID_JOB_RECIPE_STR: -5,
+        DEADLINE_EXCEEDED_STR: -5,
+        ILLEGAL_ACTION_STR: -10,
         NEUTRAL_STR: 0,
-        ILLEGAL_STR: -10,
-        NO_OP_STR: __NO_OP_ACTION,
     }
 
     __REWARD_TIME_PENALTIES: dict[str, dict[str, int | float]] = {
@@ -78,8 +81,10 @@ class FactoryEnv(gym.Env):
     # observation space constant dict keys
     __PENDING_JOBS_STR: str = "pending_jobs"
     __MACHINES_STR: str = "machines"
-    __ACHIEVED_GOAL: str = "achieved_goal"
-    __DESIRED_GOAL: str = "desired_goal"
+    __JOB_PRIORITIES_STR: str = "job_priorities"
+    __JOB_REMAINING_TIMES_STR: str = "job_remaining_times"
+    __ACHIEVED_GOAL_STR: str = "achieved_goal"
+    __DESIRED_GOAL_STR: str = "desired_goal"
 
     __METADATA: dict[int, str] = {0: "vector", 1: "human"}
 
@@ -104,6 +109,8 @@ class FactoryEnv(gym.Env):
         ]  # buffer of restricted len
         self.__jobs_in_progress: list[tuple[Machine, Job]] = []
         self.__completed_jobs: list[Job] = []
+        self.__jobs_completed_per_step_on_time: int = 0
+        self.__jobs_completed_per_step_not_on_time: int = 0
 
         self.__max_steps: int = max_steps
         self.__time_step: int = 0
@@ -115,15 +122,15 @@ class FactoryEnv(gym.Env):
         # callback #
         ############
 
-        self.episode_reward_sum: int = 0  # for callback graphing train performance
+        self.episode_reward_sum: float = 0.0  # for callback graphing train performance
 
         ################
         # action space #
         ################
 
-        self.action_space: gym.spaces.Discrete = gym.spaces.Discrete(
-            2
-        )  # binary: Op or No-op
+        self.action_space = gym.spaces.Discrete(
+            len(self.__machines) * self.__BUFFER_LEN + self.__NO_OP_SPACE
+        )
 
         #####################
         # observation space #
@@ -135,16 +142,25 @@ class FactoryEnv(gym.Env):
         self.__achieved_goal: np.ndarray[float] = np.zeros(
             shape=self.__NUM_GOALS, dtype=np.float64
         )  # jobs completed on time, machine efficiency
+        self.__jobs_priorities: np.ndarray[float] = np.zeros(
+            shape=self.__BUFFER_LEN, dtype=np.float64
+        )  # job priorities -- should remain constant per buffer
         self.__jobs_not_completed_on_time: int = 0
 
         pending_jobs_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=1, shape=(len(self.__jobs),), dtype=np.float64
+            low=0, high=1, shape=(self.__BUFFER_LEN,), dtype=np.float64
         )
         machine_space: gym.spaces.Box = gym.spaces.Box(
             low=0,
             high=1,
-            shape=(len(self.__machines) * len(self.__jobs),),
+            shape=(len(self.__machines) * self.__BUFFER_LEN,),
             dtype=np.float64,
+        )
+        job_priorities_space: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=3, shape=(self.__BUFFER_LEN,), dtype=np.float64
+        )
+        job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
+            low=-np.inf, high=np.inf, shape=(self.__BUFFER_LEN,), dtype=np.float64
         )
         achieved_goal_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(len(self.__achieved_goal),), dtype=np.float64
@@ -152,14 +168,27 @@ class FactoryEnv(gym.Env):
         desired_goal_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(len(self.__desired_goal),), dtype=np.float64
         )
+
         self.observation_space: gym.spaces.Dict = gym.spaces.Dict(
             {
                 self.__PENDING_JOBS_STR: pending_jobs_space,
                 self.__MACHINES_STR: machine_space,
-                self.__ACHIEVED_GOAL: achieved_goal_space,
-                self.__DESIRED_GOAL: desired_goal_space,
+                self.__JOB_PRIORITIES_STR: job_priorities_space,
+                self.__JOB_REMAINING_TIMES_STR: job_remaining_times_space,
+                self.__ACHIEVED_GOAL_STR: achieved_goal_space,
+                self.__DESIRED_GOAL_STR: desired_goal_space,
             }
         )
+        self.__set_job_priority_observations()
+
+    def __set_job_priority_observations(self):
+        """
+        Initializes the job priorities for the observation dictionary -- this should remain constant per buffer
+        """
+        for job in self.__pending_jobs:
+            self.__jobs_priorities[job.get_id()] = (
+                job.get_priority() / job.MAX_PRIORITY_LEVEL
+            )
 
     def __compute_achieved_goals(self) -> None:
         """
@@ -200,27 +229,40 @@ class FactoryEnv(gym.Env):
 
     def get_obs(self) -> dict[str, np.ndarray[float]]:
         """
-        return: observation dict containing binary arrays for pending jobs, machines' active jobs, and goals
+        return: obs dict containing binary arrays for pending jobs, machine activity, job priorities, times, and goals
         """
         # update pending jobs observation
-        is_pending_jobs = np.zeros(len(self.__jobs), dtype=np.float64)
+        is_pending_jobs: np.ndarray = np.zeros(self.__BUFFER_LEN, dtype=np.float64)
         for job in self.__pending_jobs:
             is_pending_jobs[job.get_id()] = 1.0
 
         # update machines and active jobs mapping observation
-        is_machines_active_jobs = np.zeros(
-            (len(self.__machines), len(self.__jobs)), dtype=np.float64
+        is_machines_active_jobs: np.ndarray = np.zeros(
+            (len(self.__machines), self.__BUFFER_LEN), dtype=np.float64
         )
         for machine in self.__machines:
             for job in machine.get_active_jobs():
                 is_machines_active_jobs[machine.get_id(), job.get_id()] = 1.0
 
+        # update job remaining times observation TODO: should we also include times for jobs completed past deadlines?
+        job_remaining_times: np.ndarray = np.zeros(self.__BUFFER_LEN, dtype=np.float64)
+        current_datetime: datetime = datetime.now()
+        for job in [
+            *self.__pending_jobs,
+            *[job_in_progress[1] for job_in_progress in self.__jobs_in_progress],
+        ]:
+            job_remaining_times[job.get_id()] = (
+                job.get_deadline_datetime() - current_datetime
+            ).total_seconds()
+
         self.__compute_achieved_goals()
         return {
             self.__PENDING_JOBS_STR: is_pending_jobs,
             self.__MACHINES_STR: is_machines_active_jobs.flatten(),
-            self.__ACHIEVED_GOAL: self.__achieved_goal,
-            self.__DESIRED_GOAL: self.__desired_goal,
+            self.__JOB_PRIORITIES_STR: self.__jobs_priorities,
+            self.__JOB_REMAINING_TIMES_STR: job_remaining_times,
+            self.__ACHIEVED_GOAL_STR: self.__achieved_goal,
+            self.__DESIRED_GOAL_STR: self.__desired_goal,
         }
 
     def __compute_reward_partial_penalties(self) -> float:
@@ -262,40 +304,42 @@ class FactoryEnv(gym.Env):
                 else:
                     total_time_past_job_deadlines += time_past_job_deadline
 
-        return self.__REWARD_WEIGHTS[self.DEADLINE_STR] * total_time_past_job_deadlines
+        return (
+            self.__REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
+            * total_time_past_job_deadlines
+        )
 
-    def __compute_custom_reward(self, num_jobs_complete: int = 0) -> int:
+    def __compute_custom_reward(self) -> float:
         """
         Compute step reward based on minimizing of tardiness and maximizing of machine efficiency, and
         increment episode reward sum for callback graphing of the training performance.
         Helper private method for the overridden env step() method
-        :return: total sum of rewards for the step, including all proportional penalties
+        :return: total sum of proportional rewards for the step, including all proportional penalties
         """
-        # init reward with sum of greatest value for each completed job since the previous step
-        reward: float = self.__REWARD_WEIGHTS[self.COMPLETED_STR] * num_jobs_complete
+        # init reward with sum of reward for each completed job, on and not on time, since the previous step
+        reward: float = (
+            self.__REWARD_WEIGHTS[self.JOB_COMPLETED_ON_TIME_STR]
+            * self.__jobs_completed_per_step_on_time
+            + self.__REWARD_WEIGHTS[self.JOB_COMPLETED_NOT_ON_TIME_STR]
+        ) * self.__jobs_completed_per_step_not_on_time
+        self.__jobs_completed_per_step_on_time = (
+            self.__jobs_completed_per_step_not_on_time
+        ) = 0
 
         for machine in self.__machines:
             if machine.is_available():
-                # increment reward penalty for every idle machine proportional to total idle time
-                reward += self.__REWARD_WEIGHTS[self.IDLE_STR] * machine.get_time_idle()
-            else:
-                # increment reward for every active machine
-                reward += self.__REWARD_WEIGHTS[self.UNAVAILABLE_STR]
-
-        custom_reward: int = int(
-            round(reward + self.__compute_reward_partial_penalties())
-        )
-        self.episode_reward_sum += (
-            custom_reward  # for callback graphing training performance
-        )
-        return custom_reward
+                # increment reward penalty proportional sum total machine idle time TODO: keep? already used in obs goal
+                reward += (
+                    self.__REWARD_WEIGHTS[self.MACHINE_IDLE_STR]
+                    * machine.get_time_idle()
+                )
+        return reward + self.__compute_reward_partial_penalties()
 
     def __update_unavailable_machine_state(self, machine: Machine) -> int:
         """
         Checks unavailable machine job processing states and updates on completions since the last step.
         Updates time of progress for each recipe being processed by an unavailable machine.
         Helper private method for __update_factory_env_state(), which is a helper private method for step()
-        TODO: refactor when more than one recipe per job, as although iterates all recipes, handles just one
         :param machine: a Machine object that was unavailable for assigning jobs to in the prior step
         :return: the number of job recipes that have been completed by a machine since the last step
         """
@@ -315,6 +359,12 @@ class FactoryEnv(gym.Env):
                     )
                     machine.remove_job_assignment(job=job)
                     num_recipes_complete += 1
+
+                    # increment jobs completed counters based on whether on time or not
+                    if job.get_deadline_datetime() < datetime.now():
+                        self.__jobs_completed_per_step_on_time += 1
+                    else:
+                        self.__jobs_completed_per_step_not_on_time += 1
         return num_recipes_complete
 
     def __is_jobs_done(self) -> bool:
@@ -323,7 +373,7 @@ class FactoryEnv(gym.Env):
     def __update_factory_env_state(self) -> tuple[bool, int]:
         """
         Check and update the status of machines and jobs being processed since the last step.
-        Updates time in total factory process, and each Machine object's activity or idleness.
+        Updates time in total factory process, and each Machine object's total activity or idleness.
         Helper private method for the overridden env step() method
         :return: conditional for if all jobs in the buffer are completed, number of jobs completed in current step
         """
@@ -361,47 +411,29 @@ class FactoryEnv(gym.Env):
                 )  # update machine idle time
             machine.set_timestamp_status(
                 timestamp_status_at_step=datetime.now()
-            )  # incrementally set each step
+            )  # incrementally set each step - critical
 
         return self.__is_jobs_done(), num_jobs_complete
 
-    def __init_machine_job(self, machine: Machine) -> int:
+    def __init_machine_job(self, selected_machine: Machine, selected_job: Job) -> bool:
         """
-        Add pending job(s) to an available machine given job(s) recipe(s) are valid for given machine.
-        Pending jobs are added to machine in order of priority and time remaining until deadline, given valid recipes.
+        Add one pending job to one available machine given one job recipe is valid for given machine.
         Helper private method for Env step() method
-        :param machine: the available machine pending job assignment
-        :return: 1 to represent one machine is assigned a new pending job, otherwise 0 to indicate no jobs are assigned
+        :param selected_machine: the available machine pending job assignment
+        :param selected_job: the available job pending machine assignment
+        :return: True if machine is assigned new pending job(s), otherwise False
         """
-        num_jobs_assigned: int = 0
-        current_date_time: datetime = datetime.now()
-
-        for pending_job in sorted(
-            self.__pending_jobs,
-            key=lambda j: (
-                j.get_priority(),
-                current_date_time - j.get_deadline_datetime(),
-            ),
-            reverse=True,
-        ):
-            if machine.assign_job(job_to_assign=pending_job):
-                self.__jobs_in_progress.append((machine, pending_job))
-                self.__pending_jobs.remove(pending_job)
-                num_jobs_assigned += 1
-
-            # check the number of jobs assigned to a single machine does not exceed the limit
-            if machine.get_max_num_jobs() <= num_jobs_assigned:
-                break
-
-        return int(num_jobs_assigned > 0)
+        if selected_machine.assign_job(job_to_assign=selected_job):
+            self.__jobs_in_progress.append((selected_machine, selected_job))
+            self.__pending_jobs.remove(selected_job)
+        return not selected_machine.is_available()
 
     def step(
         self, action: np.ndarray
     ) -> tuple[dict[str, np.ndarray[any]], float, bool, bool, dict[str, str]]:
         """
         Take a single step in the factory environment.
-        Assigns first available machine supporting recipe type the highest priority job with most pending deadline.
-        TODO: optimise allocation of jobs to available machines for improved learning, ...
+        TODO: optimise different rewards being returned
         :param action: the agent's action to take in the step
         :return: (observation, reward, terminated, truncated, info)
         """
@@ -411,53 +443,68 @@ class FactoryEnv(gym.Env):
         ) = (
             self.__update_factory_env_state()
         )  # check and update env, job and machine status
+        step_reward: float = self.__compute_custom_reward()  # compute step reward
 
-        is_machine_available: bool = False
-        available_machines_assigned_jobs: int = 0
-
-        for machine in self.__machines:
-            if (
-                available_machines_assigned_jobs
-                <= self.__MAX_MACHINES_ASSIGNED_JOBS_PER_STEP
-            ):
-                if machine.is_available():
-                    self.__time_step += 1  # increment step counter only when there is a machine available
-                    is_terminated = self.__time_step > self.__max_steps
-                    is_machine_available = True
-
-                    if action == self.__NO_OP_ACTION:
-                        return (
-                            self.get_obs(),  # observation
-                            self.__REWARD_WEIGHTS[self.NO_OP_STR],  # reward
-                            is_terminated,  # terminated
-                            True,  # truncated
-                            {"Error": self.NO_OP_STR},  # info
-                        )
-                    elif action != self.__NO_OP_ACTION:
-                        if not self.__pending_jobs:
-                            pass  # TODO: no pending jobs are available, should we update with more?
-                        available_machines_assigned_jobs += self.__init_machine_job(
-                            machine=machine
-                        )
-
-        if is_machine_available:
+        if action == len(self.__machines) * self.__BUFFER_LEN:
+            # no operation is returned as the action for the step  # TODO: condition for if machine available or not?
+            self.episode_reward_sum += (
+                self.__REWARD_WEIGHTS[self.NO_OP_STR] + step_reward
+            )
             return (
                 self.get_obs(),  # observation
-                self.__compute_custom_reward(
-                    num_jobs_complete=num_jobs_complete
-                ),  # reward
+                self.__REWARD_WEIGHTS[self.NO_OP_STR] + step_reward,  # reward
                 is_terminated,  # terminated
-                False,  # truncated
-                {},  # info
+                True,  # truncated
+                {"Error": self.NO_OP_STR},  # info
             )
 
-        # TODO: define return when no machine is available, and thus no step
+        action_selected_machine = self.__machines[
+            action // self.__BUFFER_LEN
+        ]  # get action selected machine
+        if action_selected_machine.is_available():
+            self.__time_step += 1  # increment step counter only when the action selected machine is available
+            is_terminated = self.__time_step > self.__max_steps
+
+            action_selected_job = self.__jobs[
+                action % self.__BUFFER_LEN
+            ]  # get action selected job
+            if self.__init_machine_job(
+                selected_machine=action_selected_machine,
+                selected_job=action_selected_job,
+            ):
+                # action selected machine is available and action selected job is valid for selected machine
+                self.episode_reward_sum += step_reward
+                return (
+                    self.get_obs(),  # observation
+                    step_reward,  # reward
+                    is_terminated,  # terminated
+                    False,  # truncated
+                    {},  # info
+                )
+
+            # action selected machine is available but action selected job is invalid for selected machine
+            self.episode_reward_sum += (
+                self.__REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR] + step_reward
+            )
+            return (
+                self.get_obs(),  # observation
+                self.__REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR]
+                + step_reward,  # reward
+                is_terminated,  # terminated
+                False,  # truncated
+                {"Error": self.INVALID_JOB_RECIPE_STR},  # info
+            )
+
+        # action selected machine is unavailable
+        self.episode_reward_sum += (
+            self.__REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward
+        )
         return (
             self.get_obs(),  # observation
-            self.__REWARD_WEIGHTS[self.NEUTRAL_STR],  # reward
+            self.__REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward,  # reward
             is_terminated,  # terminated
             False,  # truncated
-            {"Error": self.INVALID_ACTION_STR},  # info
+            {"Error": self.MACHINE_UNAVAILABLE_STR},  # info
         )
 
         # action selected machine is unavailable
@@ -691,6 +738,35 @@ class FactoryEnv(gym.Env):
                 )
                 fig.show()
                 sleep(secs=1)  # TODO: remove after dev testing
+
+    def reset(
+        self, seed: int = None, options: str = None
+    ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
+        """
+        Reset the environment state
+        """
+        self.__time_step = 0
+        self.__total_factory_process_time = 0.0
+
+        self.__achieved_goal: np.ndarray[float] = np.zeros(
+            shape=self.__NUM_GOALS, dtype=np.float64
+        )  # obs space achieved goals
+
+        self.episode_reward_sum = 0  # for callback graphing train performance
+
+        for machine in self.__total_machines_available:
+            machine.reset()
+        self.__machines: list[Machine] = self.__total_machines_available.copy()[
+            : self.__MAX_MACHINES
+        ]
+
+        for job in self.__jobs:
+            job.reset()
+        self.__pending_jobs = self.__jobs.copy()[: self.__BUFFER_LEN]
+        self.__jobs_in_progress = []
+        self.__completed_jobs = []
+
+        return self.get_obs(), {}
 
     def close(self) -> None:
         """
