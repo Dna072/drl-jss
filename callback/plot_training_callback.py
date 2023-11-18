@@ -99,4 +99,6 @@ if __name__ == "__main__":
     env: FactoryEnv = init_custom_factory_env()
     agent: Agent = Agent(custom_env=env)
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100)
-    agent.learn(total_time_steps=100_000, log_interval=5, callback=plot_training_callback)
+    agent.learn(
+        total_time_steps=100_000, log_interval=5, callback=plot_training_callback
+    )

@@ -71,7 +71,7 @@ class Agent:
 
 
 if __name__ == "__main__":
-    from callback.plot_training_callback import PlotTrainingCallback
+    # from callback.plot_training_callback import PlotTrainingCallback
 
     # plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100)
 

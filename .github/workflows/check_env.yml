@@ -28,11 +28,10 @@ jobs:
           cache: pip
           cache-dependency-path: '**/requirements.txt'
 
-      # Install gymnasium and stable-baselines3 libraries
+      # Install gymnasium, stable-baselines3 and other requirements.txt libraries
       - name: Install gym and stable-baselines3
         run: |
-          pip install numpy gym gymnasium
-          pip install stable-baselines3
+          pip install -r requirements.txt
 
       - name: Check Custom Environment
         run: |
