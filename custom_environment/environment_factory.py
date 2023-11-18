@@ -29,8 +29,7 @@ from random import randint
 =======
 >>>>>>> 5266eee (Update custom environment)
 
-def create_factory_env(machines: list[Machine], jobs: list[Job]):
->>>>>>> edf1bb7 (Basic custom env with agent training graph callback)
+def create_factory_env(machines: list[Machine], jobs: list[Job]) -> FactoryEnv:
     """
     Factory function for creating a FactoryEnv object
     :param machines: list of Machine objects

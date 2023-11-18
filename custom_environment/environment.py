@@ -1,5 +1,5 @@
 """
-Custom FactoryEnvironment class for basic concept:
+Custom FactoryEnv class for basic concept:
     1.  All jobs have only one recipe.
     2.  All jobs have a deadline.
     3.  All jobs are inserted into a machine using trays.
@@ -507,148 +507,6 @@ class FactoryEnv(gym.Env):
             {"Error": self.MACHINE_UNAVAILABLE_STR},  # info
         )
 
-        # action selected machine is unavailable
-        self.episode_reward_sum += (
-            self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward
-        )
-        return (
-            self.get_obs(),  # observation
-            self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward,  # reward
-            is_terminated,  # terminated
-            False,  # truncated
-            {"Error": self.MACHINE_UNAVAILABLE_STR},  # info
-        )
-
-    def render(self):
-        """
-        Print the current state of the environment at a step
-        """
-        for machine in self._machines:
-            print(machine)
-            print("/-------------------------/")
-
-        if self._render_mode == self._METADATA[0]:
-            for machine in self._machines:
-                print(machine)
-                print("/-------------------------/")
-            print()
-            print("********************************")
-            print()
-            for job in self._jobs:
-                print(job)
-                print("/-------------------------/")
-        elif self._render_mode == self._METADATA[1]:
-            data = []
-            colors = {
-                "Machine 0": "rgb(255, 0, 0)",
-                "Machine 1": "rgb(170, 14, 200)",
-                "Machine 2": (1, 1, 0.2),
-            }
-
-            for machine in self._machines:
-                for job in machine.get_active_jobs():
-                    start_time_str = machine.get_timestamp_status().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                    finish_time = machine.get_timestamp_status() + timedelta(
-                        seconds=job.get_recipes_in_progress()[0].get_process_time()
-                    )
-                    finish_time_str = finish_time.strftime("%Y-%m-%d %H:%M:%S")
-                    num_recipes_completed = len(job.get_recipes_completed()) / len(
-                        job.get_recipes()
-                    )
-                    dp = dict(
-                        Task="Job " + str(job.get_id()),
-                        Start=start_time_str,
-                        Finish=finish_time_str,
-                        Complete=num_recipes_completed,
-                        Resource="Machine ID: " + str(machine.get_id()),
-                    )
-                    data.append(dp)
-
-            if not len(data) == 0:
-                clear_output(wait=True)
-                fig = ff.create_gantt(
-                    data,
-                    colors=colors,
-                    index_col="Resource",
-                    show_colorbar=True,
-                    title="Job-Machine Assignment",
-                )
-                fig.show()
-                sleep(secs=1)  # TODO: remove after dev testing
-
-        # action selected machine is unavailable
-        self.episode_reward_sum += (
-            self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward
-        )
-        return (
-            self.get_obs(),  # observation
-            self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward,  # reward
-            is_terminated,  # terminated
-            False,  # truncated
-            {"Error": self.MACHINE_UNAVAILABLE_STR},  # info
-        )
-
-    def render(self):
-        """
-        Print the current state of the environment at a step
-        """
-        for machine in self._machines:
-            print(machine)
-            print("/-------------------------/")
-
-        if self._render_mode == self._METADATA[0]:
-            for machine in self._machines:
-                print(machine)
-                print("/-------------------------/")
-            print()
-            print("********************************")
-            print()
-            for job in self._jobs:
-                print(job)
-                print("/-------------------------/")
-        elif self._render_mode == self._METADATA[1]:
-            data = []
-            colors = {
-                "Machine 0": "rgb(255, 0, 0)",
-                "Machine 1": "rgb(170, 14, 200)",
-                "Machine 2": (1, 1, 0.2),
-            }
-
-            for machine in self._machines:
-                for job in machine.get_active_jobs():
-                    start_time_str = machine.get_timestamp_status().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                    finish_time = machine.get_timestamp_status() + timedelta(
-                        seconds=job.get_recipes_in_progress()[0].get_process_time()
-                    )
-                    finish_time_str = finish_time.strftime("%Y-%m-%d %H:%M:%S")
-                    num_recipes_completed = len(job.get_recipes_completed()) / len(
-                        job.get_recipes()
-                    )
-                    dp = dict(
-                        Task="Job " + str(job.get_id()),
-                        Start=start_time_str,
-                        Finish=finish_time_str,
-                        Complete=num_recipes_completed,
-                        Resource="Machine ID: " + str(machine.get_id()),
-                    )
-                    data.append(dp)
-
-            if not len(data) == 0:
-                clear_output(wait=True)
-                fig = ff.create_gantt(
-                    data,
-                    colors=colors,
-                    index_col="Resource",
-                    show_colorbar=True,
-                    title="Job-Machine Assignment",
-                )
-                fig.show()
-                sleep(secs=1)  # TODO: remove after dev testing
-
     def reset(
         self, seed: int = None, options: str = None
     ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
@@ -738,35 +596,6 @@ class FactoryEnv(gym.Env):
                 )
                 fig.show()
                 sleep(secs=1)  # TODO: remove after dev testing
-
-    def reset(
-        self, seed: int = None, options: str = None
-    ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
-        """
-        Reset the environment state
-        """
-        self.__time_step = 0
-        self.__total_factory_process_time = 0.0
-
-        self.__achieved_goal: np.ndarray[float] = np.zeros(
-            shape=self.__NUM_GOALS, dtype=np.float64
-        )  # obs space achieved goals
-
-        self.episode_reward_sum = 0  # for callback graphing train performance
-
-        for machine in self.__total_machines_available:
-            machine.reset()
-        self.__machines: list[Machine] = self.__total_machines_available.copy()[
-            : self.__MAX_MACHINES
-        ]
-
-        for job in self.__jobs:
-            job.reset()
-        self.__pending_jobs = self.__jobs.copy()[: self.__BUFFER_LEN]
-        self.__jobs_in_progress = []
-        self.__completed_jobs = []
-
-        return self.get_obs(), {}
 
     def close(self) -> None:
         """
