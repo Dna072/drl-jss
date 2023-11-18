@@ -24,6 +24,5 @@ from custom_environment.job import Job
 
 
 class FactoryEnvWrapper(FactoryEnv):
-
     def __init__(self, machines: list[Machine], jobs: list[Job]):
         super().__init__(machines, jobs)

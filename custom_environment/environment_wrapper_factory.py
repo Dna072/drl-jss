@@ -7,7 +7,9 @@ from custom_environment.recipe import Recipe
 from custom_environment.job import Job
 
 
-def create_factory_env_wrapper(machines: list[Machine], jobs: list[Job]) -> FactoryEnvWrapper:
+def create_factory_env_wrapper(
+    machines: list[Machine], jobs: list[Job]
+) -> FactoryEnvWrapper:
     """
     Factory function for creating a FactoryEnvWrapper object
     :param machines: list of Machine objects
@@ -93,12 +95,19 @@ def init_custom_factory_env_wrapper(is_verbose: bool = False) -> FactoryEnvWrapp
             print(machine)
             print("-------")
 
-    factory_env_wrapper: FactoryEnvWrapper = create_factory_env_wrapper(machines=machines, jobs=jobs)
+    factory_env_wrapper: FactoryEnvWrapper = create_factory_env_wrapper(
+        machines=machines, jobs=jobs
+    )
     return factory_env_wrapper
 
 
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    custom_factory_env_wrapper: FactoryEnvWrapper = init_custom_factory_env_wrapper(is_verbose=True)
-    print("\nCustom environment wrapper check errors:", check_env(custom_factory_env_wrapper))
+    custom_factory_env_wrapper: FactoryEnvWrapper = init_custom_factory_env_wrapper(
+        is_verbose=True
+    )
+    print(
+        "\nCustom environment wrapper check errors:",
+        check_env(custom_factory_env_wrapper),
+    )
