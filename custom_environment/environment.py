@@ -429,7 +429,7 @@ class FactoryEnv(gym.Env):
         return not selected_machine.is_available()
 
     def step(
-        self, action: np.ndarray
+        self, action: np.int64
     ) -> tuple[dict[str, np.ndarray[any]], float, bool, bool, dict[str, str]]:
         """
         Take a single step in the factory environment.
@@ -507,35 +507,6 @@ class FactoryEnv(gym.Env):
             {"Error": self.MACHINE_UNAVAILABLE_STR},  # info
         )
 
-    def reset(
-        self, seed: int = None, options: str = None
-    ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
-        """
-        Reset the environment state
-        """
-        self.__time_step = 0
-        self.__total_factory_process_time = 0.0
-
-        self.__achieved_goal: np.ndarray[float] = np.zeros(
-            shape=self.__NUM_GOALS, dtype=np.float64
-        )  # obs space achieved goals
-
-        self.episode_reward_sum = 0  # for callback graphing train performance
-
-        for machine in self.__total_machines_available:
-            machine.reset()
-        self.__machines: list[Machine] = self.__total_machines_available.copy()[
-            : self.__MAX_MACHINES
-        ]
-
-        for job in self.__jobs:
-            job.reset()
-        self.__pending_jobs = self.__jobs.copy()[: self.__BUFFER_LEN]
-        self.__jobs_in_progress = []
-        self.__completed_jobs = []
-
-        return self.get_obs(), {}
-
     def render(self):
         """
         Print the current state of the environment at a step
@@ -596,6 +567,35 @@ class FactoryEnv(gym.Env):
                 )
                 fig.show()
                 sleep(secs=1)  # TODO: remove after dev testing
+
+    def reset(
+        self, seed: int = None, options: str = None
+    ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
+        """
+        Reset the environment state
+        """
+        self.__time_step = 0
+        self.__total_factory_process_time = 0.0
+
+        self.__achieved_goal: np.ndarray[float] = np.zeros(
+            shape=self.__NUM_GOALS, dtype=np.float64
+        )  # obs space achieved goals
+
+        self.episode_reward_sum = 0  # for callback graphing train performance
+
+        for machine in self.__total_machines_available:
+            machine.reset()
+        self.__machines: list[Machine] = self.__total_machines_available.copy()[
+            : self.__MAX_MACHINES
+        ]
+
+        for job in self.__jobs:
+            job.reset()
+        self.__pending_jobs = self.__jobs.copy()[: self.__BUFFER_LEN]
+        self.__jobs_in_progress = []
+        self.__completed_jobs = []
+
+        return self.get_obs(), {}
 
     def close(self) -> None:
         """
