@@ -421,7 +421,7 @@ class FactoryEnv(gym.Env):
         Helper private method for Env step() method
         :param selected_machine: the available machine pending job assignment
         :param selected_job: the available job pending machine assignment
-        :return: True if machine is assigned new pending job(s), otherwise False
+        :return: True if machine is assigned new pending job, otherwise False
         """
         if selected_machine.assign_job(job_to_assign=selected_job):
             self.__jobs_in_progress.append((selected_machine, selected_job))
