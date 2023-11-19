@@ -429,7 +429,7 @@ class FactoryEnv(gym.Env):
         return not selected_machine.is_available()
 
     def step(
-        self, action: np.int64
+        self, action: np.ndarray
     ) -> tuple[dict[str, np.ndarray[any]], float, bool, bool, dict[str, str]]:
         """
         Take a single step in the factory environment.
