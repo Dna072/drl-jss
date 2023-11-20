@@ -12,6 +12,7 @@ class PlotTrainingCallback(BaseCallback):
 
     __CALLBACK_FREQ_REMAINDER = 0  # the remainder value representing the frequency of callback for plotting train data
     __FILE_PATH = "../files/models"
+    __FILE_NAME = "best_mean_return.pt"
 
     def __init__(
         self, plot_freq: int, verbose: int = 1, is_save_best_model: bool = True
@@ -50,7 +51,7 @@ class PlotTrainingCallback(BaseCallback):
                 if self.__is_save_best_model:
                     save(
                         obj=self.model.policy.state_dict(),
-                        f=f"{self.__FILE_PATH}/best_mean_return.pt",
+                        f=path.join(self.__FILE_PATH, self.__FILE_NAME),
                     )
 
                 if self.verbose:

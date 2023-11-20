@@ -197,7 +197,7 @@ class FactoryEnv(gym.Env):
         """
         # update achieved tardiness goal observation
         num_jobs_completed_on_time: int = sum(
-            [1 for job in self.__completed_jobs if job.is_past_deadline_date()]
+            [1 for job in self.__completed_jobs if not job.is_past_deadline_date()]
         )
         proportion_jobs_completed_on_time: float = (
             num_jobs_completed_on_time / len(self.__completed_jobs)
@@ -328,7 +328,7 @@ class FactoryEnv(gym.Env):
 
         for machine in self.__machines:
             if machine.is_available():
-                # increment reward penalty proportional sum total machine idle time TODO: keep? already used in obs goal
+                # increment reward penalty proportional sum total machine idle time
                 reward += (
                     self.__REWARD_WEIGHTS[self.MACHINE_IDLE_STR]
                     * machine.get_time_idle()
@@ -346,7 +346,7 @@ class FactoryEnv(gym.Env):
         num_recipes_complete: int = 0
         for job in machine.get_active_jobs():
             job_time_diff_seconds = (
-                datetime.now() - job.get_start_timestamp_status()
+                datetime.now() - job.get_start_op_datetime()
             ).seconds
 
             for recipe in job.get_recipes_in_progress():
@@ -433,10 +433,12 @@ class FactoryEnv(gym.Env):
     ) -> tuple[dict[str, np.ndarray[any]], float, bool, bool, dict[str, str]]:
         """
         Take a single step in the factory environment.
-        TODO: optimise different rewards being returned
+        TODO: optimise different rewards being returned -- currently just brainstorm placeholders for env testing
         :param action: the agent's action to take in the step
         :return: (observation, reward, terminated, truncated, info)
         """
+        print(action)
+
         (
             is_terminated,
             num_jobs_complete,
@@ -446,7 +448,7 @@ class FactoryEnv(gym.Env):
         step_reward: float = self.__compute_custom_reward()  # compute step reward
 
         if action == len(self.__machines) * self.__BUFFER_LEN:
-            # no operation is returned as the action for the step  # TODO: condition for if machine available or not?
+            # no operation is returned as the action for the step  # TODO: reward condition if machine available or not?
             self.episode_reward_sum += (
                 self.__REWARD_WEIGHTS[self.NO_OP_STR] + step_reward
             )
@@ -472,6 +474,8 @@ class FactoryEnv(gym.Env):
                 selected_machine=action_selected_machine,
                 selected_job=action_selected_job,
             ):
+                print(True)
+                print(step_reward)
                 # action selected machine is available and action selected job is valid for selected machine
                 self.episode_reward_sum += step_reward
                 return (
