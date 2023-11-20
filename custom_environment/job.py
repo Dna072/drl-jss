@@ -77,7 +77,9 @@ class Job:
         self.__recipes_in_progress: list[Recipe] = []
         self.__recipes_completed: list[Recipe] = []
 
-        self.__creation_datetime_str: str = datetime.now().strftime(self.__DATETIME_FORMAT)
+        self.__creation_datetime_str: str = datetime.now().strftime(
+            self.__DATETIME_FORMAT
+        )
         self.__start_op_datetime: datetime | None = None
         self.__is_past_deadline_date: bool = False
 

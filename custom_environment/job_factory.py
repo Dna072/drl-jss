@@ -29,7 +29,7 @@ def create_job(
 
 
 def get_random_job_deadline() -> str:
-    return (date.today() + timedelta(days=randint(0, 90))).strftime('%Y-%m-%d %H:%M:%S')
+    return (date.today() + timedelta(days=randint(0, 90))).strftime("%Y-%m-%d %H:%M:%S")
 
 
 if __name__ == "__main__":
