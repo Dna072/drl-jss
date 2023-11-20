@@ -77,16 +77,12 @@ class Job:
         self.__recipes_in_progress: list[Recipe] = []
         self.__recipes_completed: list[Recipe] = []
 
-        self.__creation_datetime_str: str = datetime.now().strftime(
-            __format=self.__DATETIME_FORMAT
-        )
+        self.__creation_datetime_str: str = datetime.now().strftime(self.__DATETIME_FORMAT)
         self.__start_op_datetime: datetime | None = None
         self.__is_past_deadline_date: bool = False
 
     def __get_datetime(self, datetime_str: str) -> datetime:
-        return datetime.strptime(
-            __date_string=datetime_str, __format=self.__DATETIME_FORMAT
-        )
+        return datetime.strptime(datetime_str, self.__DATETIME_FORMAT)
 
     def get_recipes(self) -> list[Recipe]:
         return self.__recipes
