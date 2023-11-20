@@ -1,98 +1,99 @@
+from custom_environment.job_factory import create_job, get_random_job_deadline
+from custom_environment.machine_factory import create_machine
+from custom_environment.recipe_factory import create_recipe
 from custom_environment.environment import FactoryEnv
 from custom_environment.machine import Machine
+from custom_environment.recipe import Recipe
 from custom_environment.job import Job
 
-import pandas as pd
 
-
-def pick_up_jobs(self, path) -> None:
+def create_factory_env(machines: list[Machine], jobs: list[Job]) -> FactoryEnv:
     """
-    In case we want to take jobs and recipes from csv file
+    Factory function for creating a FactoryEnv object
+    :param machines: list of Machine objects
+    :param jobs: list of Job objects
+    :return: FactoryEnv object
     """
-    jobs_df: pd.DataFrame = pd.read_csv(path + "jobs.csv")
-    for i, r in jobs_df.iterrows():
-        r_rec: pd.Series = r["Recipes"].replace("'", "")
-        r_rec = r_rec.split(",")
-        j = Job(
-            recipes=list(r_rec),
-            job_id=r["Id"],
-            quantity=r["Quantity"],
-            deadline=r["Deadline"],
-            priority=r["Priority"],
-        )
-        self.jobs.append(j)
-
-
-def pick_up_machines(self, path) -> None:
-    """
-    In case we want to take machines from csv file
-    """
-    machines_df: pd.DataFrame = pd.read_csv(path + "machines.csv")
-    for i, m in machines_df.iterrows():
-        m_rec: pd.Series = m["Recipes"].replace("'", "")
-        m_rec = m_rec.split(",")
-        m = Machine(m_type=m["Type"], k_recipes=list(m_rec), cap=m["Capacity"])
-        self.machines.append(m)
+    return FactoryEnv(machines=machines, jobs=jobs)
 
 
 def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
     """
     Create a custom FactoryEnv environment for development and testing
     :param is_verbose: print statements if True
-    :return: custom FactoryEnv environment instance
+    :return: custom FactoryEnv environment instance with machine, job and recipe objects
     """
-    machine_one: Machine = Machine(
-        k_recipes=["R1", "R2"], machine_id=0, m_type="A", cap=10_000
-    )
-    machine_two: Machine = Machine(
-        k_recipes=["R1", "R2"], machine_id=1, m_type="A", cap=10_000
-    )
-    machine_three: Machine = Machine(
-        k_recipes=["R2"], machine_id=2, m_type="A", cap=10_000
-    )
+    recipe_objects: list[Recipe] = [
+        create_recipe(
+            factory_id="R1_ID", process_time=1.0, process_id=0, recipe_type="R1"
+        ),
+        create_recipe(
+            factory_id="R2_ID", process_time=2.0, process_id=1, recipe_type="R2"
+        ),
+    ]
 
     if is_verbose:
-        print(machine_one)
-        print(machine_two)
-        print(machine_three)
-        print()
+        print("Recipes:")
+        for recipe in recipe_objects:
+            print(recipe)
+            print("-------")
 
-    job_one: Job = Job(
-        recipes=[1],
-        job_id=0,
-        quantity=3,
-        deadline="2024/01/04",
-        priority=1,
-    )
-    job_two: Job = Job(
-        recipes=[2],
-        job_id=1,
-        quantity=10,
-        deadline="2023/10/28",
-        priority=2,
-    )
-    job_three: Job = Job(
-        recipes=[3], job_id=2, quantity=5, deadline="2023/12/04", priority=3
-    )
+    jobs: list[Job] = [
+        create_job(
+            recipes=[(recipe_objects[0])],
+            factory_id="J1",
+            process_id=0,
+            deadline=get_random_job_deadline(),
+            priority=1,
+        ),
+        create_job(
+            recipes=[(recipe_objects[1])],
+            factory_id="J2",
+            process_id=1,
+            deadline=get_random_job_deadline(),
+            priority=2,
+        ),
+        create_job(
+            recipes=[(recipe_objects[0])],
+            factory_id="J3",
+            process_id=2,
+            deadline=get_random_job_deadline(),
+            priority=3,
+        ),
+    ]
 
     if is_verbose:
-        # job_one.recipe_in_progress("A1")
-        # job_one.recipe_completed("A1")
+        print("\nJobs:")
+        for job in jobs:
+            print(job)
+            print("-------")
 
-        print(job_one)
-        print("/--------/")
-        print(job_two)
-        print("/--------/")
-        print(job_three)
+    machines: list[Machine] = [
+        create_machine(
+            factory_id="M1",
+            process_id=0,
+            machine_type="A",
+            tray_capacity=10_000,
+            valid_recipe_types=["R1"],
+            max_recipes_per_process=1,
+        ),
+        create_machine(
+            factory_id="M3",
+            process_id=1,
+            machine_type="AB",
+            tray_capacity=10_000,
+            valid_recipe_types=["R1", "R2"],
+            max_recipes_per_process=2,
+        ),
+    ]
 
-        job_one.reset()
+    if is_verbose:
+        print("\nMachines:")
+        for machine in machines:
+            print(machine)
+            print("-------")
 
-    factory_env: FactoryEnv = FactoryEnv(
-        machines=[machine_one, machine_two, machine_three],
-        jobs=[job_one, job_two, job_three],
-    )
-
-    print(factory_env.get_legal_actions())
+    factory_env: FactoryEnv = create_factory_env(machines=machines, jobs=jobs)
     return factory_env
 
 

@@ -1,5 +1,7 @@
 from stable_baselines3.common.callbacks import BaseCallback
 import matplotlib.pyplot as plt
+from os import makedirs, path
+from torch import save
 import numpy as np
 
 
@@ -8,38 +10,54 @@ class PlotTrainingCallback(BaseCallback):
     Callback subclass for plotting the training of an agent. Extends Stable_Baselines3 BaseCallback class.
     """
 
-    CALLBACK_FREQ_REMAINDER = 0  # the remainder value representing the frequency of callback for plotting train data
+    __CALLBACK_FREQ_REMAINDER = 0  # the remainder value representing the frequency of callback for plotting train data
+    __FILE_PATH = "../files/models"
+    __FILE_NAME = "best_mean_return.pt"
 
-    def __init__(self, plot_freq: int, verbose: int = 1) -> None:
+    def __init__(
+        self, plot_freq: int, verbose: int = 1, is_save_best_model: bool = True
+    ) -> None:
         """
         Class constructor
         :param plot_freq: frequency of training data being plotted
         :param verbose: verbosity: 0 for no output, 1 for info messages, 2 for debug messages
+        :param is_save_best_model: conditional for if the model is saved every best means return
         """
         super(PlotTrainingCallback, self).__init__(verbose)
-        self.plot_freq: int = plot_freq
-        self.rewards: list[int] = []
-        self.num_eps: int = 0
-        self.mean_returns: list[float] = []
-        self.best_mean_return: float = -np.inf
+        self.__plot_freq: int = plot_freq
+        self.__rewards: list[int] = []
+        self.__num_eps: int = 0
+        self.__mean_returns: list[float] = []
+        self.__best_mean_return: float = -np.inf
+        self.__is_save_best_model: bool = is_save_best_model
+
+        if not path.exists(path=self.__FILE_PATH):
+            makedirs(name=self.__FILE_PATH)
 
     def _on_step(self) -> bool:
         """
         Called by model after each call to ``env.step()``.
         """
-        self.rewards.append(self.training_env.get_attr("episode_reward_sum")[0])
+        self.__rewards.append(self.training_env.get_attr("episode_reward_sum")[0])
 
-        if self.n_calls % self.plot_freq == self.CALLBACK_FREQ_REMAINDER:
-            self.mean_returns.append(
-                np.mean(self.rewards) / self.num_eps if self.num_eps > 0 else 0
+        if self.n_calls % self.__plot_freq == self.__CALLBACK_FREQ_REMAINDER:
+            self.__mean_returns.append(
+                np.mean(self.__rewards) / self.__num_eps if self.__num_eps > 0 else 0
             )
 
-            if self.mean_returns[-1] > self.best_mean_return:
-                self.best_mean_return = self.mean_returns[-1]
-                # TODO: save model every mean return improvement
+            if self.__mean_returns[-1] > self.__best_mean_return:
+                self.__best_mean_return = self.__mean_returns[-1]
 
-            if self.verbose:
-                print(f"Step: {self.n_calls}, Mean return: {self.mean_returns[-1]}")
+                if self.__is_save_best_model:
+                    save(
+                        obj=self.model.policy.state_dict(),
+                        f=path.join(self.__FILE_PATH, self.__FILE_NAME),
+                    )
+
+                if self.verbose:
+                    print(
+                        f"Step: {self.n_calls}, Mean return: {self.__mean_returns[-1]}"
+                    )
             self.reset()
         return True
 
@@ -47,7 +65,7 @@ class PlotTrainingCallback(BaseCallback):
         """
         Increment episode counter on rollout end
         """
-        self.num_eps += 1
+        self.__num_eps += 1
 
     def _on_training_end(self) -> None:
         """
@@ -59,18 +77,18 @@ class PlotTrainingCallback(BaseCallback):
         """
         Reset rewards array and episode counter
         """
-        self.rewards = []
-        self.num_eps = 0
+        self.__rewards = []
+        self.__num_eps = 0
 
     def plot_train_data(self) -> None:
         """
         Plot training data
         """
         plt.figure(figsize=(10, 6))
-        plt.title("DQN Agent Training Performance")
-        plt.xlabel("Steps")
-        plt.ylabel("Mean Returns")
-        plt.plot(self.mean_returns)
+        plt.title(label="DQN Agent Training Performance")
+        plt.xlabel(xlabel="Steps")
+        plt.ylabel(ylabel="Mean Returns")
+        plt.plot(self.__mean_returns)
         plt.show()
 
 
@@ -81,5 +99,7 @@ if __name__ == "__main__":
 
     env: FactoryEnv = init_custom_factory_env()
     agent: Agent = Agent(custom_env=env)
-    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10)
-    agent.learn(total_time_steps=100, log_interval=5, callback=plot_training_callback)
+    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100)
+    agent.learn(
+        total_time_steps=100_000, log_interval=5, callback=plot_training_callback
+    )

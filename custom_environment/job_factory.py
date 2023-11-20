@@ -1,33 +1,72 @@
 from custom_environment.job import Job
+from custom_environment.recipe import Recipe
+from custom_environment.recipe_factory import create_recipe
 
-from datetime import datetime, date, timedelta
-import numpy as np
-import random
+from datetime import date, timedelta
+from random import randint
 
 
-def create_job(prio: int) -> Job:
-    job_id = random.randint(0, 10000)
-    r: list[str] = [random.choice(["R1", "R2"])]
-    q: int = random.randint(1, 10)
-    dl: str = str(date.today() + timedelta(days=random.randint(0, 90)))
-    return Job(job_id=job_id, recipes=r, quantity=q, deadline=dl, priority=prio)
+def create_job(
+    recipes: list[Recipe],
+    factory_id: str,
+    process_id: int,
+    deadline: str,
+    priority: int,
+) -> Job:
+    """
+    Factory function for creating a Job object
+    :param recipes: list of Recipe objects
+    :param factory_id: the ID given to the job by the factory for identification
+    :param process_id: the ID of the Job in respect to RL algorithm
+    :param deadline: the deadline datetime for the Job as determined by the factory: YYYY-MM-DD
+    :param priority: the priority status for the job as determined by the factory: 1=Normal, 2=Medium, 3=High
+    :return: Job object
+    """
+    return Job(
+        recipes=recipes,
+        factory_id=factory_id,
+        process_id=process_id,
+        deadline=deadline,
+        priority=priority,
+    )
+
+
+def get_random_job_deadline() -> str:
+    return (date.today() + timedelta(days=randint(0, 90))).strftime("%Y-%m-%d %H:%M:%S")
 
 
 if __name__ == "__main__":
-    # Parameters for the Poisson distribution
-    lambda_normal: int = 3  # Per day
-    lambda_high: int = 1  # Per day
-    jobs: list[Job] = []
-    random.seed(int(datetime.now().strftime("%d%m%Y%H%M%S")))
-
-    # Generate a random number of incoming clients following a Poisson distribution
-    incoming_normal: int = np.random.poisson(lambda_normal)
-    for _ in range(incoming_normal):
-        jobs.append(create_job(prio=1))
-
-    incoming_high: int = np.random.poisson(lambda_high)
-    for _ in range(incoming_normal):
-        jobs.append(create_job(prio=3))
+    recipe_objects: list[Recipe] = [
+        create_recipe(
+            factory_id="R1_ID", process_time=1.0, process_id=0, recipe_type="R1"
+        ),
+        create_recipe(
+            factory_id="R2_ID", process_time=2.0, process_id=1, recipe_type="R2"
+        ),
+    ]
+    jobs: list[Job] = [
+        create_job(
+            recipes=[(recipe_objects[0])],
+            factory_id="J1",
+            process_id=0,
+            deadline=get_random_job_deadline(),
+            priority=1,
+        ),
+        create_job(
+            recipes=[(recipe_objects[1])],
+            factory_id="J2",
+            process_id=1,
+            deadline=get_random_job_deadline(),
+            priority=2,
+        ),
+        create_job(
+            recipes=[(recipe_objects[0])],
+            factory_id="J3",
+            process_id=2,
+            deadline=get_random_job_deadline(),
+            priority=3,
+        ),
+    ]
 
     print("Jobs:")
     for job in jobs:

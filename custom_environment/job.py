@@ -1,5 +1,5 @@
 """
-Job class for basic concept:
+Custom Job class for basic concept:
     1.  All jobs have only one recipe.
     2.  All jobs have a deadline.
     3.  All jobs are inserted into a machine using trays.
@@ -9,13 +9,15 @@ Job class for basic concept:
     6.  Recipes have a duration of time to complete.
     7.  The goal of the RL agent is to minimize tardiness (having most jobs completed before or on their deadline) and
         maximize efficiency of machines (machines should not be left idle for long periods).
-    8.  The observation space is the job buffer (pending jobs to be scheduled), machines and their current capacity,
-        and jobs completed.
+    8.  The observation space is the job buffer (pending jobs to be scheduled), machines and their current capacity.
     9.  The action of RL agent to select which job, J_i to assign to machine M_m, where 0 <= i < |J| and 0 <= m < |M|.
         The action space is thus all possible combinations of (J, M) with addition of No-Op action (taken at a timestep)
+    10. Only step when a machine is available, and maximum machines chosen at each step is one
 """
 
-import datetime
+from custom_environment.recipe import Recipe
+from collections import defaultdict
+from datetime import datetime
 
 
 class Job:
@@ -23,106 +25,181 @@ class Job:
     Job class
     """
 
+    ####################
+    # public constants #
+    ####################
+
+    MAX_NUM_RECIPES_PER_JOB: int = 1
+    MAX_PRIORITY_LEVEL: int = 3
+
+    #####################
+    # private constants #
+    #####################
+
+    __STATUS_STR: dict[int, str] = {
+        0: "AVAILABLE",
+        1: "IN PROGRESS",
+        2: "COMPLETED",
+        3: "CANCELLED",
+        4: "ERROR",
+    }
+
+    __PRIORITY_STR: defaultdict[int, str] = defaultdict(lambda: "NOT DEFINED!")
+    __PRIORITY_STR.update({1: "NORMAL", 2: "MEDIUM", 3: "HIGH"})
+
+    __DATETIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
+
     def __init__(
         self,
-        recipes: list[any],
-        job_id: int = 0,
-        quantity: int = 0,
-        deadline: str = "3000/01/01",
+        recipes: list[Recipe],
+        factory_id: str,
+        process_id: int = 0,
+        deadline: str = "2023-12-31 23:59:59",
         priority: int = 1,
     ) -> None:
-        self.job_id: int = job_id  # String for now, can be numeric
-        self.recipes: list[any] = recipes  # [R1, R2, R3, ...]
-        self.r_pending: list[str] = recipes.copy()
-        self.quantity: int = quantity
-        self.deadline: str = deadline  # YYYY/MM/DD
-        self.priority: int = priority  # 1=Normal, 2=Medium, 3=High
-        self.status: int = 0  # 0=New, 1=In Progress, 2=Completed, 3=Cancelled?, 4=Error? (For internal use)
-        self.r_in_progress: list[str] = []
-        self.r_completed: list[str] = []
+        """
+        Job class constructor method
+        :param recipes: list of Recipe objects
+        :param factory_id: the ID given to the job by the factory for identification
+        :param process_id: the ID of the Job in respect to RL algorithm
+        :param deadline: the deadline datetime for the Job: YYYY-MM-DD HH:MM:SS
+        :param priority: the priority status for the job as determined by the factory: 1=Normal, 2=Medium, 3=High
+        """
+        self.__id: int = process_id
+        self.__factory_id: str = factory_id
+        self.__deadline_datetime_str: str = deadline.strip(" ")
+        self.__priority: int = priority
+        self.__status: int = 0
 
-    def get_recipes(self) -> list[str]:
-        return self.recipes
+        self.__recipes: list[Recipe] = recipes
+        self.__recipes_pending: list[Recipe] = recipes.copy()[
+            : self.MAX_NUM_RECIPES_PER_JOB
+        ]  # limit num recipes to max per job
+        self.__recipes_in_progress: list[Recipe] = []
+        self.__recipes_completed: list[Recipe] = []
 
-    def get_job_id(self) -> int:
-        return self.job_id
+        self.__creation_datetime_str: str = datetime.now().strftime(
+            self.__DATETIME_FORMAT
+        )
+        self.__start_op_datetime: datetime | None = None
+        self.__is_past_deadline_date: bool = False
 
-    def get_quantity(self) -> int:
-        return self.quantity
+    def __get_datetime(self, datetime_str: str) -> datetime:
+        return datetime.strptime(datetime_str, self.__DATETIME_FORMAT)
 
-    def get_deadline(self) -> str:
-        return self.deadline
+    def get_recipes(self) -> list[Recipe]:
+        return self.__recipes
+
+    def get_id(self) -> int:
+        return self.__id
+
+    def get_factory_id(self) -> str:
+        return self.__factory_id
+
+    def get_deadline_datetime_str(self) -> str:
+        return self.__deadline_datetime_str
+
+    def set_deadline_datetime_str(self, new_deadline_datetime_str: str) -> None:
+        self.__deadline_datetime_str = new_deadline_datetime_str
+
+    def get_creation_datetime_str(self) -> str:
+        return self.__creation_datetime_str
+
+    def set_creation_datetime_str(self, new_creation_datetime_str: str) -> None:
+        self.__creation_datetime_str = new_creation_datetime_str
+
+    def get_creation_datetime(self) -> datetime:
+        return self.__get_datetime(self.__creation_datetime_str)
 
     def get_deadline_datetime(self) -> datetime:
-        return datetime.datetime.strptime(self.deadline, "%Y/%m/%d")  # %H:%M:%S')
+        return self.__get_datetime(self.__deadline_datetime_str)
+
+    def get_start_op_datetime(self) -> datetime:
+        return self.__start_op_datetime
 
     def get_status(self) -> int:
-        return self.status  # might come in handy in the future
+        return self.__status
 
     def get_priority(self) -> int:
-        return self.priority
+        return self.__priority
 
     def get_priority_str(self) -> str:
-        ref_table: dict = {1: "Normal", 2: "Medium", 3: "High"}
-        try:
-            return ref_table[self.priority]
-        except KeyError:
-            return f"Key '{self.priority}' is not defined!"
+        return self.__PRIORITY_STR[self.__priority]
 
-    def get_status_str(self) -> str:
-        ref_table: dict = {
-            0: "New",
-            1: "In Progress",
-            2: "Completed",
-            3: "Cancelled",
-            4: "Error",
-        }
-        try:
-            return ref_table[self.status]
-        except KeyError:
-            return f"Key '{self.status}' is not defined!"
+    def is_past_deadline_date(self) -> bool:
+        return self.__is_past_deadline_date
 
-    def update_deadline(self, new_deadline) -> None:
-        self.deadline = new_deadline
+    def set_is_past_deadline_date(self, is_past_deadline_date: bool) -> None:
+        self.__is_past_deadline_date = is_past_deadline_date
 
-    def update_priority(self, new_priority) -> None:
-        self.priority = new_priority
+    def update_priority(self, new_priority: int) -> None:
+        self.__priority = new_priority
 
-    def update_status(self, new_status) -> None:
-        self.status = new_status
+    def update_status(self, new_status: int) -> None:
+        self.__status = new_status
 
-    # I didn't add an update recipes because it would add complexity in the future if someone can alter the recipes
+    def get_pending_recipes(self) -> list[Recipe]:
+        return self.__recipes_pending
 
-    def recipe_in_progress(self, recipe) -> None:
-        if recipe in self.recipes:
-            self.r_pending.remove(recipe)
-            self.r_in_progress.append(recipe)
-            self.status = 1
-        else:
-            raise Exception(
-                f"Recipe not part of required recipes for job-{self.job_id}"
+    def get_recipes_in_progress(self) -> list[Recipe]:
+        return self.__recipes_in_progress
+
+    def get_recipes_completed(self) -> list[Recipe]:
+        return self.__recipes_completed
+
+    def get_max_num_recipes(self) -> int:
+        return self.MAX_NUM_RECIPES_PER_JOB
+
+    def update_recipes(self, recipes_update: list[Recipe]) -> None:
+        self.__recipes = recipes_update
+        self.reset()
+
+    def set_recipe_in_progress(self, recipe: Recipe) -> bool:
+        if self.can_perform_recipe(recipe=recipe):
+            self.__recipes_in_progress.append(
+                self.__recipes_pending.pop(self.__recipes_pending.index(recipe))
             )
+            self.__start_op_datetime = (
+                datetime.now()
+            )  # start job timer in datetime format
+            self.__status = 1
+        else:
+            self.__status = 4
+        return self.__status == 1
 
-    def recipe_completed(self, recipe) -> None:
-        self.r_completed.append(recipe)
-        self.r_in_progress.remove(recipe)
-        if self.r_pending == [] and self.r_in_progress == []:
-            self.status = 2
+    def set_recipe_completed(self, completed_recipe: Recipe) -> None:
+        self.__recipes_completed.append(completed_recipe)
+        print(
+            f"Recipe {completed_recipe.get_factory_id()} completed for job {self.__factory_id}"
+        )
+        self.__recipes_in_progress.remove(completed_recipe)
+        self.__start_op_datetime = None  # reset job timer
+
+        if self.__recipes_pending:
+            self.__status = 0
+        else:
+            self.__status = 2
+        print("\nAfter processing, job status is:", self.__STATUS_STR[self.__status])
+
+    def can_perform_recipe(self, recipe: Recipe) -> bool:
+        return recipe in self.__recipes_pending
 
     def __str__(self) -> str:
         return (
-            f"Job ID: {self.job_id}"
-            f"\nRecipes: {self.recipes}"
-            f"\nQuantity: {self.quantity}"
-            f"\nDeadline: {self.deadline}"
+            f"Job ID: {self.__factory_id}"
+            f"\nRecipes: {[recipe.get_factory_id() for recipe in self.__recipes]}"
+            f"\nQuantity: {len(self.__recipes)}"
+            f"\nCreated: {self.__creation_datetime_str}"
+            f"\nDeadline: {self.__deadline_datetime_str}"
             f"\nPriority: {self.get_priority_str()}"
-            f"\nStatus: {self.get_status_str()}"
-            f"\nIn Progress: {self.r_in_progress}"
-            f"\nCompleted: {100 * len(self.r_completed) / len(self.recipes)}%"
+            f"\nStatus: {self.__STATUS_STR[self.__status]}"
+            f"\nIn Progress: {[recipe.get_id() for recipe in self.__recipes_in_progress]}"
+            f"\nCompleted: {100 * len(self.__recipes_completed) / len(self.__recipes)}%"
         )
 
     def reset(self) -> None:
-        self.status = 0
-        self.r_pending = self.recipes.copy()
-        self.r_in_progress = []
-        self.r_completed = []
+        self.__status = 0
+        self.__recipes_pending = self.__recipes.copy()[: self.MAX_NUM_RECIPES_PER_JOB]
+        self.__recipes_in_progress = []
+        self.__recipes_completed = []
+        self.__start_op_datetime = None
