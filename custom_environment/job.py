@@ -54,6 +54,7 @@ class Job:
         recipes: list[Recipe],
         factory_id: str,
         process_id: int = 0,
+        arrival: str = "2023-12-15 23:59:59",
         deadline: str = "2023-12-31 23:59:59",
     ) -> None:
         """
@@ -66,6 +67,7 @@ class Job:
         """
         self.__id: int = process_id
         self.__factory_id: str = factory_id
+        self.__arrival_datetime_str: str = arrival.strip(" ")
         self.__deadline_datetime_str: str = deadline.strip(" ")
         self.__priority: int = priority
         self.__status: int = 0
@@ -95,8 +97,14 @@ class Job:
     def get_factory_id(self) -> str:
         return self.__factory_id
 
+    def get_arrival_datetime_str(self) -> str:
+        return self.__arrival_datetime_str
+    
     def get_deadline_datetime_str(self) -> str:
         return self.__deadline_datetime_str
+
+    def set_arrival_datetime_str(self, new_date: str) -> str:
+        self.__arrival_datetime_str = new_date
 
     def set_deadline_datetime_str(self, new_deadline_datetime_str: str) -> None:
         self.__deadline_datetime_str = new_deadline_datetime_str
@@ -109,6 +117,9 @@ class Job:
 
     def get_creation_datetime(self) -> datetime:
         return self.__get_datetime(self.__creation_datetime_str)
+    
+    def get_arrival_datetime(self) -> datetime:
+        return self.__get_datetime(self.__arrival_datetime_str)
 
     def get_deadline_datetime(self) -> datetime:
         return self.__get_datetime(self.__deadline_datetime_str)
