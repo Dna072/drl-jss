@@ -181,6 +181,15 @@ class FactoryEnv(gym.Env):
         )
         self.__set_job_priority_observations()
 
+    def get_pending_jobs(self):
+        return self.__pending_jobs
+    
+    def get_machines(self):
+        return self.__machines
+    
+    def get_buffer_size(self):
+        return self.__BUFFER_LEN
+    
     def __set_job_priority_observations(self):
         """
         Initializes the job priorities for the observation dictionary -- this should remain constant per buffer
@@ -437,7 +446,7 @@ class FactoryEnv(gym.Env):
         :param action: the agent's action to take in the step
         :return: (observation, reward, terminated, truncated, info)
         """
-        print(action)
+        #print(action)
 
         (
             is_terminated,

@@ -127,6 +127,13 @@ class Machine:
             for recipe in job.get_recipes()
             if recipe.get_recipe_type() in self.__valid_recipe_types
         ]
+    
+    def can_perform_job(self, job: Job) -> bool:
+        for recipe in job.get_pending_recipes():
+            if recipe in self.__valid_recipe_types:
+                return True
+            
+        return False
 
     def assign_job(self, job_to_assign: Job) -> bool:
         available_valid_recipes: list[Recipe] = self.get_job_valid_recipes(
@@ -160,6 +167,7 @@ class Machine:
             f" \nStatus: {self.is_available_str()}"
             f"\nCurrent time spent idle: {self.__time_idle}"
             f"\nCurrent time spend active: {self.__time_active}"
+            f"\nValid recipes: {self.__valid_recipe_types}"
             f"\nWorking on recipe(s): "
             f"{[job.get_recipes_in_progress() for job in self.__active_jobs]}"
             f" for the following Job(s): {self.__active_jobs}"

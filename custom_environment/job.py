@@ -17,7 +17,8 @@ Custom Job class for basic concept:
 
 from custom_environment.recipe import Recipe
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
+from random import randint
 
 
 class Job:
@@ -54,8 +55,9 @@ class Job:
         recipes: list[Recipe],
         factory_id: str,
         process_id: int = 0,
-        arrival: str = "2023-12-15 23:59:59",
-        deadline: str = "2023-12-31 23:59:59",
+        arrival: str = "2023-12-15 23:59:59",   # setting the arrival time automatically sets a random deadline from arrival time
+        #deadline: str = "2023-12-31 23:59:59",
+        priority: int = 1,
     ) -> None:
         """
         Job class constructor method
@@ -68,6 +70,8 @@ class Job:
         self.__id: int = process_id
         self.__factory_id: str = factory_id
         self.__arrival_datetime_str: str = arrival.strip(" ")
+        deadline = (self.__get_datetime(arrival) + timedelta(days=randint(0, 90))).strftime("%Y-%m-%d %H:%M:%S")
+        
         self.__deadline_datetime_str: str = deadline.strip(" ")
         self.__priority: int = priority
         self.__status: int = 0
@@ -200,6 +204,7 @@ class Job:
             f"\nRecipes: {[recipe.get_factory_id() for recipe in self.__recipes]}"
             f"\nQuantity: {len(self.__recipes)}"
             f"\nCreated: {self.__creation_datetime_str}"
+            f"\nArrival: {self.__arrival_datetime_str}"
             f"\nDeadline: {self.__deadline_datetime_str}"
             f"\nPriority: {self.get_priority_str()}"
             f"\nStatus: {self.__STATUS_STR[self.__status]}"
