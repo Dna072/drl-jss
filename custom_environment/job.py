@@ -36,12 +36,18 @@ class Job:
     # private constants #
     #####################
 
+    __STATUS_AVAILABLE_VAL: int = 0
+    __STATUS_IN_PROGRESS_VAL: int = 1
+    __STATUS_COMPLETED_VAL: int = 2
+    __STATUS_CANCELLED_VAL: int = 3
+    __STATUS_ERROR_VAL: int = 4
+
     __STATUS_STR: dict[int, str] = {
-        0: "AVAILABLE",
-        1: "IN PROGRESS",
-        2: "COMPLETED",
-        3: "CANCELLED",
-        4: "ERROR",
+        __STATUS_AVAILABLE_VAL: "AVAILABLE",
+        __STATUS_IN_PROGRESS_VAL: "IN PROGRESS",
+        __STATUS_COMPLETED_VAL: "COMPLETED",
+        __STATUS_CANCELLED_VAL: "CANCELLED",
+        __STATUS_ERROR_VAL: "ERROR",
     }
 
     __PRIORITY_STR: defaultdict[int, str] = defaultdict(lambda: "NOT DEFINED!")
@@ -69,7 +75,7 @@ class Job:
         self.__factory_id: str = factory_id
         self.__deadline_datetime_str: str = deadline.strip(" ")
         self.__priority: int = priority
-        self.__status: int = 0
+        self.__status: int = self.__STATUS_AVAILABLE_VAL
 
         self.__recipes: list[Recipe] = recipes
         self.__recipes_pending: list[Recipe] = recipes.copy()[
@@ -150,6 +156,9 @@ class Job:
     def get_max_num_recipes(self) -> int:
         return self.MAX_NUM_RECIPES_PER_JOB
 
+    def is_completed(self):
+        return self.__status == self.__STATUS_COMPLETED_VAL
+
     def update_recipes(self, recipes_update: list[Recipe]) -> None:
         self.__recipes = recipes_update
         self.reset()
@@ -162,10 +171,10 @@ class Job:
             self.__start_op_datetime = (
                 datetime.now()
             )  # start job timer in datetime format
-            self.__status = 1
+            self.__status = self.__STATUS_IN_PROGRESS_VAL
         else:
-            self.__status = 4
-        return self.__status == 1
+            self.__status = self.__STATUS_ERROR_VAL
+        return self.__status == self.__STATUS_IN_PROGRESS_VAL
 
     def set_recipe_completed(self, completed_recipe: Recipe) -> None:
         self.__recipes_completed.append(completed_recipe)
@@ -176,9 +185,9 @@ class Job:
         self.__start_op_datetime = None  # reset job timer
 
         if self.__recipes_pending:
-            self.__status = 0
+            self.__status = self.__STATUS_AVAILABLE_VAL
         else:
-            self.__status = 2
+            self.__status = self.__STATUS_COMPLETED_VAL
         print("\nAfter processing, job status is:", self.__STATUS_STR[self.__status])
 
     def can_perform_recipe(self, recipe: Recipe) -> bool:

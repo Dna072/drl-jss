@@ -162,12 +162,6 @@ class FactoryEnv(gym.Env):
         job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(self.__BUFFER_LEN,), dtype=np.float64
         )
-        achieved_goal_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=1, shape=(len(self.__achieved_goal),), dtype=np.float64
-        )
-        desired_goal_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=1, shape=(len(self.__desired_goal),), dtype=np.float64
-        )
 
         self.observation_space: gym.spaces.Dict = gym.spaces.Dict(
             {
@@ -175,57 +169,20 @@ class FactoryEnv(gym.Env):
                 self.__MACHINES_STR: machine_space,
                 self.__JOB_PRIORITIES_STR: job_priorities_space,
                 self.__JOB_REMAINING_TIMES_STR: job_remaining_times_space,
-                self.__ACHIEVED_GOAL_STR: achieved_goal_space,
-                self.__DESIRED_GOAL_STR: desired_goal_space,
             }
         )
         self.__set_job_priority_observations()
 
     def __set_job_priority_observations(self):
         """
-        Initializes the job priorities for the observation dictionary -- this should remain constant per buffer
+        Set the normalized [0, 1] priorities in the observation dict for each job, or 0 if job complete to be ignored
         """
         for job in self.__pending_jobs:
             self.__jobs_priorities[job.get_id()] = (
                 job.get_priority() / job.MAX_PRIORITY_LEVEL
+                if not job.is_completed()
+                else 0.0
             )
-
-    def __compute_achieved_goals(self) -> None:
-        """
-        Calculate achieved tardiness and machine efficiency goals, each bounded [0, 1], for upcoming observation
-        Helper private method for Env get_obs() method
-        """
-        # update achieved tardiness goal observation
-        num_jobs_completed_on_time: int = sum(
-            [1 for job in self.__completed_jobs if not job.is_past_deadline_date()]
-        )
-        proportion_jobs_completed_on_time: float = (
-            num_jobs_completed_on_time / len(self.__completed_jobs)
-            if num_jobs_completed_on_time > 0 and len(self.__completed_jobs) > 0
-            else 0.0
-        )
-
-        # update achieved machine efficiency goal observation
-        total_machine_run_times: float = sum(
-            [
-                machine.get_time_active() + machine.get_time_idle()
-                for machine in self.__machines
-            ]
-        )
-        total_machine_activity_times: float = sum(
-            [machine.get_time_active() for machine in self.__machines]
-        )
-        proportion_machines_efficiency: float = (
-            total_machine_activity_times / total_machine_run_times
-            if total_machine_run_times > 0 and total_machine_activity_times > 0
-            else 0.0
-        )
-
-        # update achieved goals state for upcoming observation
-        self.__achieved_goal = np.array(
-            object=[proportion_jobs_completed_on_time, proportion_machines_efficiency],
-            dtype=np.float64,
-        )
 
     def get_obs(self) -> dict[str, np.ndarray[float]]:
         """
@@ -244,6 +201,8 @@ class FactoryEnv(gym.Env):
             for job in machine.get_active_jobs():
                 is_machines_active_jobs[machine.get_id(), job.get_id()] = 1.0
 
+        self.__set_job_priority_observations()  # set job priorities if incomplete, otherwise 0 to denote as completed
+
         # update job remaining times observation TODO: should we also include times for jobs completed past deadlines?
         job_remaining_times: np.ndarray = np.zeros(self.__BUFFER_LEN, dtype=np.float64)
         current_datetime: datetime = datetime.now()
@@ -255,14 +214,11 @@ class FactoryEnv(gym.Env):
                 job.get_deadline_datetime() - current_datetime
             ).total_seconds()
 
-        self.__compute_achieved_goals()
         return {
             self.__PENDING_JOBS_STR: is_pending_jobs,
             self.__MACHINES_STR: is_machines_active_jobs.flatten(),
             self.__JOB_PRIORITIES_STR: self.__jobs_priorities,
             self.__JOB_REMAINING_TIMES_STR: job_remaining_times,
-            self.__ACHIEVED_GOAL_STR: self.__achieved_goal,
-            self.__DESIRED_GOAL_STR: self.__desired_goal,
         }
 
     def __compute_reward_partial_penalties(self) -> float:
