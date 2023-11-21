@@ -16,7 +16,6 @@ Custom Job class for basic concept:
 """
 
 from custom_environment.recipe import Recipe
-from collections import defaultdict
 from datetime import datetime
 
 
@@ -30,7 +29,6 @@ class Job:
     ####################
 
     MAX_NUM_RECIPES_PER_JOB: int = 1
-    MAX_PRIORITY_LEVEL: int = 3
 
     #####################
     # private constants #
@@ -50,9 +48,6 @@ class Job:
         __STATUS_ERROR_VAL: "ERROR",
     }
 
-    __PRIORITY_STR: defaultdict[int, str] = defaultdict(lambda: "NOT DEFINED!")
-    __PRIORITY_STR.update({1: "NORMAL", 2: "MEDIUM", 3: "HIGH"})
-
     __DATETIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 
     def __init__(
@@ -61,7 +56,6 @@ class Job:
         factory_id: str,
         process_id: int = 0,
         deadline: str = "2023-12-31 23:59:59",
-        priority: int = 1,
     ) -> None:
         """
         Job class constructor method
@@ -69,12 +63,10 @@ class Job:
         :param factory_id: the ID given to the job by the factory for identification
         :param process_id: the ID of the Job in respect to RL algorithm
         :param deadline: the deadline datetime for the Job: YYYY-MM-DD HH:MM:SS
-        :param priority: the priority status for the job as determined by the factory: 1=Normal, 2=Medium, 3=High
         """
         self.__id: int = process_id
         self.__factory_id: str = factory_id
         self.__deadline_datetime_str: str = deadline.strip(" ")
-        self.__priority: int = priority
         self.__status: int = self.__STATUS_AVAILABLE_VAL
 
         self.__recipes: list[Recipe] = recipes
@@ -126,20 +118,11 @@ class Job:
     def get_status(self) -> int:
         return self.__status
 
-    def get_priority(self) -> int:
-        return self.__priority
-
-    def get_priority_str(self) -> str:
-        return self.__PRIORITY_STR[self.__priority]
-
     def is_past_deadline_date(self) -> bool:
         return self.__is_past_deadline_date
 
     def set_is_past_deadline_date(self, is_past_deadline_date: bool) -> None:
         self.__is_past_deadline_date = is_past_deadline_date
-
-    def update_priority(self, new_priority: int) -> None:
-        self.__priority = new_priority
 
     def update_status(self, new_status: int) -> None:
         self.__status = new_status
@@ -200,7 +183,6 @@ class Job:
             f"\nQuantity: {len(self.__recipes)}"
             f"\nCreated: {self.__creation_datetime_str}"
             f"\nDeadline: {self.__deadline_datetime_str}"
-            f"\nPriority: {self.get_priority_str()}"
             f"\nStatus: {self.__STATUS_STR[self.__status]}"
             f"\nIn Progress: {[recipe.get_id() for recipe in self.__recipes_in_progress]}"
             f"\nCompleted: {100 * len(self.__recipes_completed) / len(self.__recipes)}%"

@@ -11,7 +11,6 @@ def create_job(
     factory_id: str,
     process_id: int,
     deadline: str,
-    priority: int,
 ) -> Job:
     """
     Factory function for creating a Job object
@@ -19,7 +18,6 @@ def create_job(
     :param factory_id: the ID given to the job by the factory for identification
     :param process_id: the ID of the Job in respect to RL algorithm
     :param deadline: the deadline datetime for the Job as determined by the factory: YYYY-MM-DD
-    :param priority: the priority status for the job as determined by the factory: 1=Normal, 2=Medium, 3=High
     :return: Job object
     """
     return Job(
@@ -27,7 +25,6 @@ def create_job(
         factory_id=factory_id,
         process_id=process_id,
         deadline=deadline,
-        priority=priority,
     )
 
 
@@ -50,21 +47,18 @@ if __name__ == "__main__":
             factory_id="J1",
             process_id=0,
             deadline=get_random_job_deadline(),
-            priority=1,
         ),
         create_job(
             recipes=[(recipe_objects[1])],
             factory_id="J2",
             process_id=1,
             deadline=get_random_job_deadline(),
-            priority=2,
         ),
         create_job(
             recipes=[(recipe_objects[0])],
             factory_id="J3",
             process_id=2,
             deadline=get_random_job_deadline(),
-            priority=3,
         ),
     ]
 
