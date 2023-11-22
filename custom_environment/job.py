@@ -88,6 +88,13 @@ class Job:
     def get_recipes(self) -> list[Recipe]:
         return self.__recipes
 
+    def get_remaining_process_time(self) -> float:
+        """
+        For time being is sufficient with one recipe per job and
+        not considering changes in time for recipes already being processed etc.
+        """
+        return sum([recipe.get_process_time() for recipe in self.__recipes_pending])
+
     def get_id(self) -> int:
         return self.__id
 

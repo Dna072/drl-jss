@@ -46,6 +46,9 @@ class Recipe:
     def get_recipe_type(self) -> str:
         return self.__recipe_type
 
+    def get_recipe_type_id(self) -> int:
+        return int(self.__recipe_type[1:])
+
     def add_factory_id(self, factory_id: str) -> None:
         self.__factory_id = factory_id
 

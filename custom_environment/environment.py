@@ -78,6 +78,7 @@ class FactoryEnv(gym.Env):
 
     # observation space constant dict keys
     __PENDING_JOBS_STR: str = "pending_jobs"
+    __RECIPE_TYPES_STR: str = "recipes"
     __MACHINES_STR: str = "machines"
     __JOB_REMAINING_TIMES_STR: str = "job_remaining_times"
 
@@ -133,20 +134,27 @@ class FactoryEnv(gym.Env):
 
         pending_jobs_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(self.__BUFFER_LEN,), dtype=np.float64
-        )
+        )  # binary vector for representing if a job is pending for job assignment
+        recipe_type_space: gym.spaces.Box = gym.spaces.Box(
+            low=0,
+            high=1,
+            shape=(self.__BUFFER_LEN * Job.MAX_NUM_RECIPES_PER_JOB,),
+            dtype=np.float64,
+        )  # normalized vector multiplied by number of recipes per job for mapping recipe types to jobs
         machine_space: gym.spaces.Box = gym.spaces.Box(
             low=0,
             high=1,
             shape=(len(self.__machines) * self.__BUFFER_LEN,),
             dtype=np.float64,
-        )
+        )  # binary matrix for mapping machines to jobs they are processing
         job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(self.__BUFFER_LEN,), dtype=np.float64
-        )
+            low=0, high=1, shape=(self.__BUFFER_LEN,), dtype=np.float64
+        )  # normalized vector for jobs pending deadline proportional to recipe processing duration times
 
         self.observation_space: gym.spaces.Dict = gym.spaces.Dict(
             {
                 self.__PENDING_JOBS_STR: pending_jobs_space,
+                self.__RECIPE_TYPES_STR: recipe_type_space,
                 self.__MACHINES_STR: machine_space,
                 self.__JOB_REMAINING_TIMES_STR: job_remaining_times_space,
             }
@@ -156,12 +164,29 @@ class FactoryEnv(gym.Env):
         """
         return: obs dict containing binary arrays for pending jobs, machine activity, and pending deadline durations
         """
-        # update pending jobs observation
+        ###################################
+        # update pending jobs observation #
+        ###################################
         is_pending_jobs: np.ndarray = np.zeros(self.__BUFFER_LEN, dtype=np.float64)
         for job in self.__pending_jobs:
             is_pending_jobs[job.get_id()] = 1.0
 
-        # update machines and active jobs mapping observation
+        ###########################################
+        # update recipe(s) types for pending jobs #
+        ###########################################
+        recipe_types: np.ndarray = np.zeros(
+            self.__BUFFER_LEN * Job.MAX_NUM_RECIPES_PER_JOB, dtype=np.float64
+        )
+        for i in range(Job.MAX_NUM_RECIPES_PER_JOB):
+            for job in self.__pending_jobs:
+                recipe_types[job.get_id() * (i + 1)] = (
+                    job.get_recipes()[i].get_recipe_type_id()
+                    / self.MAX_RECIPES_IN_ENV_SYSTEM
+                )
+
+        ###############################################################
+        # update mapping jobs to machines processing them observation #
+        ###############################################################
         is_machines_active_jobs: np.ndarray = np.zeros(
             (len(self.__machines), self.__BUFFER_LEN), dtype=np.float64
         )
@@ -169,7 +194,10 @@ class FactoryEnv(gym.Env):
             for job in machine.get_active_jobs():
                 is_machines_active_jobs[machine.get_id(), job.get_id()] = 1.0
 
-        # update incomplete job remaining times observation
+        #######################################################################################################
+        # update incomplete job pending deadline proportional to recipe processing duration times observation #
+        #######################################################################################################
+        max_duration = min_duration = 0
         job_remaining_times: np.ndarray = np.zeros(self.__BUFFER_LEN, dtype=np.float64)
         current_datetime: datetime = datetime.now()
         for job in [
@@ -178,10 +206,29 @@ class FactoryEnv(gym.Env):
         ]:
             job_remaining_times[job.get_id()] = (
                 job.get_deadline_datetime() - current_datetime
-            ).total_seconds()
+            ).total_seconds() - job.get_remaining_process_time()
 
+            # update max and min duration times for normalizing [0, 1]
+            if job_remaining_times[job.get_id()] > max_duration:
+                max_duration = job_remaining_times[job.get_id()]
+            elif job_remaining_times[job.get_id()] < min_duration:
+                min_duration = job_remaining_times[job.get_id()]
+
+        # normalize job pending deadline proportional to recipe processing duration times observation
+        for job in [
+            *self.__pending_jobs,
+            *[job_in_progress[1] for job_in_progress in self.__jobs_in_progress],
+        ]:
+            job_remaining_times[job.get_id()] = (
+                job_remaining_times[job.get_id()] - min_duration
+            ) / (max_duration - min_duration)
+
+        ###########################################################
+        # return current observation state object for step update #
+        ###########################################################
         return {
             self.__PENDING_JOBS_STR: is_pending_jobs,
+            self.__RECIPE_TYPES_STR: recipe_types,
             self.__MACHINES_STR: is_machines_active_jobs.flatten(),
             self.__JOB_REMAINING_TIMES_STR: job_remaining_times,
         }
