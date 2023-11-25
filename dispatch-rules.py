@@ -36,10 +36,6 @@ def first_in_first_out_rule(env: FactoryEnv):
     steps = 0
     while steps < 15:
         steps += 1
-        
-        for job in env.get_pending_jobs():
-            print(job)
-            print("----")
 
         arrival = env.get_pending_jobs()[0].get_arrival_datetime()
         job_index = 0
@@ -73,6 +69,10 @@ def encode_job_action(env: FactoryEnv, job: Job, job_index: int):
 
 if __name__ == "__main__":
     custom_env = init_custom_factory_env()
+
+    for job in env.get_pending_jobs():
+        print(job)
+        print("----")
     
     shortest_deadline_first_rule(env=custom_env)
 
