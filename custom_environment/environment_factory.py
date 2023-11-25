@@ -1,4 +1,4 @@
-from custom_environment.job_factory import create_job, get_random_job_deadline
+from custom_environment.job_factory import create_job, get_random_job_arrival
 from custom_environment.machine_factory import create_machine
 from custom_environment.recipe_factory import create_recipe
 from custom_environment.environment import FactoryEnv
@@ -43,21 +43,21 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
             recipes=[(recipe_objects[0])],
             factory_id="J1",
             process_id=0,
-            deadline=get_random_job_deadline(),
+            arrival=get_random_job_arrival(),
             priority=1,
         ),
         create_job(
             recipes=[(recipe_objects[1])],
             factory_id="J2",
             process_id=1,
-            deadline=get_random_job_deadline(),
+            arrival=get_random_job_arrival(),
             priority=2,
         ),
         create_job(
             recipes=[(recipe_objects[0])],
             factory_id="J3",
             process_id=2,
-            deadline=get_random_job_deadline(),
+            arrival=get_random_job_arrival(),
             priority=3,
         ),
     ]

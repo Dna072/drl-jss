@@ -147,36 +147,41 @@ class FactoryEnv(gym.Env):
         )  # job priorities -- should remain constant per buffer
         self.__jobs_not_completed_on_time: int = 0
 
-        pending_jobs_space: gym.spaces.Box = gym.spaces.Box(
+        self.pending_jobs_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(self.__BUFFER_LEN,), dtype=np.float64
         )
-        machine_space: gym.spaces.Box = gym.spaces.Box(
+        
+        self.machine_space: gym.spaces.Box = gym.spaces.Box(
             low=0,
             high=1,
             shape=(len(self.__machines) * self.__BUFFER_LEN,),
             dtype=np.float64,
         )
-        job_priorities_space: gym.spaces.Box = gym.spaces.Box(
+        
+        self.job_priorities_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=3, shape=(self.__BUFFER_LEN,), dtype=np.float64
         )
-        job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
+        
+        self.job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(self.__BUFFER_LEN,), dtype=np.float64
         )
-        achieved_goal_space: gym.spaces.Box = gym.spaces.Box(
+        
+        self.achieved_goal_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(len(self.__achieved_goal),), dtype=np.float64
         )
-        desired_goal_space: gym.spaces.Box = gym.spaces.Box(
+        
+        self.desired_goal_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(len(self.__desired_goal),), dtype=np.float64
         )
 
         self.observation_space: gym.spaces.Dict = gym.spaces.Dict(
             {
-                self.__PENDING_JOBS_STR: pending_jobs_space,
-                self.__MACHINES_STR: machine_space,
-                self.__JOB_PRIORITIES_STR: job_priorities_space,
-                self.__JOB_REMAINING_TIMES_STR: job_remaining_times_space,
-                self.__ACHIEVED_GOAL_STR: achieved_goal_space,
-                self.__DESIRED_GOAL_STR: desired_goal_space,
+                self.__PENDING_JOBS_STR: self.pending_jobs_space,
+                self.__MACHINES_STR: self.machine_space,
+                self.__JOB_PRIORITIES_STR: self.job_priorities_space,
+                self.__JOB_REMAINING_TIMES_STR: self.job_remaining_times_space,
+                self.__ACHIEVED_GOAL_STR: self.achieved_goal_space,
+                self.__DESIRED_GOAL_STR: self.desired_goal_space,
             }
         )
         self.__set_job_priority_observations()
