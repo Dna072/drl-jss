@@ -16,7 +16,9 @@ Custom Job class for basic concept:
 """
 
 from custom_environment.recipe import Recipe
-from datetime import datetime
+from collections import defaultdict
+from datetime import datetime, timedelta
+from random import randint
 
 
 class Job:
@@ -29,6 +31,7 @@ class Job:
     ####################
 
     MAX_NUM_RECIPES_PER_JOB: int = 1
+    MAX_PRIORITY_LEVEL: int = 3
 
     #####################
     # private constants #
@@ -48,14 +51,18 @@ class Job:
         __STATUS_ERROR_VAL: "ERROR",
     }
 
+    __PRIORITY_STR: defaultdict[int, str] = defaultdict(lambda: "NOT DEFINED!")
+    __PRIORITY_STR.update({1: "NORMAL", 2: "MEDIUM", 3: "HIGH"})
+
     __DATETIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 
     def __init__(
-        self,
-        recipes: list[Recipe],
-        factory_id: str,
-        process_id: int = 0,
-        deadline: str = "2023-12-31 23:59:59",
+            self,
+            recipes: list[Recipe],
+            factory_id: str,
+            process_id: int = 0,
+            arrival: str = "2023-12-15 23:59:59",
+            # setting the arrival time automatically sets a random deadline from arrival time
     ) -> None:
         """
         Job class constructor method
@@ -63,16 +70,20 @@ class Job:
         :param factory_id: the ID given to the job by the factory for identification
         :param process_id: the ID of the Job in respect to RL algorithm
         :param deadline: the deadline datetime for the Job: YYYY-MM-DD HH:MM:SS
+        :param priority: the priority status for the job as determined by the factory: 1=Normal, 2=Medium, 3=High
         """
         self.__id: int = process_id
         self.__factory_id: str = factory_id
+        self.__arrival_datetime_str: str = arrival.strip(" ")
+        deadline = (self.__get_datetime(arrival) + timedelta(seconds=randint(40, 120))).strftime("%Y-%m-%d %H:%M:%S")
+
         self.__deadline_datetime_str: str = deadline.strip(" ")
         self.__status: int = self.__STATUS_AVAILABLE_VAL
 
         self.__recipes: list[Recipe] = recipes
         self.__recipes_pending: list[Recipe] = recipes.copy()[
-            : self.MAX_NUM_RECIPES_PER_JOB
-        ]  # limit num recipes to max per job
+                                               : self.MAX_NUM_RECIPES_PER_JOB
+                                               ]  # limit num recipes to max per job
         self.__recipes_in_progress: list[Recipe] = []
         self.__recipes_completed: list[Recipe] = []
 
@@ -81,6 +92,12 @@ class Job:
         )
         self.__start_op_datetime: datetime | None = None
         self.__is_past_deadline_date: bool = False
+
+    # def __eq__(self, other) -> bool:
+    #     return (self.__id == other.__id
+    #             and self.__factory_id == other.__factory_id
+    #             and self.__arrival_datetime_str == other.self.__arrival_datetime_str
+    #             )
 
     def __get_datetime(self, datetime_str: str) -> datetime:
         return datetime.strptime(datetime_str, self.__DATETIME_FORMAT)
@@ -101,8 +118,14 @@ class Job:
     def get_factory_id(self) -> str:
         return self.__factory_id
 
+    def get_arrival_datetime_str(self) -> str:
+        return self.__arrival_datetime_str
+
     def get_deadline_datetime_str(self) -> str:
         return self.__deadline_datetime_str
+
+    def set_arrival_datetime_str(self, new_date: str) -> str:
+        self.__arrival_datetime_str = new_date
 
     def set_deadline_datetime_str(self, new_deadline_datetime_str: str) -> None:
         self.__deadline_datetime_str = new_deadline_datetime_str
@@ -116,6 +139,9 @@ class Job:
     def get_creation_datetime(self) -> datetime:
         return self.__get_datetime(self.__creation_datetime_str)
 
+    def get_arrival_datetime(self) -> datetime:
+        return self.__get_datetime(self.__arrival_datetime_str)
+
     def get_deadline_datetime(self) -> datetime:
         return self.__get_datetime(self.__deadline_datetime_str)
 
@@ -125,11 +151,17 @@ class Job:
     def get_status(self) -> int:
         return self.__status
 
+    def get_priority(self) -> int:
+        return self.__priority
+
     def is_past_deadline_date(self) -> bool:
         return self.__is_past_deadline_date
 
     def set_is_past_deadline_date(self, is_past_deadline_date: bool) -> None:
         self.__is_past_deadline_date = is_past_deadline_date
+
+    def update_priority(self, new_priority: int) -> None:
+        self.__priority = new_priority
 
     def update_status(self, new_status: int) -> None:
         self.__status = new_status
@@ -189,6 +221,7 @@ class Job:
             f"\nRecipes: {[recipe.get_factory_id() for recipe in self.__recipes]}"
             f"\nQuantity: {len(self.__recipes)}"
             f"\nCreated: {self.__creation_datetime_str}"
+            f"\nArrival: {self.__arrival_datetime_str}"
             f"\nDeadline: {self.__deadline_datetime_str}"
             f"\nStatus: {self.__STATUS_STR[self.__status]}"
             f"\nIn Progress: {[recipe.get_id() for recipe in self.__recipes_in_progress]}"

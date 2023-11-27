@@ -1,16 +1,18 @@
-from custom_environment.environment_factory import init_custom_factory_env
-from custom_environment.environment import FactoryEnv
-from custom_environment.job import Job
-from custom_environment.my_factory_env import MyFactoryEnv
+from custom_environment.dispatch_rules.environment_factory_dispatch_rules import init_custom_factory_env
+from custom_environment.dispatch_rules.environment_wrapper_dispatch_rules import EnvWrapperDispatchRules
+from custom_environment.dispatch_rules.job_dispatch_rules import Job
 import matplotlib.pyplot as plt
 
-def useDeadline(job: Job):
+
+def use_deadline(job: Job):
     return job.get_deadline_datetime()
 
-def useArrival(job: Job):
+
+def use_arrival(job: Job):
     return job.get_arrival_datetime()
 
-def shortest_deadline_first_rule(env: MyFactoryEnv):
+
+def shortest_deadline_first_rule(env: EnvWrapperDispatchRules):
     steps = 0
     terminated = False
     rewards = []
@@ -23,10 +25,10 @@ def shortest_deadline_first_rule(env: MyFactoryEnv):
         # for job in env.get_pending_jobs():
         #     print(job)
         #     print("----")
-        if(len(env.get_pending_jobs()) == 0):
+        if len(env.get_pending_jobs()) == 0:
             break
 
-        # set inital deadline and job index
+        # set initial deadline and job index
         deadline = env.get_pending_jobs()[0].get_deadline_datetime()
         job_index = 0
         job_todo = env.get_pending_jobs()[0]
@@ -51,7 +53,7 @@ def shortest_deadline_first_rule(env: MyFactoryEnv):
             avg_machine_idle_time.append(env.get_average_machine_idle_time_percentage())
 
             print(f"action: {action}")
-            print(f"obs: {env.get_obs(flatten=False)}")
+            print(f"obs: {env.get_obs(is_flatten=False)}")
         else:
             env._update_factory_env_state()
 
@@ -80,7 +82,7 @@ def shortest_deadline_first_rule(env: MyFactoryEnv):
     plt.savefig('files/plots/shortest_deadline_plot1.png', format='png')
        
 
-def first_in_first_out_rule(env: FactoryEnv):
+def first_in_first_out_rule(env: EnvWrapperDispatchRules):
     steps = 0
     while steps < 15:
         steps += 1
@@ -97,14 +99,15 @@ def first_in_first_out_rule(env: FactoryEnv):
                 print(f"JobIndx: {job_index}, Job: {job}")
         
         #encode action for the job at index
-        action = encode_job_action(env, job, job_index)
+        action = encode_job_action(env, job)
         env.step(action)
         print(f"action: {action}")
         print(f"obs: {env.get_obs()}")
 
         #for idx, job in env.get_pending_jobs():
 
-def encode_job_action(env: FactoryEnv, job: Job):
+
+def encode_job_action(env: EnvWrapperDispatchRules, job: Job):
     # get first machine that can perform the job recipe
     #print(f"Encoding job: {job.get_id()}")
     machine_idx = 0
@@ -121,7 +124,7 @@ def encode_job_action(env: FactoryEnv, job: Job):
 
 
 if __name__ == "__main__":
-    custom_env = init_custom_factory_env()
+    custom_env: EnvWrapperDispatchRules = init_custom_factory_env()
 
     for job in custom_env.get_pending_jobs():
         print(job)
