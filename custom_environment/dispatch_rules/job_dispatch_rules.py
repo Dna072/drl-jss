@@ -57,12 +57,12 @@ class Job:
     __DATETIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 
     def __init__(
-            self,
-            recipes: list[Recipe],
-            factory_id: str,
-            process_id: int = 0,
-            arrival: str = "2023-12-15 23:59:59",
-            # setting the arrival time automatically sets a random deadline from arrival time
+        self,
+        recipes: list[Recipe],
+        factory_id: str,
+        process_id: int = 0,
+        arrival: str = "2023-12-15 23:59:59",
+        # setting the arrival time automatically sets a random deadline from arrival time
     ) -> None:
         """
         Job class constructor method
@@ -75,15 +75,17 @@ class Job:
         self.__id: int = process_id
         self.__factory_id: str = factory_id
         self.__arrival_datetime_str: str = arrival.strip(" ")
-        deadline = (self.__get_datetime(arrival) + timedelta(seconds=randint(40, 120))).strftime("%Y-%m-%d %H:%M:%S")
+        deadline = (
+            self.__get_datetime(arrival) + timedelta(seconds=randint(40, 120))
+        ).strftime("%Y-%m-%d %H:%M:%S")
 
         self.__deadline_datetime_str: str = deadline.strip(" ")
         self.__status: int = self.__STATUS_AVAILABLE_VAL
 
         self.__recipes: list[Recipe] = recipes
         self.__recipes_pending: list[Recipe] = recipes.copy()[
-                                               : self.MAX_NUM_RECIPES_PER_JOB
-                                               ]  # limit num recipes to max per job
+            : self.MAX_NUM_RECIPES_PER_JOB
+        ]  # limit num recipes to max per job
         self.__recipes_in_progress: list[Recipe] = []
         self.__recipes_completed: list[Recipe] = []
 

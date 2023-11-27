@@ -1,10 +1,12 @@
-from datetime import datetime
-
-from custom_environment.dispatch_rules.job_factory_dispatch_rules import create_job, get_random_job_arrival
+from custom_environment.dispatch_rules.job_factory_dispatch_rules import (
+    create_job,
+    get_random_job_arrival,
+)
 from custom_environment.environment import FactoryEnv
 from custom_environment.machine import Machine
 from custom_environment.recipe import Recipe
 from custom_environment.job import Job
+from datetime import datetime
 import numpy as np
 
 
@@ -14,7 +16,13 @@ class EnvWrapperDispatchRules(FactoryEnv):
     Subclass which extends FactoryEnv class, of which furthermore extends gym.Env:
     """
 
-    def __init__(self, machines: list[Machine], jobs: list[Job], recipes: list[Recipe], max_steps: int = 10_000):
+    def __init__(
+        self,
+        machines: list[Machine],
+        jobs: list[Job],
+        recipes: list[Recipe],
+        max_steps: int = 10_000,
+    ):
         """
         FactorEnv wrapper subclass constructor
         :param machines: array of Machine instances
@@ -38,9 +46,7 @@ class EnvWrapperDispatchRules(FactoryEnv):
         return self._BUFFER_LEN
 
     def is_machine_available(self, action) -> bool:
-        selected_machine = self._machines[
-            action // self._BUFFER_LEN
-            ]
+        selected_machine = self._machines[action // self._BUFFER_LEN]
 
         return selected_machine.is_available()
 
@@ -125,22 +131,24 @@ class EnvWrapperDispatchRules(FactoryEnv):
         }
 
     def step(
-            self, action: np.ndarray
+        self, action: np.ndarray, is_terminated: bool = False
     ) -> tuple[dict[str, np.ndarray[any]], float, bool, bool, dict[str, str]]:
         """
-        Take a single step in the factory environment.
-        TODO: optimise different rewards being returned -- currently just brainstorm placeholders for env testing
+        Take a single step in the factory environment assuming only when machine is available
         :param action: the agent's action to take in the step
+        :param is_terminated: conditional for if agent training is terminated
         :return: (observation, reward, terminated, truncated, info)
         """
-        is_terminated: bool = self._update_factory_env_state()
-        step_reward: float = self._compute_custom_reward()
+        self._time_step += 1
+        is_terminated = self._time_step > self._max_steps
         print(f"time step: {self._time_step}")
+
+        step_reward: float = self._compute_custom_reward()
 
         if action == len(self._machines) * self._BUFFER_LEN:
             # no operation is returned as the action for the step
             self.episode_reward_sum += (
-                    self._REWARD_WEIGHTS[self.NO_OP_STR] + step_reward
+                self._REWARD_WEIGHTS[self.NO_OP_STR] + step_reward
             )
             return (
                 self.get_obs(),  # observation
@@ -152,71 +160,57 @@ class EnvWrapperDispatchRules(FactoryEnv):
 
         action_selected_machine = self._machines[
             action // self._BUFFER_LEN
-            ]  # get action selected machine
-        if action_selected_machine.is_available():
-            self._time_step += 1  # increment step counter only when the action selected machine is available
-            is_terminated = self._time_step > self._max_steps
+        ]  # get action selected machine
+        action_selected_job = self._pending_jobs[
+            action % len(self._pending_jobs)
+        ]  # get action selected job
 
-            action_selected_job = self._pending_jobs[
-                action % self._BUFFER_LEN
-                ]  # get action selected job
-            if self._init_machine_job(
-                    selected_machine=action_selected_machine,
-                    selected_job=action_selected_job,
-            ):
-                print(True)
-                print(step_reward)
-                # action selected machine is available and action selected job is valid for selected machine
-                self.episode_reward_sum += (
-                    step_reward  # for the callback graphing of agent training
-                )
-                return (
-                    self.get_obs(),  # observation
-                    step_reward,  # reward
-                    is_terminated,  # terminated
-                    False,  # truncated
-                    {},  # info
-                )
-
-            # action selected machine is available but action selected job is invalid for selected machine
+        if self._init_machine_job(
+            selected_machine=action_selected_machine,
+            selected_job=action_selected_job,
+        ):
+            print(True)
+            print(step_reward)
+            # action selected machine is available and action selected job is valid for selected machine
             self.episode_reward_sum += (
-                    self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR] + step_reward
+                step_reward  # for the callback graphing of agent training
             )
             return (
                 self.get_obs(),  # observation
-                self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR]
-                + step_reward,  # reward
+                step_reward,  # reward
                 is_terminated,  # terminated
                 False,  # truncated
-                {"Error": self.INVALID_JOB_RECIPE_STR},  # info
+                {},  # info
             )
 
-        # action selected machine is unavailable
+        # action selected machine is available but action selected job is invalid for selected machine
         self.episode_reward_sum += (
-                self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward
+            self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR] + step_reward
         )
         return (
             self.get_obs(),  # observation
-            self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward,  # reward
+            self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR] + step_reward,  # reward
             is_terminated,  # terminated
             False,  # truncated
-            {"Error": self.MACHINE_UNAVAILABLE_STR},  # info
+            {"Error": self.INVALID_JOB_RECIPE_STR},  # info
         )
 
     def _create_new_jobs(self):
-        # Create number of jobs using Possion Distribution
+        # Create number of jobs using Poisson Distribution
         import uuid
+
         lamda_poisson = 3
         incoming_jobs = np.random.poisson(lamda_poisson)
 
         for _ in range(incoming_jobs):
             recipe = self._recipes[np.random.randint(len(self._recipes))]
-            job = create_job(recipes=[recipe],
-                             factory_id=str(uuid.uuid1()),
-                             process_id=self._jobs_counter % self._BUFFER_LEN,
-                             arrival=get_random_job_arrival(),
-                             priority=1
-                             )
+            job = create_job(
+                recipes=[recipe],
+                factory_id=str(uuid.uuid1()),
+                process_id=self._jobs_counter % self._BUFFER_LEN,
+                arrival=get_random_job_arrival(),
+                priority=1,
+            )
             self._jobs.append(job)
             self._jobs_counter += 1
 
@@ -229,7 +223,9 @@ class EnvWrapperDispatchRules(FactoryEnv):
         for machine in self._machines:
             total_idle_time += machine.get_time_idle()
 
-        return total_idle_time / len(self._machines)  # / self._total_factory_process_time * 100
+        return total_idle_time / len(
+            self._machines
+        )  # / self._total_factory_process_time * 100
 
     def get_average_machine_utilization_time_percentage(self) -> float:
         total_time = 0
@@ -240,4 +236,6 @@ class EnvWrapperDispatchRules(FactoryEnv):
         for machine in self._machines:
             total_time += machine.get_time_active()
 
-        return total_time / len(self._machines)  # / self._total_factory_process_time * 100
+        return total_time / len(
+            self._machines
+        )  # / self._total_factory_process_time * 100

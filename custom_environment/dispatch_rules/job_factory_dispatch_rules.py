@@ -11,7 +11,7 @@ def create_job(
     factory_id: str,
     process_id: int,
     arrival: str,
-    #deadline: str,
+    # deadline: str,
     priority: int,
 ) -> Job:
     """
@@ -32,10 +32,16 @@ def create_job(
 
 
 def get_random_job_arrival() -> str:
-    return (date.today() + timedelta(seconds=randint(0, 90))).strftime("%Y-%m-%d %H:%M:%S")
+    return (date.today() + timedelta(seconds=randint(0, 90))).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
 
 def get_random_job_deadline(arrival: datetime) -> str:
-    return (arrival + timedelta(seconds=randint(400, 1200))).strftime("%Y-%m-%d %H:%M:%S")
+    return (arrival + timedelta(seconds=randint(400, 1200))).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
 
 if __name__ == "__main__":
     recipe_objects: list[Recipe] = [
@@ -52,7 +58,7 @@ if __name__ == "__main__":
             factory_id="J1",
             process_id=0,
             arrival=get_random_job_arrival(),
-            #deadline=get_random_job_deadline(),
+            # deadline=get_random_job_deadline(),
             priority=1,
         ),
         create_job(
@@ -60,7 +66,7 @@ if __name__ == "__main__":
             factory_id="J2",
             process_id=1,
             arrival=get_random_job_arrival(),
-            #deadline=get_random_job_deadline(),
+            # deadline=get_random_job_deadline(),
             priority=2,
         ),
         create_job(
@@ -68,31 +74,31 @@ if __name__ == "__main__":
             factory_id="J3",
             process_id=2,
             arrival=get_random_job_arrival(),
-            #deadline=get_random_job_deadline(),
+            # deadline=get_random_job_deadline(),
             priority=3,
         ),
-         create_job(
+        create_job(
             recipes=[(recipe_objects[1])],
             factory_id="J4",
             process_id=0,
             arrival=get_random_job_arrival(),
-            #deadline=get_random_job_deadline(),
+            # deadline=get_random_job_deadline(),
             priority=1,
         ),
-         create_job(
+        create_job(
             recipes=[(recipe_objects[0])],
             factory_id="J5",
             process_id=1,
             arrival=get_random_job_arrival(),
-            #deadline=get_random_job_deadline(),
+            # deadline=get_random_job_deadline(),
             priority=2,
         ),
-          create_job(
+        create_job(
             recipes=[(recipe_objects[1])],
             factory_id="J6",
             process_id=2,
             arrival=get_random_job_arrival(),
-            #deadline=get_random_job_deadline(),
+            # deadline=get_random_job_deadline(),
             priority=3,
         ),
     ]

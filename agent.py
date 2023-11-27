@@ -77,8 +77,10 @@ if __name__ == "__main__":
 
     agent = Agent(custom_env=init_custom_factory_env())
 
-    agent.learn(total_time_steps=100_000, log_interval=5, callback=plot_training_callback)
-    #agent.learn()
+    agent.learn(
+        total_time_steps=100_000, log_interval=5, callback=plot_training_callback
+    )
+    # agent.learn()
 
     agent.save()
 
