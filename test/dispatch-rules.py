@@ -37,7 +37,7 @@ def shortest_deadline_first_rule(env: EnvWrapperDispatchRules):
 
         # set initial deadline and job index
         deadline = env.get_pending_jobs()[0].get_deadline_datetime()
-        job_index = 0
+        # job_index = 0
         job_todo = env.get_pending_jobs()[0]
 
         for job in env.get_pending_jobs():
