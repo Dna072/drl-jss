@@ -504,7 +504,7 @@ class FactoryEnv(gym.Env):
         :param action: the agent's action to take in the step
         :return: (observation, reward, terminated, truncated, info)
         """
-        is_terminated: bool = self._update_factory_env_state()
+        # is_terminated: bool = self._update_factory_env_state()
         step_reward: float = self._compute_custom_reward()
         print(f"time step: {self._time_step}")
 

@@ -39,6 +39,8 @@ def shortest_deadline_first_rule(env: MyFactoryEnv):
         
         #encode action for the job at index
         action = encode_job_action(env, job_todo)
+
+        terminated = env._update_factory_env_state()
         
         # check if there are any available machines before stepping
         if env.is_machine_available(action):
@@ -52,8 +54,8 @@ def shortest_deadline_first_rule(env: MyFactoryEnv):
 
             print(f"action: {action}")
             print(f"obs: {env.get_obs(flatten=False)}")
-        else:
-            env._update_factory_env_state()
+    # else:
+            
 
     # plot rewards
     fig, axs = plt.subplots(2,2)
