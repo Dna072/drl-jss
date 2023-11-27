@@ -127,12 +127,12 @@ class Machine:
             for recipe in job.get_recipes()
             if recipe.get_recipe_type() in self.__valid_recipe_types
         ]
-    
+
     def can_perform_job(self, job: Job) -> bool:
         for recipe in job.get_pending_recipes():
             if recipe in self.__valid_recipe_types:
                 return True
-            
+
         return False
 
     def assign_job(self, job_to_assign: Job) -> bool:
@@ -140,7 +140,9 @@ class Machine:
             job=job_to_assign
         )
 
-        print(f"For job {job_to_assign.get_factory_id()} machine availa: {self.__is_available} recipe: {len(available_valid_recipes)}")
+        print(
+            f"For job {job_to_assign.get_factory_id()} machine availa: {self.__is_available} recipe: {len(available_valid_recipes)}"
+        )
 
         if available_valid_recipes and self.__is_available:
             print(f"Can assign job to machine {self.get_id()}")
