@@ -161,38 +161,53 @@ class EnvWrapperDispatchRules(FactoryEnv):
         action_selected_machine = self._machines[
             action // self._BUFFER_LEN
         ]  # get action selected machine
-        action_selected_job = self._pending_jobs[
-            action % len(self._pending_jobs)
-        ]  # get action selected job
 
-        if self._init_machine_job(
-            selected_machine=action_selected_machine,
-            selected_job=action_selected_job,
-        ):
-            print(True)
-            print(step_reward)
-            # action selected machine is available and action selected job is valid for selected machine
+        if action_selected_machine.is_available():
+            action_selected_job = self._pending_jobs[
+                action % len(self._pending_jobs)
+            ]  # get action selected job
+
+            if self._init_machine_job(
+                selected_machine=action_selected_machine,
+                selected_job=action_selected_job,
+            ):
+                print(True)
+                print(step_reward)
+                # action selected machine is available and action selected job is valid for selected machine
+                self.episode_reward_sum += (
+                    step_reward  # for the callback graphing of agent training
+                )
+                return (
+                    self.get_obs(),  # observation
+                    step_reward,  # reward
+                    is_terminated,  # terminated
+                    False,  # truncated
+                    {},  # info
+                )
+
+            # action selected machine is available but action selected job is invalid for selected machine
             self.episode_reward_sum += (
-                step_reward  # for the callback graphing of agent training
+                self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR] + step_reward
             )
             return (
                 self.get_obs(),  # observation
-                step_reward,  # reward
+                self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR] + step_reward,  # reward
                 is_terminated,  # terminated
                 False,  # truncated
-                {},  # info
+                {"Error": self.INVALID_JOB_RECIPE_STR},  # info
             )
 
-        # action selected machine is available but action selected job is invalid for selected machine
+        # action selected machine is unavailable
+        is_terminated = self._update_factory_env_state()  # assume not already executed w/o available machine
         self.episode_reward_sum += (
-            self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR] + step_reward
+                self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward
         )
         return (
             self.get_obs(),  # observation
-            self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR] + step_reward,  # reward
+            self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR] + step_reward,  # reward
             is_terminated,  # terminated
             False,  # truncated
-            {"Error": self.INVALID_JOB_RECIPE_STR},  # info
+            {"Error": self.MACHINE_UNAVAILABLE_STR},  # info
         )
 
     def _create_new_jobs(self):
