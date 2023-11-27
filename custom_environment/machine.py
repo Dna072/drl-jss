@@ -140,7 +140,10 @@ class Machine:
             job=job_to_assign
         )
 
+        print(f"For job {job_to_assign.get_factory_id()} machine availa: {self.__is_available} recipe: {len(available_valid_recipes)}")
+
         if available_valid_recipes and self.__is_available:
+            print(f"Can assign job to machine {self.get_id()}")
             next_valid_recipe_to_process: Recipe = available_valid_recipes[0]
             is_recipe_assigned: bool = job_to_assign.set_recipe_in_progress(
                 next_valid_recipe_to_process
