@@ -37,3 +37,4 @@ jobs:
       - name: Check Custom Environment
         run: |
           python -c "from stable_baselines3.common.env_checker import check_env; from custom_environment.environment_factory import init_custom_factory_env; check_env(init_custom_factory_env())"
+          python -c "from stable_baselines3.common.env_checker import check_env; from custom_environment.dispatch_rules.environment_factory_dispatch_rules import init_custom_factory_env; check_env(init_custom_factory_env())"
