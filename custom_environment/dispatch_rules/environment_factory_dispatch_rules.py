@@ -13,7 +13,7 @@ from custom_environment.recipe import Recipe
 
 
 def create_factory_env(
-    machines: list[Machine], jobs: list[Job], recipes: list[Recipe]
+    machines: list[Machine], jobs: list[Job], recipes: list[Recipe], max_steps:int = 10
 ) -> EnvWrapperDispatchRules:
     """
     Factory function for creating a FactoryEnv object
@@ -23,11 +23,11 @@ def create_factory_env(
     :return: FactoryEnv object
     """
     return EnvWrapperDispatchRules(
-        machines=machines, jobs=jobs, recipes=recipes, max_steps=10
+        machines=machines, jobs=jobs, recipes=recipes, max_steps=max_steps
     )
 
 
-def init_custom_factory_env(is_verbose: bool = False) -> EnvWrapperDispatchRules:
+def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 10) -> EnvWrapperDispatchRules:
     """
     Create a custom FactoryEnv environment for development and testing
     :param is_verbose: print statements if True
@@ -131,7 +131,7 @@ def init_custom_factory_env(is_verbose: bool = False) -> EnvWrapperDispatchRules
             print("-------")
 
     factory_env: EnvWrapperDispatchRules = create_factory_env(
-        machines=machines, jobs=jobs, recipes=recipe_objects
+        machines=machines, jobs=jobs, recipes=recipe_objects, max_steps=max_steps
     )
     return factory_env
 

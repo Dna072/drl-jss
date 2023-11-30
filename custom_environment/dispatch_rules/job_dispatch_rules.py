@@ -146,6 +146,9 @@ class Job:
 
     def get_deadline_datetime(self) -> datetime:
         return self.__get_datetime(self.__deadline_datetime_str)
+    
+    def get_arrival_datetime(self) -> datetime:
+        return self.__get_datetime(self.__arrival_datetime_str)
 
     def get_start_op_datetime(self) -> datetime:
         return self.__start_op_datetime
@@ -195,6 +198,7 @@ class Job:
             self.__start_op_datetime = (
                 datetime.now()
             )  # start job timer in datetime format
+            #print(f'recipe start time: {self.__start_op_datetime}')
             self.__status = self.__STATUS_IN_PROGRESS_VAL
         else:
             self.__status = self.__STATUS_ERROR_VAL

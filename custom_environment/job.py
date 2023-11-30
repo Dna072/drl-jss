@@ -154,6 +154,7 @@ class Job:
         self.reset()
 
     def set_recipe_in_progress(self, recipe: Recipe) -> bool:
+        print(f'recipe start time: {self.__start_op_datetime}')
         if self.can_perform_recipe(recipe=recipe):
             self.__recipes_in_progress.append(
                 self.__recipes_pending.pop(self.__recipes_pending.index(recipe))
@@ -161,6 +162,7 @@ class Job:
             self.__start_op_datetime = (
                 datetime.now()
             )  # start job timer in datetime format
+            print(f'recipe start time: {self.__start_op_datetime}')
             self.__status = self.__STATUS_IN_PROGRESS_VAL
         else:
             self.__status = self.__STATUS_ERROR_VAL

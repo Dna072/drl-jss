@@ -150,7 +150,7 @@ class Machine:
             is_recipe_assigned: bool = job_to_assign.set_recipe_in_progress(
                 next_valid_recipe_to_process
             )
-
+            #print(f'Is recipe assigned: {is_recipe_assigned}')
             if is_recipe_assigned:
                 self.__is_available = False
                 self.__timestamp_current_status = datetime.datetime.now()

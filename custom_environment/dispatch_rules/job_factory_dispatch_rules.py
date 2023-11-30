@@ -32,13 +32,13 @@ def create_job(
 
 
 def get_random_job_arrival() -> str:
-    return (date.today() + timedelta(seconds=randint(0, 90))).strftime(
+    return (datetime.now() + timedelta(seconds=randint(0, 120))).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
 
 def get_random_job_deadline(arrival: datetime) -> str:
-    return (arrival + timedelta(seconds=randint(400, 1200))).strftime(
+    return (arrival + timedelta(seconds=randint(400, 2200))).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
