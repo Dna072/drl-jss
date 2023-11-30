@@ -23,10 +23,10 @@ def create_recipe(
 if __name__ == "__main__":
     recipes: list[Recipe] = [
         create_recipe(
-            factory_id="R1_ID", process_time=1.0, process_id=0, recipe_type="R1"
+            factory_id="R1_ID", process_time=2.0, process_id=0, recipe_type="R1"
         ),
         create_recipe(
-            factory_id="R2_ID", process_time=2.0, process_id=1, recipe_type="R2"
+            factory_id="R2_ID", process_time=10.0, process_id=1, recipe_type="R2"
         ),
     ]
 

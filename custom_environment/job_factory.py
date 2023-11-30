@@ -11,6 +11,7 @@ def create_job(
     factory_id: str,
     process_id: int,
     deadline: str,
+    factory_time:int
 ) -> Job:
     """
     Factory function for creating a Job object
@@ -25,6 +26,7 @@ def create_job(
         factory_id=factory_id,
         process_id=process_id,
         deadline=deadline,
+        factory_time=factory_time
     )
 
 
@@ -35,10 +37,10 @@ def get_random_job_deadline() -> str:
 if __name__ == "__main__":
     recipe_objects: list[Recipe] = [
         create_recipe(
-            factory_id="R1_ID", process_time=1.0, process_id=0, recipe_type="R1"
+            factory_id="R1_ID", process_time=5.0, process_id=0, recipe_type="R1"
         ),
         create_recipe(
-            factory_id="R2_ID", process_time=2.0, process_id=1, recipe_type="R2"
+            factory_id="R2_ID", process_time=10.0, process_id=1, recipe_type="R2"
         ),
     ]
     jobs: list[Job] = [
