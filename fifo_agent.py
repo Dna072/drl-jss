@@ -68,7 +68,6 @@ for e in range(episodes):
         tot_reward += r
         if te:
             break
-    print("Total reward episode",e,":",tot_reward)
     ep_values.append(tot_reward)
 
 

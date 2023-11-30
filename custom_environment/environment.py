@@ -94,7 +94,8 @@ class FactoryEnv(gym.Env):
     _PENDING_JOBS_STR: str = "pending_jobs"
     _RECIPE_TYPES_STR: str = "recipes"
     _MACHINES_STR: str = "machines"
-    _JOB_REMAINING_TIMES_STR: str = "job_remaining_times"
+    _P_JOB_REMAINING_TIMES_STR: str = "pending_job_remaining_times"
+    _IP_JOB_REMAINING_TIMES_STR: str = "inprogress_job_remaining_times"
 
     _METADATA: dict[int, str] = {0: "vector", 1: "human"}
 
@@ -157,15 +158,18 @@ class FactoryEnv(gym.Env):
             shape=(len(self._machines) * self._BUFFER_LEN,),
             dtype=np.float64,
         )  # binary matrix for mapping machines to jobs they are processing
-        job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
+        pending_job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )  # normalized vector for jobs pending deadline proportional to recipe processing duration times
-
+        inprogress_job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
+        )
         self.observation_space: gym.spaces.Dict = gym.spaces.Dict(
             {
                 self._PENDING_JOBS_STR: pending_jobs_space,
                 self._MACHINES_STR: machine_space,
-                self._JOB_REMAINING_TIMES_STR: job_remaining_times_space,
+                self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times_space,
+                self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times_space,
             }
         )
 
@@ -194,28 +198,43 @@ class FactoryEnv(gym.Env):
         #######################################################################################################
         # update incomplete job pending deadline proportional to recipe processing duration times observation #
         #######################################################################################################
-        max_duration = min_duration = 0
-        job_remaining_times: np.ndarray = np.zeros(self._BUFFER_LEN, dtype=np.float64)
-        # current_datetime: datetime = datetime.now()
-        for job in [
-            *self._pending_jobs,
-            *[job_in_progress[1] for job_in_progress in self._jobs_in_progress],
-        ]:
-            job_remaining_times[job.get_id()] = job.get_steps_to_deadline()
+        max_duration = 0
+        min_duration = 10_000
+        pending_job_remaining_times: np.ndarray = np.zeros(self._BUFFER_LEN, dtype=np.float64)
 
+        for job in self._pending_jobs:
+            pending_job_remaining_times[job.get_id()] = job.get_steps_to_deadline()
             # update max and min duration times for normalizing [0, 1]
-            if job_remaining_times[job.get_id()] > max_duration:
-                max_duration = job_remaining_times[job.get_id()]
-            elif job_remaining_times[job.get_id()] < min_duration:
-                min_duration = job_remaining_times[job.get_id()]
+            if pending_job_remaining_times[job.get_id()] > max_duration:
+                max_duration = pending_job_remaining_times[job.get_id()]
+            elif pending_job_remaining_times[job.get_id()] < min_duration:
+                min_duration = pending_job_remaining_times[job.get_id()]
 
         # normalize job pending deadline proportional to recipe processing duration times observation
-        for job in [
-            *self._pending_jobs,
-            *[job_in_progress[1] for job_in_progress in self._jobs_in_progress],
-        ]:
-            job_remaining_times[job.get_id()] = (
-                job_remaining_times[job.get_id()] - min_duration
+        for job in self._pending_jobs:
+            pending_job_remaining_times[job.get_id()] = (
+                pending_job_remaining_times[job.get_id()] - min_duration
+            ) / (max_duration - min_duration)
+        #######################################################################################################
+        # repeat for jobs in process                                                                          #
+        #######################################################################################################
+        max_duration = 0
+        min_duration = 10_000
+        inprogress_job_remaining_times: np.ndarray = np.zeros(self._BUFFER_LEN, dtype=np.float64)
+        inprogress = [mj[1] for mj in self._jobs_in_progress] #mj=(machine,job) tuple
+        for job in inprogress:
+            inprogress_job_remaining_times[job.get_id()] = job.get_steps_to_deadline()
+
+            # update max and min duration times for normalizing [0, 1]
+            if inprogress_job_remaining_times[job.get_id()] > max_duration:
+                max_duration = inprogress_job_remaining_times[job.get_id()]
+            elif inprogress_job_remaining_times[job.get_id()] < min_duration:
+                min_duration = inprogress_job_remaining_times[job.get_id()]
+
+        # normalize job pending deadline proportional to recipe processing duration times observation
+        for job in inprogress:
+            inprogress_job_remaining_times[job.get_id()] = (
+                inprogress_job_remaining_times[job.get_id()] - min_duration
             ) / (max_duration - min_duration)
 
         ###########################################################
@@ -224,7 +243,8 @@ class FactoryEnv(gym.Env):
         return {
             self._PENDING_JOBS_STR: is_pending_jobs,
             self._MACHINES_STR: is_machines_active_jobs.flatten(),
-            self._JOB_REMAINING_TIMES_STR: job_remaining_times,
+            self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times,
+            self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times,
         }
 
     def _compute_penalties(self) -> float:
@@ -296,7 +316,7 @@ class FactoryEnv(gym.Env):
             3.2 Advance "clock" in timesteps, and also the jobs will progress that time
         """
         na = 0
-        min_time = 1000000 #NOTE: Set to infinity
+        min_time = 1000000 #NOTE: Set to infinity (is it with numpy?)
         time_delta = 0 #this is the amount of time i will move towards the future
 
         available = [1 for m in self._machines if m.is_available()]
@@ -333,9 +353,7 @@ class FactoryEnv(gym.Env):
                             else:
                                 self._jobs_completed_per_step_not_on_time += 1
                             machine.remove_job_assignment(job=j)
-        ##############################
-        #    UPDATE ALL DEADLINES    #
-        ##############################
+        # Finally, Update all deadlines based on the time passed
         self._update_deadlines(time_delta)
 
     def _init_machine_job(self, selected_machine: Machine, selected_job: Job) -> bool:
@@ -494,6 +512,7 @@ class FactoryEnv(gym.Env):
 
         for machine in self._total_machines_available:
             machine.reset()
+        
         self._machines: list[Machine] = self._total_machines_available.copy()[
             : self._MAX_MACHINES
         ]

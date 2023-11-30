@@ -4,14 +4,15 @@ from matplotlib import pyplot as plt
 from random import randint
 import numpy as np
 
-def get_fifo_action(env:FactoryEnv, nr_jobs:int):
+def get_edd_action(env:FactoryEnv, nr_jobs:int):
     job_index = -1
     machine_index = -1
     action = 6 #by default no-op
     #First I look for the first created job
     pj = env._pending_jobs
-    ct = [j.get_start_time() for j in pj] #ct = creation times
-    job_index = ct.index(min(ct))
+    ttd = [j.get_steps_to_deadline() for j in pj] #ttd = times to deadline
+    print(ttd)
+    job_index = ttd.index(min(ttd))
     #now i look for a suitable machine for it
     am = env._machines #am = all machines
     for i,m in enumerate(am):
@@ -19,6 +20,8 @@ def get_fifo_action(env:FactoryEnv, nr_jobs:int):
             machine_index = i
             action = machine_index*nr_jobs + job_index
             break
+    print("Take Action: ",action)
+    hjhj = input("Enter")
     #If no machine, then i will just send no_op
     return action
 
@@ -38,7 +41,7 @@ steps: list[int] = []
 
 # Running 1 episode
 while 1:
-    action: np.ndarray = np.array(get_fifo_action(env,jobs))
+    action: np.ndarray = np.array(get_edd_action(env,jobs))
     o, r, te, tr, i = env.step(action)
     tot_reward += r
     r_values.append(r)
@@ -48,10 +51,10 @@ while 1:
     if te:
         break
 
-# plt.scatter(steps, r_values, c="r", marker="o", s=0.5, label="Instant Rewards")
-# plt.scatter(steps, tr_values, c="g", marker="x", s=0.5, label="Cumulative Reward")
-# plt.legend()
-# plt.show()
+plt.scatter(steps, r_values, c="r", marker="o", s=0.5, label="Instant Rewards")
+plt.scatter(steps, tr_values, c="g", marker="x", s=0.5, label="Cumulative Reward")
+plt.legend()
+plt.show()
 
 jhjh = input("hit enter to continue with the process....")
 
@@ -63,12 +66,11 @@ for e in range(episodes):
     env = init_custom_factory_env(is_verbose=False)
     tot_reward = 0
     while 1 : #the environment has its own termination clauses, so it will trigger the break
-        action = np.array(get_fifo_action(env,jobs))
+        action = np.array(get_edd_action(env,jobs))
         o, r, te, tr, i = env.step(action)
         tot_reward += r
         if te:
             break
-    print("Total reward episode",e,":",tot_reward)
     ep_values.append(tot_reward)
 
 

@@ -192,4 +192,4 @@ class Job:
         self.__recipes_completed = []
         # self.__start_op_datetime = None
         self._steps_to_recipe_complete = 0
-        self._steps_to_deadline = 1 if self.__recipes[0].get_recipe_type() == "R1" else 10,
+        self._steps_to_deadline = 1 if self.__recipes[0].get_recipe_type() == "R1" else 10
