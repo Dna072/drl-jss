@@ -62,9 +62,13 @@ class Machine:
         self.__timestamp_current_status: datetime = None
         self.__time_active: float = 0.0
         self.__time_idle: float = 0.0
+        self._active_recipe:str = ""
 
     def get_id(self) -> int:
         return self.__id
+    
+    def get_active_recipe(self) -> str:
+        return self._active_recipe
 
     def get_factory_id(self) -> str:
         return self.__factory_id
@@ -130,7 +134,7 @@ class Machine:
 
     def can_perform_job(self, job: Job) -> bool:
         for recipe in job.get_pending_recipes():
-            if recipe in self.__valid_recipe_types:
+            if recipe.get_recipe_type() in self.__valid_recipe_types:
                 return True
 
         return False
@@ -140,21 +144,20 @@ class Machine:
             job=job_to_assign
         )
 
-        print(
-            f"For job {job_to_assign.get_factory_id()} machine availa: {self.__is_available} recipe: {len(available_valid_recipes)}"
-        )
+        # print(f"For job {job_to_assign.get_factory_id()} machine availa: {self.__is_available} recipe: {len(available_valid_recipes)}")
 
         if available_valid_recipes and self.__is_available:
-            print(f"Can assign job to machine {self.get_id()}")
+            # print(f"Can assign job to machine {self.get_id()}")
             next_valid_recipe_to_process: Recipe = available_valid_recipes[0]
             is_recipe_assigned: bool = job_to_assign.set_recipe_in_progress(
                 next_valid_recipe_to_process
             )
-            #print(f'Is recipe assigned: {is_recipe_assigned}')
+
             if is_recipe_assigned:
                 self.__is_available = False
                 self.__timestamp_current_status = datetime.datetime.now()
                 self.__active_jobs.append(job_to_assign)
+                self._active_recipe = next_valid_recipe_to_process
                 job_to_assign.set_recipe_in_progress(
                     recipe=next_valid_recipe_to_process
                 )
@@ -162,6 +165,7 @@ class Machine:
 
     def remove_job_assignment(self, job: Job) -> None:
         self.__active_jobs.remove(job)
+        self._active_recipe = ""
         if not self.__active_jobs:
             self.__is_available = True
 
@@ -184,3 +188,4 @@ class Machine:
         self.__timestamp_current_status = None
         self.__time_active = 0.0
         self.__time_idle = 0.0
+        self._active_recipe = ""
