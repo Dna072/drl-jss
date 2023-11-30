@@ -126,10 +126,9 @@ class FactoryEnv(gym.Env):
         self._max_steps: int = max_steps
         self._time_step: int = 0
         self._step_datetime: str | None = None
-        
+
         self._factory_time: float = 0.0             # NOTE: This is the variable that tracks processing time
         self._termination_reward:float = -1000    # NOTE: Check if applicable
-
         ############
         # callback #
         ############
@@ -151,7 +150,7 @@ class FactoryEnv(gym.Env):
         pending_jobs_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )  # binary vector for representing if a job is pending for job assignment
-        
+
         machine_space: gym.spaces.Box = gym.spaces.Box(
             low=0,
             high=1,
@@ -161,15 +160,16 @@ class FactoryEnv(gym.Env):
         pending_job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )  # normalized vector for jobs pending deadline proportional to recipe processing duration times
-        inprogress_job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
-        )
+
+        # inprogress_job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
+        #     low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
+        # )
         self.observation_space: gym.spaces.Dict = gym.spaces.Dict(
             {
                 self._PENDING_JOBS_STR: pending_jobs_space,
                 self._MACHINES_STR: machine_space,
                 self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times_space,
-                self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times_space,
+                # self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times_space,
             }
         )
 
@@ -198,44 +198,42 @@ class FactoryEnv(gym.Env):
         #######################################################################################################
         # update incomplete job pending deadline proportional to recipe processing duration times observation #
         #######################################################################################################
-        max_duration = 0
-        min_duration = 10_000
+        max_duration = min_duration = 0
         pending_job_remaining_times: np.ndarray = np.zeros(self._BUFFER_LEN, dtype=np.float64)
 
         for job in self._pending_jobs:
-            pending_job_remaining_times[job.get_id()] = job.get_steps_to_deadline()
+            pending_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
             # update max and min duration times for normalizing [0, 1]
             if pending_job_remaining_times[job.get_id()] > max_duration:
                 max_duration = pending_job_remaining_times[job.get_id()]
             elif pending_job_remaining_times[job.get_id()] < min_duration:
                 min_duration = pending_job_remaining_times[job.get_id()]
+        if not sum(pending_job_remaining_times) == 0:
+            for job in self._pending_jobs:
+                pending_job_remaining_times[job.get_id()] = (
+                    pending_job_remaining_times[job.get_id()] - min_duration
+                                                            )/ (max_duration - min_duration)
+        # #######################################################################################################
+        # # repeat for jobs in process                                                                          #
+        # #######################################################################################################
+        # max_duration = min_duration = 0
+        # inprogress_job_remaining_times: np.ndarray = np.zeros(self._BUFFER_LEN, dtype=np.float64)
+        # inprogress = [mj[1] for mj in self._jobs_in_progress] #mj=(machine,job) tuple
+        # for job in inprogress:
+        #     inprogress_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
+        #     print("IPT:",inprogress_job_remaining_times)
+        #     # update max and min duration times for normalizing [0, 1]
+        #     if inprogress_job_remaining_times[job.get_id()] > max_duration:
+        #         max_duration = inprogress_job_remaining_times[job.get_id()]
+        #     elif inprogress_job_remaining_times[job.get_id()] < min_duration:
+        #         min_duration = inprogress_job_remaining_times[job.get_id()]
+        # if not sum(inprogress_job_remaining_times) == 0:
+        #     # normalize job pending deadline proportional to recipe processing duration times observation
+        #     for job in inprogress:
+        #             inprogress_job_remaining_times[job.get_id()] = (
+        #             inprogress_job_remaining_times[job.get_id()] - min_duration
+        #                                                            ) / max_duration - min_duration
 
-        # normalize job pending deadline proportional to recipe processing duration times observation
-        for job in self._pending_jobs:
-            pending_job_remaining_times[job.get_id()] = (
-                pending_job_remaining_times[job.get_id()] - min_duration
-            ) / (max_duration - min_duration)
-        #######################################################################################################
-        # repeat for jobs in process                                                                          #
-        #######################################################################################################
-        max_duration = 0
-        min_duration = 10_000
-        inprogress_job_remaining_times: np.ndarray = np.zeros(self._BUFFER_LEN, dtype=np.float64)
-        inprogress = [mj[1] for mj in self._jobs_in_progress] #mj=(machine,job) tuple
-        for job in inprogress:
-            inprogress_job_remaining_times[job.get_id()] = job.get_steps_to_deadline()
-
-            # update max and min duration times for normalizing [0, 1]
-            if inprogress_job_remaining_times[job.get_id()] > max_duration:
-                max_duration = inprogress_job_remaining_times[job.get_id()]
-            elif inprogress_job_remaining_times[job.get_id()] < min_duration:
-                min_duration = inprogress_job_remaining_times[job.get_id()]
-
-        # normalize job pending deadline proportional to recipe processing duration times observation
-        for job in inprogress:
-            inprogress_job_remaining_times[job.get_id()] = (
-                inprogress_job_remaining_times[job.get_id()] - min_duration
-            ) / (max_duration - min_duration)
 
         ###########################################################
         # return current observation state object for step update #
@@ -244,7 +242,7 @@ class FactoryEnv(gym.Env):
             self._PENDING_JOBS_STR: is_pending_jobs,
             self._MACHINES_STR: is_machines_active_jobs.flatten(),
             self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times,
-            self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times,
+            # self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times,
         }
 
     def _compute_penalties(self) -> float:
@@ -266,7 +264,7 @@ class FactoryEnv(gym.Env):
                 steps_to_deadline = j.get_steps_to_deadline()
                 if steps_to_deadline < 0:
                     inprogress_past_deadline += 1
-        
+
         penalty = (self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]*0.8*inprogress_past_deadline
                    + self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]*pending_past_deadline)
 
@@ -311,7 +309,7 @@ class FactoryEnv(gym.Env):
         :return: conditional for if all jobs in the buffer are completed
         1. Get machines-jobs
         2. If available machine -> +1 timestep and return
-        3. If machines occupied -> 
+        3. If machines occupied ->
             3.1 Find smallest value to free up a machine (soonest finishing job)
             3.2 Advance "clock" in timesteps, and also the jobs will progress that time
         """
@@ -321,7 +319,7 @@ class FactoryEnv(gym.Env):
 
         available = [1 for m in self._machines if m.is_available()]
         na = sum(available)
-        
+
         if na == 0:
             # I search for the min completion time - This could probably be done with list comprehension
             for machine in self._machines:
@@ -332,19 +330,19 @@ class FactoryEnv(gym.Env):
                         min_time = machine.get_active_jobs()[0].get_steps_to_recipe_complete()
                         #Even if there are more than 1 jobs, they will all start and finish at the same time
             # print("Min time: ", min_time)
-            time_delta = min_time            
-        else: 
+            time_delta = min_time
+        else:
             if no_op_time > 0 :
                 time_delta = no_op_time
             else:
                 time_delta = 1
-        
+
         # Then I advance all the jobs in progress and the environment
         self._factory_time += time_delta
         for machine in self._machines:
                 if not machine.is_available():
                     for j in machine.get_active_jobs():
-                        j.update_steps_to_recipe_complete(time_delta*-1) 
+                        j.update_steps_to_recipe_complete(time_delta*-1)
                         if j.get_steps_to_recipe_complete() <= 0:
                             j.set_recipe_completed(machine.get_active_recipe())
                             self._completed_jobs.append(self._jobs_in_progress.pop(self._jobs_in_progress.index((machine, j)))[1])
@@ -375,7 +373,7 @@ class FactoryEnv(gym.Env):
         if len(self._pending_jobs) == 0:
             return True
         return False
-        
+
     def _calc_noop_time(self):
         times = [m.get_active_jobs()[0].get_steps_to_recipe_complete() for m in self._machines if not m.is_available()]
         if times != []:
@@ -384,14 +382,14 @@ class FactoryEnv(gym.Env):
             else:
                 return min(times)//4
         return 1
-    
+
     def step(self, action: np.ndarray ) -> tuple[dict[str, np.ndarray[any]], float, bool, bool, dict[str, str]]:
         """
         Take a single step in the factory environment.
         :param action: the agent's action to take in the step
         :return: (observation, reward, terminated, truncated, info)
         """
-        is_terminated: bool = False                                                    
+        is_terminated: bool = False
         step_reward = 0
         no_op_time = 0
         # print(TextColors.MAGENTA+"Factory Time before step: "+TextColors.RESET,self._factory_time)
@@ -414,7 +412,7 @@ class FactoryEnv(gym.Env):
                     step_reward +=1 #NOTE:Check if giving a reward for correct assignment makes sense.
                 else:
                     # action selected machine is available but action selected job is invalid for selected machine
-                    step_reward += self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR]            
+                    step_reward += self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR]
         #########################
         #     2-UPDATE ENV      #
         #########################
@@ -439,12 +437,12 @@ class FactoryEnv(gym.Env):
         #########################
         return (
             self.get_obs(),
-            reward,       
+            reward,
             is_terminated,
             False,                  #NOTE: Check truncation conditions
-            {"INFO": str(reward)+","+str(self.episode_reward_sum)}, 
+            {"INFO": str(reward)+","+str(self.episode_reward_sum)},
         )
-    
+
     def update_buffer(self):
         """
         This method will create the new jobs to add to the buffer so that it is 'never ending'
@@ -485,7 +483,7 @@ class FactoryEnv(gym.Env):
         for machine in self._machines:
             for job in machine.get_active_jobs():
                 active_jobs[machine.get_id(), job.get_id()] = 1.0
-        
+
         print(TextColors.YELLOW+"Machine occupancy:"+TextColors.RESET)
         print(TextColors.GREEN+"       J0  J1  J2"+TextColors.RESET)
         for i in range(len(self._machines)):
@@ -498,7 +496,7 @@ class FactoryEnv(gym.Env):
                     print("0.  ",end="")
             print("]")
         print()
-            
+
     def reset(
         self, seed: int = None, options: str = None
     ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
@@ -510,12 +508,12 @@ class FactoryEnv(gym.Env):
 
         self.episode_reward_sum = 0  # for callback graphing train performance
 
-        for machine in self._total_machines_available:
+        for machine in self._machines:
             machine.reset()
-        
-        self._machines: list[Machine] = self._total_machines_available.copy()[
-            : self._MAX_MACHINES
-        ]
+
+        # self._machines: list[Machine] = self._total_machines_available.copy()[
+        #     : self._MAX_MACHINES
+        # ]
 
         for job in self._jobs:
             job.reset()
