@@ -46,7 +46,7 @@ s=0
 
 tot_reward: int = 0
 
-env: FactoryEnv = init_custom_factory_env(is_verbose=False)
+env: FactoryEnv = init_custom_factory_env(is_verbose=True)
 nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
 
 r_values: list[int] = []

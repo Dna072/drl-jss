@@ -233,6 +233,9 @@ class FactoryEnv(gym.Env):
 
         # normalize job pending deadline proportional to recipe processing duration times observation
         for job in inprogress:
+            print(f'inprogress_job_remaining_times[job.get_id()]: {inprogress_job_remaining_times[job.get_id()]}')
+            print(f'min_duration: {min_duration}')
+            print(f'max_duration: {max_duration}')
             inprogress_job_remaining_times[job.get_id()] = (
                 inprogress_job_remaining_times[job.get_id()] - min_duration
             ) / (max_duration - min_duration)

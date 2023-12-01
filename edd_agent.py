@@ -21,7 +21,7 @@ def get_edd_action(env:FactoryEnv, nr_jobs:int):
             action = machine_index*nr_jobs + job_index
             break
     print("Take Action: ",action)
-    hjhj = input("Enter")
+    #hjhj = input("Enter")
     #If no machine, then i will just send no_op
     return action
 
