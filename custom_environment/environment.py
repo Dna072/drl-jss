@@ -475,7 +475,7 @@ class FactoryEnv(gym.Env):
                     #NOTE:Note that “process time” should be 5%-30% of the difference between deadline-arrival
                     new_job = create_job(
                         recipes=[r],
-                        factory_id="J"+str(i+1),
+                        factory_id="J"+str(i),
                         process_id=i,
                         deadline=10 if r.get_recipe_type() == "R1" else 30,
                         factory_time = self._factory_time

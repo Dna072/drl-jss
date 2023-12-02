@@ -176,7 +176,7 @@ class Job:
     def __str__(self) -> str:
         return (
             f"Job ID: {self.__factory_id}"
-            f" Recipes: {[recipe.get_factory_id() for recipe in self.__recipes]}"
+            f" Recipes: {[f'{recipe.get_factory_id()} duration: {recipe.get_process_time()}' for recipe in self.__recipes]}"
             f" Quantity: {len(self.__recipes)}"
             f" Created: {self.__creation_step}"
             f" Steps to Deadline: {self.get_steps_to_deadline()}"
