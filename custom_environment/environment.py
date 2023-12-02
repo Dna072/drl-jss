@@ -17,15 +17,15 @@ Custom FactoryEnv class for basic concept:
 Base source:
     - https://stable-baselines3.readthedocs.io/en/master/guide/custom_env.html
 """
-import math
+# import math
 
 from custom_environment.machine import Machine
 from custom_environment.job import Job
 from custom_environment.recipe_factory import create_recipe
 from custom_environment.job_factory import create_job
-from datetime import datetime, timedelta
+# from datetime import datetime, timedelta
 import gymnasium as gym
-from time import sleep
+# from time import sleep
 import numpy as np
 import random
 
@@ -472,7 +472,7 @@ class FactoryEnv(gym.Env):
         # print(TextColors.RED+"#       Updating the buffer      #"+TextColors.RESET)
         # print(TextColors.RED+"###################################\n"+TextColors.RESET)
         if len(self._pending_jobs) < self._BUFFER_LEN:
-            dif = self._BUFFER_LEN - len(self._pending_jobs)
+            # dif = self._BUFFER_LEN - len(self._pending_jobs)
             # print("\n\nupdate_buffer - Buffer should be updated with ",dif," new jobs")
             # print("Length Pending Jobs: ",len(self._pending_jobs))
             # print("First job: ")

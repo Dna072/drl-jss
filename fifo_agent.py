@@ -1,7 +1,7 @@
 from custom_environment.environment_factory import init_custom_factory_env
 from custom_environment.environment import FactoryEnv
 from matplotlib import pyplot as plt
-from random import randint
+# from random import randint
 import numpy as np
 
 def get_fifo_action(env:FactoryEnv, nr_jobs:int):

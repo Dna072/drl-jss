@@ -22,7 +22,7 @@ from stable_baselines3.common.type_aliases import MaybeCallback
 from custom_environment.dispatch_rules.environment_wrapper_dispatch_rules import (
     EnvWrapperDispatchRules,
 )
-from stable_baselines3.common.monitor import Monitor
+# from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 
 
