@@ -17,6 +17,7 @@ Custom FactoryEnv class for basic concept:
 Base source:
     - https://stable-baselines3.readthedocs.io/en/master/guide/custom_env.html
 """
+import math
 
 from custom_environment.machine import Machine
 from custom_environment.job import Job
@@ -245,6 +246,15 @@ class FactoryEnv(gym.Env):
             # self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times,
         }
 
+    def get_pending_jobs(self):
+        return self._pending_jobs
+
+    def get_machines(self):
+        return self._machines
+
+    def get_buffer_size(self):
+        return self._BUFFER_LEN
+
     def _compute_penalties(self) -> float:
         """
         Calculate reward penalties based on the deadlines
@@ -265,7 +275,7 @@ class FactoryEnv(gym.Env):
                 if steps_to_deadline < 0:
                     inprogress_past_deadline += 1
 
-        penalty = (self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]*0.8*inprogress_past_deadline
+        penalty = (self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]*0.3*inprogress_past_deadline
                    + self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]*pending_past_deadline)
 
         # print(TextColors.RED+"IPPD: "+TextColors.RESET,inprogress_past_deadline)
@@ -365,6 +375,7 @@ class FactoryEnv(gym.Env):
         if selected_machine.assign_job(job_to_assign=selected_job):
             self._jobs_in_progress.append((selected_machine, selected_job))
             self._pending_jobs.remove(selected_job)
+            #print(f'Assigned job {selected_job} to machine {selected_machine.get_factory_id()}')
         return not selected_machine.is_available()
 
     def _check_termination(self):
@@ -392,7 +403,7 @@ class FactoryEnv(gym.Env):
         is_terminated: bool = False
         step_reward = 0
         no_op_time = 0
-        # print(TextColors.MAGENTA+"Factory Time before step: "+TextColors.RESET,self._factory_time)
+        print(TextColors.MAGENTA+"Factory Time before step: "+TextColors.RESET,self._factory_time)
         #########################
         #     1-TAKE ACTION     #
         #########################
@@ -431,7 +442,7 @@ class FactoryEnv(gym.Env):
         #    5-UPDATE BUFFER    #
         #########################
         self.update_buffer()
-        # print(TextColors.MAGENTA+"Factory Time after step: "+TextColors.RESET,self._factory_time)
+        print(TextColors.MAGENTA+"Factory Time after step: "+TextColors.RESET,self._factory_time)
         #########################
         #        6-RETURN       #
         #########################
@@ -464,9 +475,9 @@ class FactoryEnv(gym.Env):
                     #NOTE:Note that “process time” should be 5%-30% of the difference between deadline-arrival
                     new_job = create_job(
                         recipes=[r],
-                        factory_id="J"+str(i+1),
+                        factory_id="J"+str(i),
                         process_id=i,
-                        deadline=1 if r.get_recipe_type() == "R1" else 10,
+                        deadline=10 if r.get_recipe_type() == "R1" else 30,
                         factory_time = self._factory_time
                     )
                     # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
@@ -500,6 +511,10 @@ class FactoryEnv(gym.Env):
     def reset(
         self, seed: int = None, options: str = None
     ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
+        #print cum rewards
+        #print factory time
+        print(f'factory time: {self._factory_time}')
+        print(f'episode reward sum: {self.episode_reward_sum}')
         """
         Reset the environment state
         """

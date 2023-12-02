@@ -89,7 +89,8 @@ class PlotTrainingCallback(BaseCallback):
         plt.xlabel(xlabel="Steps")
         plt.ylabel(ylabel="Mean Returns")
         plt.plot(self.__mean_returns)
-        plt.show()
+        #plt.show()
+        plt.savefig('../files/plots/dqn_training.png', format='png')
 
 
 if __name__ == "__main__":

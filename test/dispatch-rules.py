@@ -69,19 +69,19 @@ def shortest_deadline_first_rule(env: EnvWrapperDispatchRules):
             print(f"obs: {env.get_obs(is_flatten=False)}")
 
     # plot rewards
-    fig, axs = plt.subplots(2, 2)
+    fig, axs = plt.subplots(3, 1)
     fig.suptitle("Shortest deadline first rule")
-    axs[0, 0].plot(rewards)
-    axs[0, 0].set_title("Rewards plot")
-    axs[0, 0].set(ylabel="Reward")
+    axs[0].plot(rewards)
+    axs[0].set_title("Rewards plot")
+    axs[0].set(ylabel="Reward")
 
-    axs[1, 1].plot(avg_machine_utilization)
-    axs[1, 1].set_title("Avg Machine utilization")
-    axs[1, 1].set(ylabel="Avg Utilization %")
+    axs[1].plot(avg_machine_utilization)
+    axs[1].set_title("Avg Machine utilization")
+    axs[1].set(ylabel="Avg Utilization %")
 
-    axs[1, 0].plot(avg_machine_idle_time)
-    axs[1, 0].set_title("Avg Machine idle time")
-    axs[1, 0].set(ylabel="Avg idleness %")
+    axs[2].plot(avg_machine_idle_time)
+    axs[2].set_title("Avg Machine idle time")
+    axs[2].set(ylabel="Avg idleness %")
 
     for ax in axs.flat:
         ax.set(xlabel="Time step")
@@ -90,30 +90,76 @@ def shortest_deadline_first_rule(env: EnvWrapperDispatchRules):
         ax.label_outer()
     # plt.plot(rewards)
     plt.show()
-    # plt.savefig('../files/plots/shortest_deadline_plot1.png', format='png')
+    plt.savefig('../files/plots/shortest_deadline_plot_100_steps.png', format='png')
 
 
 def first_in_first_out_rule(env: EnvWrapperDispatchRules):
     steps = 0
-    while steps < 15:
+    terminated = False
+    rewards = []
+    avg_machine_utilization = []
+    avg_machine_idle_time = []
+    
+    while not terminated:
         steps += 1
 
-        arrival = env.get_pending_jobs()[0].get_arrival_datetime()
-        job_index = 0
+        if len(env.get_pending_jobs()) == 0:
+            break
 
-        for idx, job in enumerate(env.get_pending_jobs()):
+        arrival = env.get_pending_jobs()[0].get_arrival_datetime()
+        job_todo = env.get_pending_jobs()[0]
+
+        for job in env.get_pending_jobs():
             # go through the list of jobs and pick one with shortest deadline
             if arrival < job.get_arrival_datetime():
                 arrival = job.get_deadline_datetime()
-                job_index = idx
+                job_todo = job
 
-                print(f"JobIndx: {job_index}, Job: {job}")
+                
 
         # encode action for the job at index
-        action = encode_job_action(env, job)
-        env.step(action)
-        print(f"action: {action}")
-        print(f"obs: {env.get_obs()}")
+        action = encode_job_action(env, job_todo)
+        is_terminated = env._update_factory_env_state()
+
+        if env.is_machine_available(action):
+            obs, reward, terminated, truncated, info = env.step(action, is_terminated)
+
+            rewards.append(reward)
+            avg_machine_utilization.append(
+                env.get_average_machine_idle_time_percentage()
+            )
+            avg_machine_idle_time.append(env.get_average_machine_idle_time_percentage())
+
+            print(f"Pause for {PAUSE_TIME_IN_SECONDS} seconds")
+            sleep(PAUSE_TIME_IN_SECONDS)
+
+            print(f"action: {action}")
+            print(f"obs: {env.get_obs(is_flatten=False)}")
+
+    # plot rewards
+    fig, axs = plt.subplots(3, 1)
+    fig.suptitle("First-In-First-Out rule")
+    axs[0].plot(rewards)
+    axs[0].set_title("Rewards plot")
+    axs[0].set(ylabel="Reward")
+
+    axs[1].plot(avg_machine_utilization)
+    axs[1].set_title("Avg Machine utilization")
+    axs[1].set(ylabel="Avg Utilization %")
+
+    axs[2].plot(avg_machine_idle_time)
+    axs[2].set_title("Avg Machine idle time")
+    axs[2].set(ylabel="Avg idleness %")
+
+    for ax in axs.flat:
+        ax.set(xlabel="Time step")
+
+    for ax in axs.flat:
+        ax.label_outer()
+    # plt.plot(rewards)
+    plt.show()
+    plt.savefig('../files/plots/fifo_plot_100_steps.png', format='png')
+
 
         # for idx, job in env.get_pending_jobs():
 
@@ -135,7 +181,7 @@ def encode_job_action(env: EnvWrapperDispatchRules, job: Job):
 
 
 if __name__ == "__main__":
-    custom_env: EnvWrapperDispatchRules = init_custom_factory_env()
+    custom_env: EnvWrapperDispatchRules = init_custom_factory_env(max_steps=100)
 
     for job in custom_env.get_pending_jobs():
         print(job)
