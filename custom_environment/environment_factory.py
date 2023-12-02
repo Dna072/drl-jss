@@ -1,4 +1,4 @@
-# from custom_environment.job_factory import create_job, get_random_job_deadline
+from custom_environment.job_factory import create_job #, get_random_job_deadline
 from custom_environment.machine_factory import create_machine
 from custom_environment.recipe_factory import create_recipe
 from custom_environment.environment import FactoryEnv
