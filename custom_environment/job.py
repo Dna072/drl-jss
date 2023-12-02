@@ -16,7 +16,7 @@ Custom Job class for basic concept:
 """
 
 from custom_environment.recipe import Recipe
-from datetime import datetime
+# from datetime import datetime
 
 
 class Job:
@@ -192,4 +192,4 @@ class Job:
         self.__recipes_completed = []
         # self.__start_op_datetime = None
         self._steps_to_recipe_complete = 0
-        self._steps_to_deadline = 10 if self.__recipes[0].get_recipe_type() == "R1" else 30
+        self._steps_to_deadline = 100 if self.__recipes[0].get_recipe_type() == "R1" else 1000

@@ -26,7 +26,8 @@ class PlotTrainingCallback(BaseCallback):
         super(PlotTrainingCallback, self).__init__(verbose)
         self.__plot_freq: int = plot_freq
         self.__rewards: list[int] = []
-        self.__num_eps: int = 0
+        self.__num_eps: int = 1
+        # self.__num_steps: int = 0
         self.__mean_returns: list[float] = []
         self.__best_mean_return: float = -np.inf
         self.__is_save_best_model: bool = is_save_best_model
@@ -38,12 +39,36 @@ class PlotTrainingCallback(BaseCallback):
         """
         Called by model after each call to ``env.step()``.
         """
-        self.__rewards.append(self.training_env.get_attr("episode_reward_sum")[0])
-
-        if self.n_calls % self.__plot_freq == self.__CALLBACK_FREQ_REMAINDER:
-            self.__mean_returns.append(
-                np.mean(self.__rewards) / self.__num_eps if self.__num_eps > 0 else 0
-            )
+        # ####################################################################################
+        # self.__rewards.append(self.training_env.get_attr("episode_reward_sum")[0])
+        #
+        # if self.n_calls % self.__plot_freq == self.__CALLBACK_FREQ_REMAINDER:
+        #     self.__mean_returns.append(
+        #         np.mean(self.__rewards) / self.__num_eps if self.__num_eps > 0 else 0
+        #     )
+        #
+        #     if self.__mean_returns[-1] > self.__best_mean_return:
+        #         self.__best_mean_return = self.__mean_returns[-1]
+        #
+        #         if self.__is_save_best_model:
+        #             save(
+        #                 obj=self.model.policy.state_dict(),
+        #                 f=path.join(self.__FILE_PATH, self.__FILE_NAME),
+        #             )
+        #
+        #         if self.verbose:
+        #             print(
+        #                 f"Step: {self.n_calls}, Mean return: {self.__mean_returns[-1]}"
+        #             )
+        #     self.reset()
+        # return True
+        #####################################################################################
+        # This code below is a temporal workaround for the issue with the steps/episodes mixup
+        # Is not the correct approach, but we can be sure if the agent is learning or not.
+        #####################################################################################
+        self.__rewards.append(self.training_env.get_attr("callback_step_reward")[0])
+        if self.num_timesteps % self.__plot_freq == self.__CALLBACK_FREQ_REMAINDER:
+            self.__mean_returns.append(np.mean(self.__rewards) if self.__num_eps > 0 else 0)
 
             if self.__mean_returns[-1] > self.__best_mean_return:
                 self.__best_mean_return = self.__mean_returns[-1]
@@ -53,19 +78,20 @@ class PlotTrainingCallback(BaseCallback):
                         obj=self.model.policy.state_dict(),
                         f=path.join(self.__FILE_PATH, self.__FILE_NAME),
                     )
-
-                if self.verbose:
-                    print(
-                        f"Step: {self.n_calls}, Mean return: {self.__mean_returns[-1]}"
-                    )
-            self.reset()
         return True
+
 
     def _on_rollout_end(self) -> None:
         """
         Increment episode counter on rollout end
+        In Stable-Baselines3, the _on_rollout_end method is part of the callback system
+        and is executed at the end of each rollout during training. A rollout refers to a
+        single trajectory where the agent interacts with the environment from the current
+        state until a terminal state is reached. -ChatGPT
         """
-        self.__num_eps += 1
+        if self.training_env.get_attr("callback_flag_termination")[0]:
+            # self.__num_eps += 1
+            print("Terminated??")
 
     def _on_training_end(self) -> None:
         """
@@ -73,12 +99,14 @@ class PlotTrainingCallback(BaseCallback):
         """
         self.plot_train_data()
 
+           
     def reset(self) -> None:
         """
         Reset rewards array and episode counter
         """
         self.__rewards = []
-        self.__num_eps = 0
+        self.__num_eps = 1
+        # self.__num_steps = 0
 
     def plot_train_data(self) -> None:
         """
@@ -88,15 +116,16 @@ class PlotTrainingCallback(BaseCallback):
         plt.title(label="DQN Agent Training Performance")
         plt.xlabel(xlabel="Steps")
         plt.ylabel(ylabel="Mean Returns")
+        # plt.plot(self.__rewards)
         plt.plot(self.__mean_returns)
-        #plt.show()
-        plt.savefig('../files/plots/dqn_training.png', format='png')
+        # plt.show()
+        plt.savefig('./files/plots/dqn_training.png', format='png')
 
 
 if __name__ == "__main__":
     from custom_environment.environment_factory import init_custom_factory_env
     from custom_environment.environment import FactoryEnv
-    from agent import Agent
+    from dqn_agent import Agent
 
     env: FactoryEnv = init_custom_factory_env()
     agent: Agent = Agent(custom_env=env)

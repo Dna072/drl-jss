@@ -59,8 +59,8 @@ class FactoryEnv(gym.Env):
     NEUTRAL_STR: str = "NEUTRAL"
 
     MAX_RECIPES_IN_ENV_SYSTEM: int = 2
-    r1 = create_recipe(factory_id="R1_ID", process_time=3.0, process_id=0, recipe_type="R1")
-    r2 = create_recipe(factory_id="R2_ID", process_time=10.0, process_id=1, recipe_type="R2")
+    r1 = create_recipe(factory_id="R1_ID", process_time=5.0, process_id=0, recipe_type="R1")
+    r2 = create_recipe(factory_id="R2_ID", process_time=50.0, process_id=1, recipe_type="R2")
     available_recipes = [r1,r2]
 
     #####################
@@ -75,14 +75,14 @@ class FactoryEnv(gym.Env):
         "R2":10
     }
     _REWARD_WEIGHTS: dict[str, int] = {
-        NO_OP_STR: -0.5,
+        NO_OP_STR: 0,
         MACHINE_IDLE_STR: -1,
         MACHINE_UNAVAILABLE_STR: -1,
         JOB_COMPLETED_ON_TIME_STR: 10,
         JOB_COMPLETED_NOT_ON_TIME_STR: 5,
-        INVALID_JOB_RECIPE_STR: -5,
+        INVALID_JOB_RECIPE_STR: -1,
         DEADLINE_EXCEEDED_STR: -5,
-        ILLEGAL_ACTION_STR: -10,
+        ILLEGAL_ACTION_STR: -5,
         NEUTRAL_STR: 0,
     }
 
@@ -135,6 +135,8 @@ class FactoryEnv(gym.Env):
         ############
 
         self.episode_reward_sum: float = 0.0  # for callback graphing train performance
+        self.callback_step_reward: float = 0.0 # for callback graphing train performance
+        self.callback_flag_termination : bool = False # for callback graphing train performance
 
         ################
         # action space #
@@ -380,8 +382,11 @@ class FactoryEnv(gym.Env):
 
     def _check_termination(self):
         if self._factory_time >= self._max_steps or self.episode_reward_sum < self._termination_reward:
+            print(TextColors.RED+"TERMINATED"+TextColors.RESET)
+            self.callback_flag_termination = True
             return True
         if len(self._pending_jobs) == 0:
+            print(TextColors.RED + "TERMINATED_2" + TextColors.RESET)
             return True
         return False
 
@@ -403,7 +408,7 @@ class FactoryEnv(gym.Env):
         is_terminated: bool = False
         step_reward = 0
         no_op_time = 0
-        print(TextColors.MAGENTA+"Factory Time before step: "+TextColors.RESET,self._factory_time)
+        # print(TextColors.MAGENTA+"Factory Time before step: "+TextColors.RESET,self._factory_time)
         #########################
         #     1-TAKE ACTION     #
         #########################
@@ -412,7 +417,7 @@ class FactoryEnv(gym.Env):
             # proportion to the jobs in progress
             step_reward += 0
             no_op_time = self._calc_noop_time()
-            #NOTE: Have to determine here to send noop time to skip
+            # NOTE: Have to determine here to send noop time to skip
         else:
             #If action wasnt No-Op, then we compute machine-job
             action_selected_machine = self._machines[action // self._BUFFER_LEN]  # get action selected machine
@@ -420,10 +425,13 @@ class FactoryEnv(gym.Env):
             if action_selected_machine.is_available():
                 action_selected_job = self._pending_jobs[action % self._BUFFER_LEN]  # get action selected job
                 if self._init_machine_job(selected_machine=action_selected_machine,selected_job=action_selected_job):
-                    step_reward +=1 #NOTE:Check if giving a reward for correct assignment makes sense.
+                    step_reward +=1 # NOTE:Check if giving a reward for correct assignment makes sense.
                 else:
                     # action selected machine is available but action selected job is invalid for selected machine
                     step_reward += self._REWARD_WEIGHTS[self.INVALID_JOB_RECIPE_STR]
+            else:
+                # action selected machine is available but action selected job is invalid for selected machine
+                step_reward += self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR]
         #########################
         #     2-UPDATE ENV      #
         #########################
@@ -433,7 +441,9 @@ class FactoryEnv(gym.Env):
         #########################
         state_reward = self._compute_reward()
         reward = step_reward + state_reward
+        # print(TextColors.RED+"Reward:"+TextColors.RESET,reward)
         self.episode_reward_sum +=  reward
+        self.callback_step_reward = reward
         #########################
         #  4-CHECK TERMINATION  #
         #########################
@@ -442,7 +452,7 @@ class FactoryEnv(gym.Env):
         #    5-UPDATE BUFFER    #
         #########################
         self.update_buffer()
-        print(TextColors.MAGENTA+"Factory Time after step: "+TextColors.RESET,self._factory_time)
+        # print(TextColors.MAGENTA+"Factory Time after step: "+TextColors.RESET,self._factory_time)
         #########################
         #        6-RETURN       #
         #########################
@@ -477,7 +487,7 @@ class FactoryEnv(gym.Env):
                         recipes=[r],
                         factory_id="J"+str(i),
                         process_id=i,
-                        deadline=10 if r.get_recipe_type() == "R1" else 30,
+                        deadline=100 if r.get_recipe_type() == "R1" else 1000,
                         factory_time = self._factory_time
                     )
                     # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
@@ -513,8 +523,8 @@ class FactoryEnv(gym.Env):
     ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
         #print cum rewards
         #print factory time
-        print(f'factory time: {self._factory_time}')
-        print(f'episode reward sum: {self.episode_reward_sum}')
+        # print(f'factory time: {self._factory_time}')
+        # print(TextColors.RED+'Pre-Reset: Episode reward sum:'+TextColors.RESET,self.episode_reward_sum)
         """
         Reset the environment state
         """
@@ -522,6 +532,8 @@ class FactoryEnv(gym.Env):
         self._factory_time = 0.0
 
         self.episode_reward_sum = 0  # for callback graphing train performance
+        self.callback_flag_termination = False # for callback graphing train performance
+        self.callback_step_reward = 0 # for callback graphing train performance
 
         for machine in self._machines:
             machine.reset()
