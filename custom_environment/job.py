@@ -176,13 +176,13 @@ class Job:
     def __str__(self) -> str:
         return (
             f"Job ID: {self.__factory_id}"
-            f"\nRecipes: {[recipe.get_factory_id() for recipe in self.__recipes]}"
-            f"\nQuantity: {len(self.__recipes)}"
-            f"\nCreated: {self.__creation_step}"
-            f"\nSteps to Deadline: {self.get_steps_to_deadline()}"
-            f"\nStatus: {self.__STATUS_STR[self.__status]}"
-            f"\nIn Progress: {[recipe.get_id() for recipe in self.__recipes_in_progress]}"
-            f"\nCompleted: {100 * len(self.__recipes_completed) / len(self.__recipes)}%"
+            f" Recipes: {[recipe.get_factory_id() for recipe in self.__recipes]}"
+            f" Quantity: {len(self.__recipes)}"
+            f" Created: {self.__creation_step}"
+            f" Steps to Deadline: {self.get_steps_to_deadline()}"
+            f" Status: {self.__STATUS_STR[self.__status]}"
+            f" In Progress: {[recipe.get_id() for recipe in self.__recipes_in_progress]}"
+            f" Completed: {100 * len(self.__recipes_completed) / len(self.__recipes)}%"
         )
 
     def reset(self) -> None:
@@ -192,4 +192,4 @@ class Job:
         self.__recipes_completed = []
         # self.__start_op_datetime = None
         self._steps_to_recipe_complete = 0
-        self._steps_to_deadline = 1 if self.__recipes[0].get_recipe_type() == "R1" else 10
+        self._steps_to_deadline = 10 if self.__recipes[0].get_recipe_type() == "R1" else 30

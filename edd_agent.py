@@ -3,22 +3,26 @@ from custom_environment.environment import FactoryEnv
 from matplotlib import pyplot as plt
 from random import randint
 import numpy as np
+from custom_environment.utils import print_observation, print_jobs
 
-def get_edd_action(env:FactoryEnv, nr_jobs:int):
+def get_edd_action(env:FactoryEnv):
     job_index = -1
     machine_index = -1
     action = 6 #by default no-op
     #First I look for the first created job
-    pj = env._pending_jobs
+    pj = env.get_pending_jobs()
     ttd = [j.get_steps_to_deadline() for j in pj] #ttd = times to deadline
     print(ttd)
     job_index = ttd.index(min(ttd))
     #now i look for a suitable machine for it
-    am = env._machines #am = all machines
+    am = env.get_machines() #am = all machines
+    print_jobs(env)
+
     for i,m in enumerate(am):
         if m.can_perform_job(pj[job_index]) and m.is_available():
             machine_index = i
-            action = machine_index*nr_jobs + job_index
+            action = machine_index * env.get_buffer_size() + job_index
+
             break
     print("Take Action: ",action)
     #hjhj = input("Enter")
@@ -41,8 +45,10 @@ steps: list[int] = []
 
 # Running 1 episode
 while 1:
-    action: np.ndarray = np.array(get_edd_action(env,jobs))
+    action: np.ndarray = np.array(get_edd_action(env))
     o, r, te, tr, i = env.step(action)
+    print_observation(obs=o, nr_machines=machines)
+    print(f'reward: {r}')
     tot_reward += r
     r_values.append(r)
     tr_values.append(tot_reward)

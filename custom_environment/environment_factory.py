@@ -41,21 +41,21 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
     jobs: list[Job] = [
         create_job(
             recipes=[(recipe_objects[0])],
-            factory_id="J1",
+            factory_id="J0",
             process_id=0,
             deadline= 10 if [(recipe_objects[0])][0].get_recipe_type() == "R1" else 30,
             factory_time=0
         ),
         create_job(
             recipes=[(recipe_objects[1])],
-            factory_id="J2",
+            factory_id="J1",
             process_id=1,
             deadline=10 if [(recipe_objects[1])][0].get_recipe_type() == "R1" else 30,
             factory_time=0
         ),
         create_job(
             recipes=[(recipe_objects[0])],
-            factory_id="J3",
+            factory_id="J2",
             process_id=2,
             deadline=10 if [(recipe_objects[0])][0].get_recipe_type() == "R1" else 30,
             factory_time=0
@@ -70,7 +70,7 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
 
     machines: list[Machine] = [
         create_machine(
-            factory_id="M1",
+            factory_id="M0",
             process_id=0,
             machine_type="A",
             tray_capacity=10_000,
@@ -78,7 +78,7 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
             max_recipes_per_process=1,
         ),
         create_machine(
-            factory_id="M2",
+            factory_id="M1",
             process_id=1,
             machine_type="AB",
             tray_capacity=10_000,
