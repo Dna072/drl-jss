@@ -62,11 +62,11 @@ class Machine:
         self.__timestamp_current_status: datetime = None
         self.__time_active: float = 0.0
         self.__time_idle: float = 0.0
-        self._active_recipe:str = ""
+        self._active_recipe: str = ""
 
     def get_id(self) -> int:
         return self.__id
-    
+
     def get_active_recipe(self) -> str:
         return self._active_recipe
 

@@ -16,6 +16,7 @@ Custom Job class for basic concept:
 """
 
 from custom_environment.recipe import Recipe
+
 # from datetime import datetime
 
 
@@ -56,7 +57,7 @@ class Job:
         factory_id: str,
         process_id: int = 0,
         deadline: int = 0,
-        factory_time: int = 0
+        factory_time: int = 0,
     ) -> None:
         """
         Job class constructor method
@@ -78,12 +79,11 @@ class Job:
         self.__recipes_in_progress: list[Recipe] = []
         self.__recipes_completed: list[Recipe] = []
 
-        
         # self.__start_op_datetime: datetime | None = None
         # self.__is_past_deadline: bool = False
 
-        self._steps_to_recipe_complete:int = 0
-        
+        self._steps_to_recipe_complete: int = 0
+
     def get_recipes(self) -> list[Recipe]:
         return self.__recipes
 
@@ -102,8 +102,8 @@ class Job:
 
     def get_steps_to_deadline(self) -> float:
         return self._steps_to_deadline
-    
-    def update_steps_to_deadline(self,difference):
+
+    def update_steps_to_deadline(self, difference):
         self._steps_to_deadline += difference
 
     def get_start_time(self) -> int:
@@ -151,12 +151,12 @@ class Job:
             self.__status = self.__STATUS_ERROR_VAL
         return self.__status == self.__STATUS_IN_PROGRESS_VAL
 
-    def update_steps_to_recipe_complete(self,difference):
+    def update_steps_to_recipe_complete(self, difference):
         self._steps_to_recipe_complete += difference
 
     def get_steps_to_recipe_complete(self):
         return self._steps_to_recipe_complete
-        
+
     def set_recipe_completed(self, completed_recipe: Recipe) -> None:
         self.__recipes_completed.append(completed_recipe)
         # print(f"Recipe {completed_recipe.get_factory_id()} completed for job {self.__factory_id}")
@@ -192,4 +192,6 @@ class Job:
         self.__recipes_completed = []
         # self.__start_op_datetime = None
         self._steps_to_recipe_complete = 0
-        self._steps_to_deadline = 100 if self.__recipes[0].get_recipe_type() == "R1" else 1000
+        self._steps_to_deadline = (
+            100 if self.__recipes[0].get_recipe_type() == "R1" else 1000
+        )

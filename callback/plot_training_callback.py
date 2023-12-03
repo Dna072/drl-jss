@@ -68,7 +68,9 @@ class PlotTrainingCallback(BaseCallback):
         #####################################################################################
         self.__rewards.append(self.training_env.get_attr("callback_step_reward")[0])
         if self.num_timesteps % self.__plot_freq == self.__CALLBACK_FREQ_REMAINDER:
-            self.__mean_returns.append(np.mean(self.__rewards) if self.__num_eps > 0 else 0)
+            self.__mean_returns.append(
+                np.mean(self.__rewards) if self.__num_eps > 0 else 0
+            )
 
             if self.__mean_returns[-1] > self.__best_mean_return:
                 self.__best_mean_return = self.__mean_returns[-1]
@@ -79,7 +81,6 @@ class PlotTrainingCallback(BaseCallback):
                         f=path.join(self.__FILE_PATH, self.__FILE_NAME),
                     )
         return True
-
 
     def _on_rollout_end(self) -> None:
         """
@@ -99,7 +100,6 @@ class PlotTrainingCallback(BaseCallback):
         """
         self.plot_train_data()
 
-           
     def reset(self) -> None:
         """
         Reset rewards array and episode counter
@@ -119,7 +119,7 @@ class PlotTrainingCallback(BaseCallback):
         # plt.plot(self.__rewards)
         plt.plot(self.__mean_returns)
         # plt.show()
-        plt.savefig('./files/plots/dqn_training.png', format='png')
+        plt.savefig("./files/plots/dqn_training.png", format="png")
 
 
 if __name__ == "__main__":

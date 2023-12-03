@@ -5,6 +5,7 @@ from random import randint
 import numpy as np
 from custom_environment.utils import print_observation
 
+
 class TextColors:
     RESET = "\033[0m"
     RED = "\033[91m"
@@ -14,10 +15,11 @@ class TextColors:
     MAGENTA = "\033[95m"
     CYAN = "\033[96m"
 
+
 machines: int = 2
 jobs: int = 3
 max_steps: int = 100
-s=0
+s = 0
 
 tot_reward: int = 0
 
@@ -27,16 +29,16 @@ nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
 r_values: list[int] = []
 tr_values: list[int] = []
 steps: list[int] = []
-print(TextColors.GREEN+"*****************************"+TextColors.RESET)
-print(TextColors.GREEN+"**          START          **"+TextColors.RESET)
-print(TextColors.GREEN+"*****************************"+TextColors.RESET)
+print(TextColors.GREEN + "*****************************" + TextColors.RESET)
+print(TextColors.GREEN + "**          START          **" + TextColors.RESET)
+print(TextColors.GREEN + "*****************************" + TextColors.RESET)
 while s < max_steps and nr_pending_jobs > 0:
-    act = input(TextColors.CYAN+"Select an action: "+TextColors.RESET)
+    act = input(TextColors.CYAN + "Select an action: " + TextColors.RESET)
     action: np.ndarray = int(act)
     o, r, te, tr, i = env.step(action)
-    print_observation(o,machines)
+    print_observation(o, machines)
     # env.render()
-    print(TextColors.YELLOW+"Reward:"+TextColors.RESET,r)
+    print(TextColors.YELLOW + "Reward:" + TextColors.RESET, r)
     tot_reward += r
     r_values.append(r)
     tr_values.append(tot_reward)

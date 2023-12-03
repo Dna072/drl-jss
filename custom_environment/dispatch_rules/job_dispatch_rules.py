@@ -146,7 +146,7 @@
 
 #     def get_deadline_datetime(self) -> datetime:
 #         return self.__get_datetime(self.__deadline_datetime_str)
-    
+
 #     def get_arrival_datetime(self) -> datetime:
 #         return self.__get_datetime(self.__arrival_datetime_str)
 

@@ -1,4 +1,4 @@
-from custom_environment.job_factory import create_job #, get_random_job_deadline
+from custom_environment.job_factory import create_job  # , get_random_job_deadline
 from custom_environment.machine_factory import create_machine
 from custom_environment.recipe_factory import create_recipe
 from custom_environment.environment import FactoryEnv
@@ -14,7 +14,7 @@ def create_factory_env(machines: list[Machine], jobs: list[Job]) -> FactoryEnv:
     :param jobs: list of Job objects
     :return: FactoryEnv object
     """
-    return FactoryEnv(machines=machines, jobs=jobs,max_steps=5000)
+    return FactoryEnv(machines=machines, jobs=jobs, max_steps=5000)
 
 
 def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
@@ -43,22 +43,28 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
             recipes=[(recipe_objects[0])],
             factory_id="J0",
             process_id=0,
-            deadline= 100 if [(recipe_objects[0])][0].get_recipe_type() == "R1" else 1000,
-            factory_time=0
+            deadline=100
+            if [(recipe_objects[0])][0].get_recipe_type() == "R1"
+            else 1000,
+            factory_time=0,
         ),
         create_job(
             recipes=[(recipe_objects[1])],
             factory_id="J1",
             process_id=1,
-            deadline=100 if [(recipe_objects[1])][0].get_recipe_type() == "R1" else 1000,
-            factory_time=0
+            deadline=100
+            if [(recipe_objects[1])][0].get_recipe_type() == "R1"
+            else 1000,
+            factory_time=0,
         ),
         create_job(
             recipes=[(recipe_objects[0])],
             factory_id="J2",
             process_id=2,
-            deadline=100 if [(recipe_objects[0])][0].get_recipe_type() == "R1" else 1000,
-            factory_time=0
+            deadline=100
+            if [(recipe_objects[0])][0].get_recipe_type() == "R1"
+            else 1000,
+            factory_time=0,
         ),
     ]
 

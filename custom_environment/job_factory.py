@@ -11,7 +11,7 @@ def create_job(
     factory_id: str,
     process_id: int,
     deadline: str,
-    factory_time:int
+    factory_time: int,
 ) -> Job:
     """
     Factory function for creating a Job object
@@ -26,7 +26,7 @@ def create_job(
         factory_id=factory_id,
         process_id=process_id,
         deadline=deadline,
-        factory_time=factory_time
+        factory_time=factory_time,
     )
 
 

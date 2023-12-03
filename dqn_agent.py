@@ -82,9 +82,7 @@ if __name__ == "__main__":
     )
     # agent.learn()
     agent.save()
-    haha=input("Finished Learning Process.")
-
-
+    haha = input("Finished Learning Process.")
 
     agent.load()
     agent.evaluate()

@@ -38,7 +38,7 @@
 
 #         self._pending_jobs: list[Job] = self._jobs.copy()[
 #             : self._BUFFER_LEN
-#         ] 
+#         ]
 
 #         del self._jobs[:self._BUFFER_LEN]
 #         self._step_datetime: datetime | None = None
@@ -140,7 +140,7 @@
 #     def _replace_pending_job(self, pending_job: Job):
 #         #create new jobs
 #         self._create_new_jobs()
-        
+
 #         for job in self._jobs:
 #             if job.get_id() == pending_job.get_id():
 #                 self._pending_jobs.insert(pending_job.get_id(), job)
@@ -152,7 +152,7 @@
 #         # check jobs list to find a job with same process_id
 #         print(f"Replace Job {completed_job.get_id()} after completion")
 #         count_pending_jobs = len(self._pending_jobs)
-        
+
 #         if count_pending_jobs < self._BUFFER_LEN:
 #             for job in self._jobs:
 #                 if count_pending_jobs == self._BUFFER_LEN:
@@ -255,7 +255,7 @@
 #             self._pending_jobs.remove(selected_job)
 #             self._replace_pending_job(selected_job)
 #         return not selected_machine.is_available()
-    
+
 #     def step(
 #         self, action: np.ndarray, is_terminated: bool = False
 #     ) -> tuple[dict[str, np.ndarray[any]], float, bool, bool, dict[str, str]]:
@@ -348,7 +348,7 @@
 #             False,  # truncated
 #             {"Error": self.MACHINE_UNAVAILABLE_STR},  # info
 #         )
-    
+
 #     def _update_unavailable_machine_state(self, machine: Machine) -> int:
 #         """
 #         Checks unavailable machine job processing states and updates on completions since the last step.
@@ -359,14 +359,14 @@
 #         """
 #         num_recipes_complete: int = 0
 #         for job in machine.get_active_jobs():
-            
+
 #             job_time_diff_seconds = (
 #                 datetime.now() - job.get_start_op_datetime()
 #             ).seconds
 
 #             #diff_from_deadline = (job.get_deadline_datetime() - datetime.now()).seconds
 #             #print(f'Job start: {job.get_start_op_datetime()} Job end: {datetime.now()} Job time diff: {job_time_diff_seconds} deadline: {job.get_deadline_datetime()} deadline_diff: {diff_from_deadline}')
-            
+
 #             for recipe in job.get_recipes_in_progress():
 #                 if recipe.get_process_time() <= job_time_diff_seconds:
 #                     job.set_recipe_completed(completed_recipe=recipe)
@@ -379,7 +379,7 @@
 #                     #self._pending_jobs.remove(job)
 #                     num_recipes_complete += 1
 
-                    
+
 #                     # place job with same idx not in pending into pending list
 #                     print(f"Jobs length: {len(self._jobs)}")
 #                     # self._replace_completed_job(job)
@@ -391,7 +391,7 @@
 #                         print(f'Job past deadline: {job.get_id()} deadline: {job.get_deadline_datetime()} now: {datetime.now()}')
 #                         self._jobs_completed_per_step_not_on_time += 1
 #         return num_recipes_complete
-        
+
 
 #     def _create_new_jobs(self):
 #         # Create number of jobs using Poisson Distribution
