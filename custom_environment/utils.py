@@ -12,12 +12,12 @@ class TextColors:
 
 
 def print_observation(obs, nr_machines):
-    o_pending = obs["pending_jobs"]
+    # o_pending = obs["pending_jobs"]
     o_machines = obs["machines"]
     o_p_remaining = obs["pending_job_remaining_times"]
     # o_ip_remaining = obs["inprogress_job_remaining_times"]
     machines_matrix = o_machines.reshape((nr_machines, -1))
-    print(TextColors.YELLOW + "Pending Jobs:\n" + TextColors.RESET, o_pending)
+    # print(TextColors.YELLOW + "Pending Jobs:\n" + TextColors.RESET, o_pending)
     # print("Recipes?:\n",o_recipes)
     print(
         TextColors.YELLOW + "Remaining time for jobs pending:\n" + TextColors.RESET,

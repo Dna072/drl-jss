@@ -17,6 +17,8 @@ Custom FactoryEnv class for basic concept:
 Base source:
     - https://stable-baselines3.readthedocs.io/en/master/guide/custom_env.html
 """
+import math
+
 # import math
 
 from custom_environment.machine import Machine
@@ -54,6 +56,7 @@ class FactoryEnv(gym.Env):
     NO_OP_STR: str = "NO-OP"
     MACHINE_IDLE_STR: str = "MACHINE_IDLE"
     MACHINE_UNAVAILABLE_STR: str = "MACHINE UNAVAILABLE"
+    JOB_ASSIGNED: str = "JOB ASSIGNED"
     JOB_COMPLETED_ON_TIME_STR: str = "JOB_COMPLETED_ON_TIME"
     JOB_COMPLETED_NOT_ON_TIME_STR: str = "JOB_COMPLETED_NOT_ON_TIME"
     INVALID_JOB_RECIPE_STR: str = "INVALID JOB RECIPE"
@@ -63,10 +66,10 @@ class FactoryEnv(gym.Env):
 
     MAX_RECIPES_IN_ENV_SYSTEM: int = 2
     r1 = create_recipe(
-        factory_id="R1_ID", process_time=5.0, process_id=0, recipe_type="R1"
+        factory_id="R1_ID", process_time=30.0, process_id=0, recipe_type="R1"
     )
     r2 = create_recipe(
-        factory_id="R2_ID", process_time=50.0, process_id=1, recipe_type="R2"
+        factory_id="R2_ID", process_time=300.0, process_id=1, recipe_type="R2"
     )
     available_recipes = [r1, r2]
 
@@ -84,6 +87,7 @@ class FactoryEnv(gym.Env):
         MACHINE_UNAVAILABLE_STR: -1,
         JOB_COMPLETED_ON_TIME_STR: 10,
         JOB_COMPLETED_NOT_ON_TIME_STR: 5,
+        JOB_ASSIGNED: 1,
         INVALID_JOB_RECIPE_STR: -1,
         DEADLINE_EXCEEDED_STR: -5,
         ILLEGAL_ACTION_STR: -5,
@@ -179,7 +183,7 @@ class FactoryEnv(gym.Env):
         # )
         self.observation_space: gym.spaces.Dict = gym.spaces.Dict(
             {
-                self._PENDING_JOBS_STR: pending_jobs_space,
+               # self._PENDING_JOBS_STR: pending_jobs_space,
                 self._MACHINES_STR: machine_space,
                 self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times_space,
                 # self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times_space,
@@ -252,10 +256,11 @@ class FactoryEnv(gym.Env):
         # return current observation state object for step update #
         ###########################################################
         return {
-            self._PENDING_JOBS_STR: is_pending_jobs,
+            # self._PENDING_JOBS_STR: is_pending_jobs,
             self._MACHINES_STR: is_machines_active_jobs.flatten(),
             self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times,
-            # self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times,
+
+            #self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times,
         }
 
     def get_pending_jobs(self):
@@ -266,6 +271,19 @@ class FactoryEnv(gym.Env):
 
     def get_buffer_size(self):
         return self._BUFFER_LEN
+
+    def get_jobs_completed_on_time(self):
+        return self._jobs_completed_per_step_on_time
+
+    def get_jobs_completed_not_on_time(self):
+        return self._jobs_completed_per_step_not_on_time
+
+    def get_tardiness_percentage(self):
+        print(f"{self._jobs_completed_per_step_not_on_time} {self._jobs_completed_per_step_on_time}")
+        if self._jobs_completed_per_step_not_on_time == 0 and self._jobs_completed_per_step_on_time == 0:
+            return 0
+
+        return self._jobs_completed_per_step_not_on_time / (self._jobs_completed_per_step_on_time + self._jobs_completed_per_step_not_on_time) * 100
 
     def _compute_penalties(self) -> float:
         """
@@ -289,9 +307,9 @@ class FactoryEnv(gym.Env):
 
         penalty = (
             self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
-            * 0.3
+            * 0.6
             * inprogress_past_deadline
-            + self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR] * pending_past_deadline
+            + self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR] * pending_past_deadline * 1.5
         )
 
         # print(TextColors.RED+"IPPD: "+TextColors.RESET,inprogress_past_deadline)
@@ -316,9 +334,11 @@ class FactoryEnv(gym.Env):
         # print(TextColors.RED+"COT: "+TextColors.RESET,self._jobs_completed_per_step_on_time)
         # print(TextColors.RED+"CNOT: "+TextColors.RESET,self._jobs_completed_per_step_not_on_time)
         # This is a Delayed Reward, since it comes from the completion of a job that was started in the past
-        self._jobs_completed_per_step_on_time = (
-            self._jobs_completed_per_step_not_on_time
-        ) = 0
+
+        # This should be reset per episode I think
+        # self._jobs_completed_per_step_on_time = (
+        #     self._jobs_completed_per_step_not_on_time
+        # ) = 0
 
         return reward + self._compute_penalties()
 
@@ -345,7 +365,7 @@ class FactoryEnv(gym.Env):
             3.2 Advance "clock" in timesteps, and also the jobs will progress that time
         """
         na = 0
-        min_time = 1000000  # NOTE: Set to infinity (is it with numpy?)
+        min_time = math.inf  # NOTE: Set to infinity (is it with numpy?)
         time_delta = 0  # this is the amount of time i will move towards the future
 
         available = [1 for m in self._machines if m.is_available()]
@@ -484,7 +504,7 @@ class FactoryEnv(gym.Env):
         #     3-CALC REWARD     #
         #########################
         state_reward = self._compute_reward()
-        reward = step_reward + state_reward
+        reward = step_reward #+ state_reward
         # print(TextColors.RED+"Reward:"+TextColors.RESET,reward)
         self.episode_reward_sum += reward
         self.callback_step_reward = reward
@@ -492,6 +512,8 @@ class FactoryEnv(gym.Env):
         #  4-CHECK TERMINATION  #
         #########################
         is_terminated = self._check_termination()
+        if is_terminated:
+            reward += state_reward
         #########################
         #    5-UPDATE BUFFER    #
         #########################
@@ -505,7 +527,11 @@ class FactoryEnv(gym.Env):
             reward,
             is_terminated,
             False,  # NOTE: Check truncation conditions
-            {"INFO": str(reward) + "," + str(self.episode_reward_sum)},
+            {"INFO": str(reward) + "," + str(self.episode_reward_sum),
+             "JOBS_COMPLETED_ON_TIME": self._jobs_completed_per_step_on_time,
+             "JOBS_NOT_COMPLETED_ON_TIME": self._jobs_completed_per_step_not_on_time,
+             "PENDING_JOBS": self._pending_jobs
+             },
         )
 
     def update_buffer(self):

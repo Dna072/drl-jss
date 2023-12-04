@@ -20,7 +20,8 @@ from stable_baselines3.common.type_aliases import MaybeCallback
 from custom_environment.environment import FactoryEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
-
+import numpy as np
+import matplotlib.pyplot as plt
 
 class Agent:
     """
@@ -36,7 +37,7 @@ class Agent:
     def __init__(self, custom_env: FactoryEnv | Monitor) -> None:
         self.custom_env: FactoryEnv = custom_env
         self.model: DQN = DQN(
-            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE
+            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, learning_starts=20000, learning_rate=1e-3
         )
 
     def learn(
@@ -59,26 +60,46 @@ class Agent:
 
     def evaluate(self) -> None:
         obs, info = self.custom_env.reset()
+        num_of_episodes = 10
+        avg_returns_per_episode = []
+        returns = []
+        episode = 0
+        steps = 0
 
-        while True:
+        while episode < num_of_episodes:
             action, _states = self.model.predict(observation=obs, deterministic=True)
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
+            returns.append(reward)
+            steps += 1
 
             if terminated or truncated:
+                print(f"avg return: { np.sum(returns) / steps}")
+                avg_returns_per_episode.append(np.sum(returns) / steps)
+                steps = 0
+                returns = []
                 obs, info = self.custom_env.reset()
+                episode += 1
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(avg_returns_per_episode)
+        plt.ylabel('Avg returns')
+        plt.xlabel('Episodes')
+        plt.suptitle('Avg returns per episode')
+        plt.show()
+
 
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-
+    MAX_STEPS = 400_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100)
 
-    agent = Agent(custom_env=init_custom_factory_env())
+    agent = Agent(custom_env=init_custom_factory_env(max_steps=MAX_STEPS))
 
     agent.learn(
-        total_time_steps=50_000, log_interval=10, callback=plot_training_callback
+        total_time_steps=MAX_STEPS, log_interval=10, callback=plot_training_callback
     )
     # agent.learn()
     agent.save()

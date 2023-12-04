@@ -25,12 +25,15 @@ class PlotTrainingCallback(BaseCallback):
         """
         super(PlotTrainingCallback, self).__init__(verbose)
         self.__plot_freq: int = plot_freq
-        self.__rewards: list[int] = []
+        self.__rewards: list[float] = []
+        self.__tardiness: list[float] = []
+        self.__policy_rewards: list[int] = []
         self.__num_eps: int = 1
         # self.__num_steps: int = 0
         self.__mean_returns: list[float] = []
         self.__best_mean_return: float = -np.inf
         self.__is_save_best_model: bool = is_save_best_model
+        self.__policy_returns: list[float] = []
 
         if not path.exists(path=self.__FILE_PATH):
             makedirs(name=self.__FILE_PATH)
@@ -67,7 +70,9 @@ class PlotTrainingCallback(BaseCallback):
         # Is not the correct approach, but we can be sure if the agent is learning or not.
         #####################################################################################
         self.__rewards.append(self.training_env.get_attr("callback_step_reward")[0])
+        self.__policy_rewards.append(self.training_env.get_attr("callback_step_reward")[0])
         if self.num_timesteps % self.__plot_freq == self.__CALLBACK_FREQ_REMAINDER:
+
             self.__mean_returns.append(
                 np.mean(self.__rewards) if self.__num_eps > 0 else 0
             )
@@ -90,9 +95,32 @@ class PlotTrainingCallback(BaseCallback):
         single trajectory where the agent interacts with the environment from the current
         state until a terminal state is reached. -ChatGPT
         """
-        if self.training_env.get_attr("callback_flag_termination")[0]:
-            # self.__num_eps += 1
-            print("Terminated??")
+        # ####################################################################################
+        # self.__rewards.append(self.training_env.get_attr("episode_reward_sum")[0])
+
+
+        self.__policy_returns.append(
+            np.sum(self.__policy_rewards)
+        )
+
+            # if self.__mean_returns[-1] > self.__best_mean_return:
+            #     self.__best_mean_return = self.__mean_returns[-1]
+            #
+            #     if self.__is_save_best_model:
+            #         save(
+            #             obj=self.model.policy.state_dict(),
+            #             f=path.join(self.__FILE_PATH, self.__FILE_NAME),
+            #         )
+            #
+            #     if self.verbose:
+            #         print(
+            #             f"Step: {self.n_calls}, Mean return: {self.__mean_returns[-1]}"
+            #         )
+        self.reset()
+
+        # if self.training_env.get_attr("callback_flag_termination")[0]:
+        #     # self.__num_eps += 1
+        #     print("Terminated??")
 
     def _on_training_end(self) -> None:
         """
@@ -104,8 +132,9 @@ class PlotTrainingCallback(BaseCallback):
         """
         Reset rewards array and episode counter
         """
-        self.__rewards = []
-        self.__num_eps = 1
+        #self.__rewards = []
+        self.__policy_rewards = []
+        #self.__num_eps = 1
         # self.__num_steps = 0
 
     def plot_train_data(self) -> None:
@@ -118,8 +147,18 @@ class PlotTrainingCallback(BaseCallback):
         plt.ylabel(ylabel="Mean Returns")
         # plt.plot(self.__rewards)
         plt.plot(self.__mean_returns)
-        # plt.show()
+        #plt.show()
         plt.savefig("./files/plots/dqn_training.png", format="png")
+
+        # plot policy returns
+        plt.figure(figsize=(10, 6))
+        plt.title(label="DQN Agent Training Performance")
+        plt.xlabel(xlabel="Policy")
+        plt.ylabel(ylabel="Policy Returns")
+        # plt.plot(self.__rewards)
+        plt.plot(self.__policy_returns)
+        # plt.show()
+        plt.savefig("./files/plots/dqn_policy_training.png", format="png")
 
 
 if __name__ == "__main__":

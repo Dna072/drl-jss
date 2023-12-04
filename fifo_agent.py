@@ -33,7 +33,7 @@ j: int = 0
 tot_reward: int = 0
 
 env: FactoryEnv = init_custom_factory_env(is_verbose=False)
-nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
+#nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
 
 r_values: list[int] = []
 tr_values: list[int] = []

@@ -7,17 +7,17 @@ from custom_environment.recipe import Recipe
 from custom_environment.job import Job
 
 
-def create_factory_env(machines: list[Machine], jobs: list[Job]) -> FactoryEnv:
+def create_factory_env(machines: list[Machine], jobs: list[Job], max_steps: int = 5000) -> FactoryEnv:
     """
     Factory function for creating a FactoryEnv object
     :param machines: list of Machine objects
     :param jobs: list of Job objects
     :return: FactoryEnv object
     """
-    return FactoryEnv(machines=machines, jobs=jobs, max_steps=5000)
+    return FactoryEnv(machines=machines, jobs=jobs, max_steps=max_steps)
 
 
-def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
+def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000) -> FactoryEnv:
     """
     Create a custom FactoryEnv environment for development and testing
     :param is_verbose: print statements if True
@@ -99,7 +99,7 @@ def init_custom_factory_env(is_verbose: bool = False) -> FactoryEnv:
             print(machine)
             print("-------")
 
-    factory_env: FactoryEnv = create_factory_env(machines=machines, jobs=jobs)
+    factory_env: FactoryEnv = create_factory_env(machines=machines, jobs=jobs, max_steps=max_steps)
     return factory_env
 
 
