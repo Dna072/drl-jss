@@ -62,11 +62,11 @@ class Machine:
         self.__timestamp_current_status: datetime = None
         self.__time_active: float = 0.0
         self.__time_idle: float = 0.0
-        self._active_recipe:str = ""
+        self._active_recipe: str = ""
 
     def get_id(self) -> int:
         return self.__id
-    
+
     def get_active_recipe(self) -> str:
         return self._active_recipe
 
@@ -144,23 +144,23 @@ class Machine:
             job=job_to_assign
         )
 
-        print(f"For job {job_to_assign.get_factory_id()} machine availa: {self.__is_available} recipe: {len(available_valid_recipes)}")
+        # print(f"For job {job_to_assign.get_factory_id()} machine availa: {self.__is_available} recipe: {len(available_valid_recipes)}")
 
         if available_valid_recipes and self.__is_available:
-            print(f"Can assign job to machine {self.get_id()}")
+            # print(f"Can assign job to machine {self.get_id()}")
             next_valid_recipe_to_process: Recipe = available_valid_recipes[0]
             is_recipe_assigned: bool = job_to_assign.set_recipe_in_progress(
                 next_valid_recipe_to_process
             )
 
             if is_recipe_assigned:
-                print(f"Assigned job to machine ")
+                # print(f"Assigned job to machine ")
                 self.__is_available = False
                 self.__timestamp_current_status = datetime.datetime.now()
                 self.__active_jobs.append(job_to_assign)
 
-                for job in self.__active_jobs:
-                    print(f'Active job {self.__factory_id}: {job.get_factory_id()}')
+                # for job in self.__active_jobs:
+                #     print(f'Active job {self.__factory_id}: {job.get_factory_id()}')
 
                 self._active_recipe = next_valid_recipe_to_process
                 job_to_assign.set_recipe_in_progress(

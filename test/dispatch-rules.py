@@ -90,7 +90,7 @@ def shortest_deadline_first_rule(env: EnvWrapperDispatchRules):
         ax.label_outer()
     # plt.plot(rewards)
     plt.show()
-    plt.savefig('../files/plots/shortest_deadline_plot_100_steps.png', format='png')
+    plt.savefig("../files/plots/shortest_deadline_plot_100_steps.png", format="png")
 
 
 def first_in_first_out_rule(env: EnvWrapperDispatchRules):
@@ -99,7 +99,7 @@ def first_in_first_out_rule(env: EnvWrapperDispatchRules):
     rewards = []
     avg_machine_utilization = []
     avg_machine_idle_time = []
-    
+
     while not terminated:
         steps += 1
 
@@ -114,8 +114,6 @@ def first_in_first_out_rule(env: EnvWrapperDispatchRules):
             if arrival < job.get_arrival_datetime():
                 arrival = job.get_deadline_datetime()
                 job_todo = job
-
-                
 
         # encode action for the job at index
         action = encode_job_action(env, job_todo)
@@ -158,10 +156,9 @@ def first_in_first_out_rule(env: EnvWrapperDispatchRules):
         ax.label_outer()
     # plt.plot(rewards)
     plt.show()
-    plt.savefig('../files/plots/fifo_plot_100_steps.png', format='png')
+    plt.savefig("../files/plots/fifo_plot_100_steps.png", format="png")
 
-
-        # for idx, job in env.get_pending_jobs():
+    # for idx, job in env.get_pending_jobs():
 
 
 def encode_job_action(env: EnvWrapperDispatchRules, job: Job):
