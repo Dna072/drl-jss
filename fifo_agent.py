@@ -7,8 +7,6 @@ import numpy as np
 
 
 def get_fifo_action(env: FactoryEnv, nr_jobs: int):
-    job_index = -1
-    machine_index = -1
     action = 6  # by default no-op
     # First I look for the first created job
     pj = env._pending_jobs
@@ -24,6 +22,32 @@ def get_fifo_action(env: FactoryEnv, nr_jobs: int):
     # If no machine, then i will just send no_op
     return action
 
+
+def episodic_fifo_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
+    """
+    Runs a FIFO agent for #n_episodes and returns an array with the total reward
+    for each episode
+    """
+    jobs: int = 3
+    ep_reward = []
+    ep_tardiness = []
+    for e in range(n_episodes):
+        env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps)
+        tot_reward = 0
+        curr_tardiness = []
+        while 1:  # the environment has its own termination clauses, so it will trigger the break
+            action = np.array(get_fifo_action(env, jobs))
+            o, r, te, tr, i = env.step(action)
+            curr_tardiness.append(env.get_tardiness_percentage())
+            tot_reward += r
+            if te:
+                break
+        ep_reward.append(tot_reward)
+        ep_tardiness.append(np.mean(curr_tardiness))
+    return ep_reward, ep_tardiness
+
+
+# -------------------- CHECK IF EVERYTHING BELOW THIS LINE CAN BE DELETED --------------
 
 machines: int = 2
 jobs: int = 3

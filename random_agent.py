@@ -4,50 +4,62 @@ from matplotlib import pyplot as plt
 from random import randint
 import numpy as np
 
-machines: int = 2
-jobs: int = 3
-max_steps: int = 100
 
-j: int = 0
-tot_reward: int = 0
-
-env: FactoryEnv = init_custom_factory_env(is_verbose=False)
-nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
-
-r_values: list[int] = []
-tr_values: list[int] = []
-steps: list[int] = []
-while j < max_steps and nr_pending_jobs > 0:
-    action: np.ndarray = np.array(randint(0, machines * jobs))
-    o, r, te, tr, i = env.step(action)
-    tot_reward += r
-    r_values.append(r)
-    tr_values.append(tot_reward)
-    steps.append(j)
-    j += 1
-    if te:
-        break
-
-plt.scatter(steps, r_values, c="r", marker="o", s=0.5, label="Instant Rewards")
-plt.scatter(steps, tr_values, c="g", marker="x", s=0.5, label="Cumulative Reward")
-plt.legend()
-plt.show()
-
-tr_values = []
-episodes: int = 100
-for e in range(episodes):
-    j = 0
-    env = init_custom_factory_env(is_verbose=False)
-    tot_reward = 0
-    while j < max_steps and nr_pending_jobs > 0:
-        action = np.array(randint(0, 2 ** ((machines * jobs) - 1)))
+def run_random_agent():
+    machines: int = 2
+    jobs: int = 3
+    tot_reward: int = 0
+    j: int = 0
+    r_values: list[float] = []
+    tr_values: list[int] = []
+    steps: list[int] = []
+    env: FactoryEnv = init_custom_factory_env(is_verbose=False)
+    while 1:  # the environment has the condition to terminate after #max_steps
+        action: np.ndarray = np.array(randint(0, machines * jobs))
         o, r, te, tr, i = env.step(action)
         tot_reward += r
+        r_values.append(r)
+        tr_values.append(tot_reward)
+        steps.append(j)
         j += 1
-    tr_values.append(tot_reward)
+        if te:
+            break
 
-plt.scatter(
-    range(episodes), tr_values, c="b", marker="o", s=0.5, label="Tot Rewards Episode"
-)
-plt.legend()
-plt.show()
+    plt.scatter(steps, r_values, c="r", marker="o", s=0.5, label="Instant Rewards")
+    plt.scatter(steps, tr_values, c="g", marker="x", s=0.5, label="Cumulative Reward")
+    plt.legend()
+    plt.show()
+
+
+def episodic_random_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
+    """
+    Runs a FIFO agent for #n_episodes and returns an array with the total reward
+    for each episode
+    """
+    machines: int = 2
+    jobs: int = 3
+    ep_reward = []
+    ep_tardiness = []
+    for e in range(n_episodes):
+        env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps)
+        tot_reward = 0
+        curr_tardiness = []
+        while 1:  # the environment has its own termination clauses, so it will trigger the break
+            action = np.array(randint(0, machines * jobs))
+            o, r, te, tr, i = env.step(action)
+            curr_tardiness.append(env.get_tardiness_percentage())
+            tot_reward += r
+            if te:
+                break
+        ep_reward.append(tot_reward)
+        ep_tardiness.append(np.mean(curr_tardiness))
+    return ep_reward, ep_tardiness
+
+# mean = np.ones(n_episodes)*np.mean(ep_values)
+# plt.title("Random Agent - 1000 episodes")
+# plt.scatter(
+#     range(episodes), ep_values, c="b", marker="o", s=0.5, label="Tot Rewards Episode"
+# )
+# plt.plot(range(episodes), mean, label="Mean Reward "+str(np.round(mean[0], 2)), c='g')
+# plt.legend()
+# plt.show()

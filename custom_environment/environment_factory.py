@@ -25,10 +25,10 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000) -> 
     """
     recipe_objects: list[Recipe] = [
         create_recipe(
-            factory_id="R1_ID", process_time=5.0, process_id=0, recipe_type="R1"
+            factory_id="R1_ID", process_time=30.0, process_id=0, recipe_type="R1",
         ),
         create_recipe(
-            factory_id="R2_ID", process_time=50.0, process_id=1, recipe_type="R2"
+            factory_id="R2_ID", process_time=300.0, process_id=1, recipe_type="R2"
         ),
     ]
 
@@ -89,6 +89,14 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000) -> 
             machine_type="AB",
             tray_capacity=10_000,
             valid_recipe_types=["R1", "R2"],
+            max_recipes_per_process=2,
+        ),
+        create_machine(
+            factory_id="M2",
+            process_id=2,
+            machine_type="A",
+            tray_capacity=10_000,
+            valid_recipe_types=["R1"],
             max_recipes_per_process=2,
         ),
     ]

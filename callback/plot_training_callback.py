@@ -15,7 +15,7 @@ class PlotTrainingCallback(BaseCallback):
     __FILE_NAME = "best_mean_return.pt"
 
     def __init__(
-        self, plot_freq: int, verbose: int = 1, is_save_best_model: bool = True
+        self, plot_freq: int, verbose: int = 1, is_save_best_model: bool = True, algorithm: str = 'DQN'
     ) -> None:
         """
         Class constructor
@@ -24,16 +24,30 @@ class PlotTrainingCallback(BaseCallback):
         :param is_save_best_model: conditional for if the model is saved every best means return
         """
         super(PlotTrainingCallback, self).__init__(verbose)
+        # Config
         self.__plot_freq: int = plot_freq
-        self.__rewards: list[float] = []
-        self.__tardiness: list[float] = []
-        self.__policy_rewards: list[int] = []
+        # Rewards
+        self.__current_episode_rewards: list[float] = []  # Current episode rewards (gets reset when episode ends)
+        self.__current_policy_rewards: list[float] = []  # Current policy rewards (gets reset on_rollout_end)
+        self.__total_episodic_reward: list[float] = []  # Total reward for current episode
+        self.__mean_episodic_reward: list[float] = []  # Mean reward per episode
+        self.__total_policy_reward: list[float] = []  # Total reward for current policy
+        self.__mean_policy_reward: list[float] = []  # Mean reward per policy
+        # Tardiness
+        self.__current_episode_tardiness: list[float] = []  # Current episode tardiness (gets reset when episode ends)
+        self.__current_policy_tardiness: list[float] = []  # Current policy tardiness (gets reset on_rollout_end)
+        self.__total_episodic_tardiness: list[float] = []  # Total tardiness for current episode
+        self.__mean_episodic_tardiness: list[float] = []  # Mean tardiness per episode
+        self.__total_policy_tardiness: list[float] = []  # Total tardiness for current policy
+        self.__mean_policy_tardiness: list[float] = []  # Mean tardiness per policy
+
+        # Initialisation and others
         self.__num_eps: int = 1
-        # self.__num_steps: int = 0
+        self.__is_save_best_model: bool = is_save_best_model
         self.__mean_returns: list[float] = []
         self.__best_mean_return: float = -np.inf
-        self.__is_save_best_model: bool = is_save_best_model
-        self.__policy_returns: list[float] = []
+        self.__algo: str = algorithm
+        self.__num_policies: int = 0
 
         if not path.exists(path=self.__FILE_PATH):
             makedirs(name=self.__FILE_PATH)
@@ -42,85 +56,59 @@ class PlotTrainingCallback(BaseCallback):
         """
         Called by model after each call to ``env.step()``.
         """
-        # ####################################################################################
-        # self.__rewards.append(self.training_env.get_attr("episode_reward_sum")[0])
-        #
-        # if self.n_calls % self.__plot_freq == self.__CALLBACK_FREQ_REMAINDER:
-        #     self.__mean_returns.append(
-        #         np.mean(self.__rewards) / self.__num_eps if self.__num_eps > 0 else 0
-        #     )
-        #
-        #     if self.__mean_returns[-1] > self.__best_mean_return:
-        #         self.__best_mean_return = self.__mean_returns[-1]
-        #
-        #         if self.__is_save_best_model:
-        #             save(
-        #                 obj=self.model.policy.state_dict(),
-        #                 f=path.join(self.__FILE_PATH, self.__FILE_NAME),
-        #             )
-        #
-        #         if self.verbose:
-        #             print(
-        #                 f"Step: {self.n_calls}, Mean return: {self.__mean_returns[-1]}"
-        #             )
-        #     self.reset()
-        # return True
-        #####################################################################################
-        # This code below is a temporal workaround for the issue with the steps/episodes mixup
-        # Is not the correct approach, but we can be sure if the agent is learning or not.
-        #####################################################################################
-        self.__rewards.append(self.training_env.get_attr("callback_step_reward")[0])
-        self.__policy_rewards.append(self.training_env.get_attr("callback_step_reward")[0])
-        if self.num_timesteps % self.__plot_freq == self.__CALLBACK_FREQ_REMAINDER:
+        self.__current_episode_rewards.append(self.training_env.get_attr("callback_step_reward")[0])
+        self.__current_episode_tardiness.append(self.training_env.get_attr("callback_step_tardiness")[0])
+        self.__current_policy_rewards.append(self.training_env.get_attr("callback_step_reward")[0])
+        self.__current_policy_tardiness.append(self.training_env.get_attr("callback_step_tardiness")[0])
 
-            self.__mean_returns.append(
-                np.mean(self.__rewards) if self.__num_eps > 0 else 0
-            )
+        if self.num_timesteps not in [0, 1] and self.training_env.get_attr("factory_time")[0] == 0:
+            # I remove the last value that belongs to this new episode and add it to the next episode's array.
+            last_c_reward = self.__current_episode_rewards.pop(-1)
+            last_c_tardiness = self.__current_episode_tardiness.pop(-1)
 
-            if self.__mean_returns[-1] > self.__best_mean_return:
-                self.__best_mean_return = self.__mean_returns[-1]
+            # Episodic Reward
+            self.__total_episodic_reward.append(sum(self.__current_episode_rewards))
+            self.__mean_episodic_reward.append(np.mean(self.__current_episode_rewards))
+            # Episodic Tardiness
+            self.__total_episodic_tardiness.append(sum(self.__current_episode_tardiness))
+            self.__mean_episodic_tardiness.append(np.mean(self.__current_episode_tardiness))
+            # Reset Episodic variables
+            self.__current_episode_rewards = []
+            self.__current_episode_tardiness = []
+            # Add the values I've removed
+            self.__current_episode_rewards.append(last_c_reward)
+            self.__current_episode_tardiness.append(last_c_tardiness)
+            # Increase episode number
+            self.__num_eps += 1
 
-                if self.__is_save_best_model:
-                    save(
-                        obj=self.model.policy.state_dict(),
-                        f=path.join(self.__FILE_PATH, self.__FILE_NAME),
-                    )
         return True
 
     def _on_rollout_end(self) -> None:
         """
-        Increment episode counter on rollout end
         In Stable-Baselines3, the _on_rollout_end method is part of the callback system
         and is executed at the end of each rollout during training. A rollout refers to a
         single trajectory where the agent interacts with the environment from the current
-        state until a terminal state is reached. -ChatGPT
+        state until a terminal state is reached. -Source: ChatGPT (To be confirmed)
         """
-        # ####################################################################################
-        # self.__rewards.append(self.training_env.get_attr("episode_reward_sum")[0])
+        # Reward
+        self.__total_policy_reward.append(np.sum(self.__current_policy_rewards))
+        self.__mean_policy_reward.append(np.mean(self.__current_policy_rewards))
+        # Tardiness
+        self.__total_policy_tardiness.append(np.sum(self.__current_policy_tardiness))
+        self.__mean_policy_tardiness.append(np.mean(self.__current_policy_tardiness))
 
+        # Every time we change policy, we check if our current model is better than the best, then we save it.
+        # We might want to set a condition in order not to compare every time the policy changes
+        # if self.__num_policies % self.__plot_freq == __CALLBACK_FREQ_REMAINDER:
+        if self.__mean_policy_reward[-1] > self.__best_mean_return:
+            self.__best_mean_return = self.__mean_policy_reward[-1]
 
-        self.__policy_returns.append(
-            np.sum(self.__policy_rewards)
-        )
-
-            # if self.__mean_returns[-1] > self.__best_mean_return:
-            #     self.__best_mean_return = self.__mean_returns[-1]
-            #
-            #     if self.__is_save_best_model:
-            #         save(
-            #             obj=self.model.policy.state_dict(),
-            #             f=path.join(self.__FILE_PATH, self.__FILE_NAME),
-            #         )
-            #
-            #     if self.verbose:
-            #         print(
-            #             f"Step: {self.n_calls}, Mean return: {self.__mean_returns[-1]}"
-            #         )
+            if self.__is_save_best_model:
+                save(
+                    obj=self.model.policy.state_dict(),
+                    f=path.join(self.__FILE_PATH, self.__FILE_NAME),
+                )
         self.reset()
-
-        # if self.training_env.get_attr("callback_flag_termination")[0]:
-        #     # self.__num_eps += 1
-        #     print("Terminated??")
 
     def _on_training_end(self) -> None:
         """
@@ -130,35 +118,50 @@ class PlotTrainingCallback(BaseCallback):
 
     def reset(self) -> None:
         """
-        Reset rewards array and episode counter
+        Reset current policy rewards array and increase policy counter
         """
-        #self.__rewards = []
-        self.__policy_rewards = []
-        #self.__num_eps = 1
-        # self.__num_steps = 0
+        self.__current_policy_tardiness = []
+        self.__current_policy_rewards = []
+        self.__num_policies += 1
 
     def plot_train_data(self) -> None:
         """
         Plot training data
         """
+        # Plot Mean Episodic Rewards
         plt.figure(figsize=(10, 6))
-        plt.title(label="DQN Agent Training Performance")
-        plt.xlabel(xlabel="Steps")
-        plt.ylabel(ylabel="Mean Returns")
-        # plt.plot(self.__rewards)
-        plt.plot(self.__mean_returns)
-        #plt.show()
-        plt.savefig("./files/plots/dqn_training.png", format="png")
+        plt.title(label=f"{self.__algo} Agent Mean Episodic Rewards")
+        plt.xlabel(xlabel="Episode")
+        plt.ylabel(ylabel="Mean Reward")
+        plt.plot(self.__mean_episodic_reward)
+        plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_rewards.png", format="png")
 
-        # plot policy returns
+        # Plot Mean Policy Rewards
         plt.figure(figsize=(10, 6))
-        plt.title(label="DQN Agent Training Performance")
-        plt.xlabel(xlabel="Policy")
-        plt.ylabel(ylabel="Policy Returns")
-        # plt.plot(self.__rewards)
-        plt.plot(self.__policy_returns)
-        # plt.show()
-        plt.savefig("./files/plots/dqn_policy_training.png", format="png")
+        plt.title(label=f"{self.__algo} Agent Mean Policy Rewards")
+        plt.xlabel(xlabel="Policy Nr")
+        plt.ylabel(ylabel="Mean Policy Returns")
+        plt.plot(self.__mean_policy_reward)
+        plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_rewards.png", format="png")
+
+        # Plot Mean Episodic Tardiness
+        plt.figure(figsize=(10, 6))
+        plt.title(label=f"{self.__algo} Agent Mean Episodic Tardiness")
+        plt.xlabel(xlabel="Episode")
+        plt.ylabel(ylabel="Mean Tardiness")
+        plt.plot(self.__mean_episodic_tardiness)
+        plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_tardiness.png", format="png")
+
+        # Plot Mean Policy Tardiness
+        plt.figure(figsize=(10, 6))
+        plt.title(label=f"{self.__algo} Agent Mean Policy Tardiness")
+        plt.xlabel(xlabel="Policy Nr")
+        plt.ylabel(ylabel="Mean Policy Tardiness")
+        plt.plot(self.__mean_policy_tardiness)
+        plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_tardiness.png", format="png")
+
+        # There are also variables with total episodic rewards and tardiness and total policy rewards and tardiness
+        # in case we want to plot them
 
 
 if __name__ == "__main__":

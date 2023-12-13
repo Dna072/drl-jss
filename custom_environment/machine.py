@@ -109,6 +109,9 @@ class Machine:
     def get_max_num_jobs(self) -> int:
         return self.__MAX_JOBS_PER_MACHINE
 
+    def get_valid_recipes(self):
+        return self.__valid_recipe_types
+
     def set_time_active(self, new_time_active: float) -> None:
         self.__time_active = new_time_active
 

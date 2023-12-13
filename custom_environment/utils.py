@@ -1,4 +1,4 @@
-from custom_environment.environment import FactoryEnv
+#from custom_environment.environment import FactoryEnv
 
 
 class TextColors:
@@ -15,6 +15,7 @@ def print_observation(obs, nr_machines):
     # o_pending = obs["pending_jobs"]
     o_machines = obs["machines"]
     o_p_remaining = obs["pending_job_remaining_times"]
+    #o_p_steps_to_deadline = obs["pending_job_steps_to_deadline"]
     # o_ip_remaining = obs["inprogress_job_remaining_times"]
     machines_matrix = o_machines.reshape((nr_machines, -1))
     # print(TextColors.YELLOW + "Pending Jobs:\n" + TextColors.RESET, o_pending)
@@ -23,6 +24,10 @@ def print_observation(obs, nr_machines):
         TextColors.YELLOW + "Remaining time for jobs pending:\n" + TextColors.RESET,
         o_p_remaining,
     )
+    # print(
+    #     TextColors.YELLOW + "Steps to deadline for jobs pending:\n" + TextColors.RESET,
+    #     o_p_steps_to_deadline,
+    # )
     # print(TextColors.YELLOW+"Remaining time for jobs ip:\n"+TextColors.RESET, o_ip_remaining)
     print(TextColors.YELLOW + "Machine occupancy:" + TextColors.RESET)
     print(TextColors.GREEN + "       J0  J1  J2" + TextColors.RESET)
@@ -38,9 +43,21 @@ def print_observation(obs, nr_machines):
     print()
 
 
-def print_jobs(env: FactoryEnv):
+def print_jobs(env):
     print("#### Jobs ####")
     for j in env.get_pending_jobs():
         print(j)
 
     print("####")
+
+def min_max_norm(x:float, x_min: float, x_max: float):
+    """
+    @param x Value to normalize
+    @param x_min Minimum value in dataset
+    @param x_max Maximum value in dataset
+    """
+    #print(f"x: {x}, x_min: {x_min}, x_max: {x_max}")
+    if x_min == 0 and x_max == 0:
+        return 0
+
+    return (x - x_min)/(x_max - x_min)

@@ -25,6 +25,7 @@ from custom_environment.machine import Machine
 from custom_environment.job import Job
 from custom_environment.recipe_factory import create_recipe
 from custom_environment.job_factory import create_job
+from custom_environment.utils import min_max_norm
 
 # from datetime import datetime, timedelta
 import gymnasium as gym
@@ -56,7 +57,7 @@ class FactoryEnv(gym.Env):
     NO_OP_STR: str = "NO-OP"
     MACHINE_IDLE_STR: str = "MACHINE_IDLE"
     MACHINE_UNAVAILABLE_STR: str = "MACHINE UNAVAILABLE"
-    JOB_ASSIGNED: str = "JOB ASSIGNED"
+    JOB_ASSIGNED_STR: str = "JOB_ASSIGNED"
     JOB_COMPLETED_ON_TIME_STR: str = "JOB_COMPLETED_ON_TIME"
     JOB_COMPLETED_NOT_ON_TIME_STR: str = "JOB_COMPLETED_NOT_ON_TIME"
     INVALID_JOB_RECIPE_STR: str = "INVALID JOB RECIPE"
@@ -84,11 +85,11 @@ class FactoryEnv(gym.Env):
     _REWARD_WEIGHTS: dict[str, int] = {
         NO_OP_STR: 0,
         MACHINE_IDLE_STR: -1,
-        MACHINE_UNAVAILABLE_STR: -1,
+        MACHINE_UNAVAILABLE_STR: -5,
         JOB_COMPLETED_ON_TIME_STR: 10,
-        JOB_COMPLETED_NOT_ON_TIME_STR: 5,
-        JOB_ASSIGNED: 1,
-        INVALID_JOB_RECIPE_STR: -1,
+        JOB_COMPLETED_NOT_ON_TIME_STR: 0,
+        JOB_ASSIGNED_STR: 1,
+        INVALID_JOB_RECIPE_STR: -5,
         DEADLINE_EXCEEDED_STR: -5,
         ILLEGAL_ACTION_STR: -5,
         NEUTRAL_STR: 0,
@@ -104,6 +105,7 @@ class FactoryEnv(gym.Env):
     _RECIPE_TYPES_STR: str = "recipes"
     _MACHINES_STR: str = "machines"
     _P_JOB_REMAINING_TIMES_STR: str = "pending_job_remaining_times"
+    _P_JOB_STEPS_TO_DEADLINE: str = "pending_job_steps_to_deadline"
     _IP_JOB_REMAINING_TIMES_STR: str = "inprogress_job_remaining_times"
 
     _METADATA: dict[int, str] = {0: "vector", 1: "human"}
@@ -132,11 +134,14 @@ class FactoryEnv(gym.Env):
         self._jobs_completed_per_step_on_time: int = 0
         self._jobs_completed_per_step_not_on_time: int = 0
 
+        # variable to keep track of time past deadline for jobs completed after their deadline
+        self._late_jobs_time_past_deadline: list[float] = []
+
         self._max_steps: int = max_steps
         self._time_step: int = 0
         self._step_datetime: str | None = None
 
-        self._factory_time: float = (
+        self.factory_time: float = (
             0.0  # NOTE: This is the variable that tracks processing time
         )
         self._termination_reward: float = -1000  # NOTE: Check if applicable
@@ -148,6 +153,7 @@ class FactoryEnv(gym.Env):
         self.callback_step_reward: float = (
             0.0  # for callback graphing train performance
         )
+        self.callback_step_tardiness: float = 0.0
         self.callback_flag_termination: bool = (
             False  # for callback graphing train performance
         )
@@ -178,6 +184,10 @@ class FactoryEnv(gym.Env):
             low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )  # normalized vector for jobs pending deadline proportional to recipe processing duration times
 
+        pending_job_steps_to_deadline_space: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=1, shape=(self._BUFFER_LEN, ), dtype=np.float64
+        )# normalized vector (using Min-max scaling [0,1]) for steps to deadline for jobs in buffer
+
         # inprogress_job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
         #     low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         # )
@@ -186,6 +196,7 @@ class FactoryEnv(gym.Env):
                # self._PENDING_JOBS_STR: pending_jobs_space,
                 self._MACHINES_STR: machine_space,
                 self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times_space,
+                #self._P_JOB_STEPS_TO_DEADLINE: pending_job_steps_to_deadline_space
                 # self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times_space,
             }
         )
@@ -231,6 +242,21 @@ class FactoryEnv(gym.Env):
                 pending_job_remaining_times[job.get_id()] = (
                     pending_job_remaining_times[job.get_id()] - min_duration
                 ) / (max_duration - min_duration)
+
+        pending_jobs_steps_to_deadline = [job.get_steps_to_deadline() for job in self._pending_jobs]
+        min_deadline = min(pending_jobs_steps_to_deadline)
+        max_deadline = max(pending_jobs_steps_to_deadline)
+        pending_jobs_steps_to_deadline = np.array([min_max_norm(x, min_deadline, max_deadline) for x in pending_jobs_steps_to_deadline], dtype=np.float64)
+
+        # pending_job_remaining_times = np.array([job.get_remaining_process_time() for job in self._pending_jobs], dtype=np.float64)
+        # min_remaining_time = min(pending_job_remaining_times)
+        # max_remaining_time = max(pending_job_remaining_times)
+        # pending_job_remaining_times = np.array([min_max_norm(x, min_remaining_time, max_remaining_time) for x in pending_job_remaining_times], dtype= np.float64)
+
+        for idx, val in enumerate(pending_job_remaining_times):
+            pending_job_remaining_times[idx] = pending_job_remaining_times[idx] * pending_jobs_steps_to_deadline[idx]
+        #
+        # pending_job_remaining_times = np.array(pending_job_remaining_times)
         # #######################################################################################################
         # # repeat for jobs in process                                                                          #
         # #######################################################################################################
@@ -259,7 +285,7 @@ class FactoryEnv(gym.Env):
             # self._PENDING_JOBS_STR: is_pending_jobs,
             self._MACHINES_STR: is_machines_active_jobs.flatten(),
             self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times,
-
+            #self._P_JOB_STEPS_TO_DEADLINE: pending_jobs_steps_to_deadline
             #self._IP_JOB_REMAINING_TIMES_STR: inprogress_job_remaining_times,
         }
 
@@ -279,11 +305,22 @@ class FactoryEnv(gym.Env):
         return self._jobs_completed_per_step_not_on_time
 
     def get_tardiness_percentage(self):
-        print(f"{self._jobs_completed_per_step_not_on_time} {self._jobs_completed_per_step_on_time}")
+        # print(f"{self._jobs_completed_per_step_not_on_time} {self._jobs_completed_per_step_on_time}")
         if self._jobs_completed_per_step_not_on_time == 0 and self._jobs_completed_per_step_on_time == 0:
             return 0
-
         return self._jobs_completed_per_step_not_on_time / (self._jobs_completed_per_step_on_time + self._jobs_completed_per_step_not_on_time) * 100
+
+    def get_jobs_time_past_deadline(self):
+        return self._late_jobs_time_past_deadline
+
+    def get_avg_time_past_deadline(self):
+        if self._jobs_completed_per_step_not_on_time == 0:
+            return 0
+
+        return sum(self._late_jobs_time_past_deadline) / self._jobs_completed_per_step_not_on_time
+
+    def set_termination_reward(self, reward=-1000):
+        self._termination_reward = reward
 
     def _compute_penalties(self) -> float:
         """
@@ -307,7 +344,7 @@ class FactoryEnv(gym.Env):
 
         penalty = (
             self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
-            * 0.6
+            * 0.7
             * inprogress_past_deadline
             + self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR] * pending_past_deadline * 1.5
         )
@@ -340,7 +377,99 @@ class FactoryEnv(gym.Env):
         #     self._jobs_completed_per_step_not_on_time
         # ) = 0
 
-        return reward + self._compute_penalties()
+        return reward + self._compute_penalties() #+ self.get_avg_time_past_deadline()
+
+    def _compute_step_reward(self, action) -> float:
+        '''
+        Checks number of pending jobs past deadline and those not, then gives positive reward if no pending jobs are past deadline.
+        @method _compute_pending_job_penalty checks that no-op is used correctly, by making sure it's only used when all pending jobs
+        cannot be assigned at the moment
+        '''
+        reward = 0
+        steps_to_deadline = [-1 if job.get_steps_to_deadline() <= 0 else 0 for job in self._pending_jobs]
+        #steps_to_deadline = [job.get_steps_to_deadline() for job in self._pending_jobs]
+        #reward = self._compute_penalties()
+        return (reward + sum(steps_to_deadline) / len(steps_to_deadline)
+                + self._compute_pending_job_penalty(action)
+                + self._compute_machine_utilization_reward()
+                )
+
+    def _compute_job_completed_reward(self, job: Job) -> float:
+        reward = 0
+        p_steps_to_deadline = [j.get_steps_to_deadline() for j in self._pending_jobs]
+        reward = (job.get_steps_to_deadline() * 0.02) + (sum(p_steps_to_deadline) * 0.01)
+
+        return reward
+
+    def _compute_pending_job_penalty(self, action) -> float:
+        """Function to check if any of pending jobs is assignable, if it is assignable return negative reward"""
+        # get job with the least deadline
+        p_steps_to_deadline = np.array([j.get_steps_to_deadline() for j in self._pending_jobs])
+        min_job_idx = np.argmin(p_steps_to_deadline)
+
+        least_deadline_job = self._pending_jobs[min_job_idx]
+
+        # print(f"action: {action}")
+        if action != len(self._machines) * self._BUFFER_LEN:
+            # if the job is assigned to a specialised machine that can only do that job, reward the agent
+            # this makes the agent learn to assign jobs to specialised machines so multi-purpose machines are left
+            # any remaining jobs
+            machine_idx = action // self._BUFFER_LEN
+            job_idx = action % self._BUFFER_LEN
+            action_selected_machine = self._machines[machine_idx]
+            action_selected_job = self._pending_jobs[job_idx]
+
+            for idx, job in enumerate(self._pending_jobs):
+                if idx == job_idx:
+                    continue
+
+                if (action_selected_job.get_recipes() == job.get_recipes()
+                        and action_selected_job.get_factory_id() != job.get_factory_id()
+                        and action_selected_job.get_steps_to_deadline() > job.get_steps_to_deadline()
+                ):
+                    # same job recipes
+                    return -2
+
+            if len(action_selected_machine.get_valid_recipes()) == 1:
+                return 1
+            else:
+                # check if there is a specialised machine available
+                for idx, machine in enumerate(self._machines):
+                    if idx == machine_idx:
+                        continue
+
+                    if (
+                            len(machine.get_valid_recipes()) == 1
+                            and machine.is_available()
+                            and machine.can_perform_job(action_selected_job)
+                    ):
+                        #print(f"Another specialised machine could have done job: {action_selected_job}")
+                        return -1
+
+            # Also if all jobs are of the same type, the agent should be punished for picking a job with a higher deadline
+            # than an already existing job
+
+            return 0
+
+        for machine in self._machines:
+            if machine.is_available() and machine.can_perform_job(least_deadline_job):
+                return self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
+
+        return 0
+
+    def _compute_machine_utilization_reward(self):
+        """
+        Function to check if there are pending jobs and machines idle
+        """
+        for machine in self._machines:
+            if machine.is_available():
+                # check pending jobs if they are assignable to this machine
+                # if assignable negative reward, else 0
+                for job in self._pending_jobs:
+                    if machine.can_perform_job(job):
+                        return self._REWARD_WEIGHTS[self.MACHINE_IDLE_STR]
+
+        return 0
 
     def _update_deadlines(self, time_delta: float):
         for j in self._pending_jobs:
@@ -352,7 +481,7 @@ class FactoryEnv(gym.Env):
     def _is_jobs_done(self) -> bool:
         return len(self._completed_jobs) == self._BUFFER_LEN
 
-    def _update_factory_env_state(self, no_op_time: int) -> bool:
+    def _update_factory_env_state(self, no_op_time: int) -> float:
         """
         Check and update the status of machines and jobs being processed since the last step.
         Updates time in total factory process, and each Machine object's total activity or idleness.
@@ -370,6 +499,7 @@ class FactoryEnv(gym.Env):
 
         available = [1 for m in self._machines if m.is_available()]
         na = sum(available)
+        job_completed_reward = 0
 
         if na == 0:
             # I search for the min completion time - This could probably be done with list comprehension
@@ -394,13 +524,13 @@ class FactoryEnv(gym.Env):
                 time_delta = 1
 
         # Then I advance all the jobs in progress and the environment
-        self._factory_time += time_delta
+        self.factory_time += time_delta
         for machine in self._machines:
             if not machine.is_available():
                 for j in machine.get_active_jobs():
                     j.update_steps_to_recipe_complete(time_delta * -1)
                     if j.get_steps_to_recipe_complete() <= 0:
-                        j.set_recipe_completed(machine.get_active_recipe())
+                        j.set_recipe_completed(j.get_recipes_in_progress()[0])
                         self._completed_jobs.append(
                             self._jobs_in_progress.pop(
                                 self._jobs_in_progress.index((machine, j))
@@ -410,9 +540,14 @@ class FactoryEnv(gym.Env):
                             self._jobs_completed_per_step_on_time += 1
                         else:
                             self._jobs_completed_per_step_not_on_time += 1
+                            self._late_jobs_time_past_deadline.append(j.get_steps_to_deadline())
+
                         machine.remove_job_assignment(job=j)
+                        # return an immediate reward for job completion that takes into considering the amount of time to deadline
+                        job_completed_reward = self._compute_job_completed_reward(j)
         # Finally, Update all deadlines based on the time passed
         self._update_deadlines(time_delta)
+        return job_completed_reward
 
     def _init_machine_job(self, selected_machine: Machine, selected_job: Job) -> bool:
         """
@@ -430,14 +565,14 @@ class FactoryEnv(gym.Env):
 
     def _check_termination(self):
         if (
-            self._factory_time >= self._max_steps
+            self.factory_time >= self._max_steps
             or self.episode_reward_sum < self._termination_reward
         ):
-            print(TextColors.RED + "TERMINATED" + TextColors.RESET)
+            # print(TextColors.RED + "TERMINATED" + TextColors.RESET)
             self.callback_flag_termination = True
             return True
         if len(self._pending_jobs) == 0:
-            print(TextColors.RED + "TERMINATED_2" + TextColors.RESET)
+            # print(TextColors.RED + "TERMINATED_2" + TextColors.RESET)
             return True
         return False
 
@@ -463,9 +598,10 @@ class FactoryEnv(gym.Env):
         :return: (observation, reward, terminated, truncated, info)
         """
         is_terminated: bool = False
-        step_reward = 0
+        step_reward = self._compute_step_reward(action)
+        # print(f"step_reward: {step_reward}")
         no_op_time = 0
-        # print(TextColors.MAGENTA+"Factory Time before step: "+TextColors.RESET,self._factory_time)
+        # print(TextColors.MAGENTA+"Factory Time before step: "+TextColors.RESET,self.factory_time)
         #########################
         #     1-TAKE ACTION     #
         #########################
@@ -500,11 +636,13 @@ class FactoryEnv(gym.Env):
         #     2-UPDATE ENV      #
         #########################
         self._update_factory_env_state(no_op_time=no_op_time)
+        self.callback_step_tardiness = self.get_tardiness_percentage()
         #########################
         #     3-CALC REWARD     #
         #########################
-        state_reward = self._compute_reward()
-        reward = step_reward #+ state_reward
+        #state_reward = self._compute_reward()
+
+        reward = step_reward #+ job_completed_reward #+ state_reward
         # print(TextColors.RED+"Reward:"+TextColors.RESET,reward)
         self.episode_reward_sum += reward
         self.callback_step_reward = reward
@@ -513,12 +651,13 @@ class FactoryEnv(gym.Env):
         #########################
         is_terminated = self._check_termination()
         if is_terminated:
+            state_reward = self._compute_reward()
             reward += state_reward
         #########################
         #    5-UPDATE BUFFER    #
         #########################
         self.update_buffer()
-        # print(TextColors.MAGENTA+"Factory Time after step: "+TextColors.RESET,self._factory_time)
+        # print(TextColors.MAGENTA+"Factory Time after step: "+TextColors.RESET,self.factory_time)
         #########################
         #        6-RETURN       #
         #########################
@@ -530,7 +669,8 @@ class FactoryEnv(gym.Env):
             {"INFO": str(reward) + "," + str(self.episode_reward_sum),
              "JOBS_COMPLETED_ON_TIME": self._jobs_completed_per_step_on_time,
              "JOBS_NOT_COMPLETED_ON_TIME": self._jobs_completed_per_step_not_on_time,
-             "PENDING_JOBS": self._pending_jobs
+             "AVG_TARDINESS_OF_LATE_JOBS": self.get_avg_time_past_deadline(),
+             "CURRENT_TIME": self.factory_time
              },
         )
 
@@ -551,14 +691,14 @@ class FactoryEnv(gym.Env):
             for i in range(self._BUFFER_LEN):
                 if i not in pending_idx:
                     # Create job
-                    r = random.choice(self.available_recipes)
+                    r = random.choice(self.available_recipes,)
                     # NOTE:Note that “process time” should be 5%-30% of the difference between deadline-arrival
                     new_job = create_job(
                         recipes=[r],
                         factory_id="J" + str(i),
                         process_id=i,
                         deadline=100 if r.get_recipe_type() == "R1" else 1000,
-                        factory_time=self._factory_time,
+                        factory_time=self.factory_time,
                     )
                     # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
                     # print(new_job)
@@ -593,13 +733,13 @@ class FactoryEnv(gym.Env):
     ) -> tuple[dict[str, np.ndarray[any]], dict[str, str]]:
         # print cum rewards
         # print factory time
-        # print(f'factory time: {self._factory_time}')
+        # print(f'factory time: {self.factory_time}')
         # print(TextColors.RED+'Pre-Reset: Episode reward sum:'+TextColors.RESET,self.episode_reward_sum)
         """
         Reset the environment state
         """
         self._time_step = 0
-        self._factory_time = 0.0
+        self.factory_time = 0.0
 
         self.episode_reward_sum = 0  # for callback graphing train performance
         self.callback_flag_termination = (
@@ -617,8 +757,11 @@ class FactoryEnv(gym.Env):
         for job in self._jobs:
             job.reset()
         self._pending_jobs = self._jobs.copy()[: self._BUFFER_LEN]
+        self._jobs_completed_per_step_on_time = 0
+        self._jobs_completed_per_step_not_on_time = 0
         self._jobs_in_progress = []
         self._completed_jobs = []
+        self._late_jobs_time_past_deadline = []
 
         return self.get_obs(), {}
 
