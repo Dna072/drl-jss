@@ -7,17 +7,19 @@ from custom_environment.recipe import Recipe
 from custom_environment.job import Job
 
 
-def create_factory_env(machines: list[Machine], jobs: list[Job], max_steps: int = 5000) -> FactoryEnv:
+def create_factory_env(machines: list[Machine], jobs: list[Job], max_steps: int = 5000, is_evaluation: bool = False) -> FactoryEnv:
     """
     Factory function for creating a FactoryEnv object
     :param machines: list of Machine objects
     :param jobs: list of Job objects
+    :max_steps: max steps the environment will take before termination
+    :is_evaluation: Enables/Disables the termination condition is reward<-1000 for learning
     :return: FactoryEnv object
     """
-    return FactoryEnv(machines=machines, jobs=jobs, max_steps=max_steps)
+    return FactoryEnv(machines=machines, jobs=jobs, max_steps=max_steps, is_evaluation=is_evaluation)
 
 
-def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000) -> FactoryEnv:
+def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_evaluation: bool = False) -> FactoryEnv:
     """
     Create a custom FactoryEnv environment for development and testing
     :param is_verbose: print statements if True
@@ -107,7 +109,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000) -> 
             print(machine)
             print("-------")
 
-    factory_env: FactoryEnv = create_factory_env(machines=machines, jobs=jobs, max_steps=max_steps)
+    factory_env: FactoryEnv = create_factory_env(machines=machines, jobs=jobs, max_steps=max_steps, is_evaluation=is_evaluation)
     return factory_env
 
 

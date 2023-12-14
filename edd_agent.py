@@ -35,7 +35,7 @@ def episodic_edd_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
     ep_reward = []
     ep_tardiness = []
     for e in range(n_episodes):
-        env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps)
+        env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps, is_evaluation=True)
         tot_reward = 0
         curr_tardiness = []
         while 1:  # the environment has its own termination clauses, so it will trigger the break

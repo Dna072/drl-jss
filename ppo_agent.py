@@ -23,6 +23,7 @@ from stable_baselines3 import PPO
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class Agent:
     """
     DQN agent for learning the custom FactoryEnv environment
@@ -94,7 +95,7 @@ def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/p
                        env_max_steps: int = 100):
     ep_reward = []
     ep_tardiness = []
-    dqn_agent = Agent(custom_env=init_custom_factory_env(max_steps=env_max_steps))
+    dqn_agent = Agent(custom_env=init_custom_factory_env(max_steps=env_max_steps, is_evaluation=True))
     dqn_agent.load(agent_path)
     for e in range(n_episodes):
         env = init_custom_factory_env(is_verbose=False)

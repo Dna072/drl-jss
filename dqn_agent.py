@@ -151,7 +151,7 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
                        env_max_steps: int = 100):
     ep_reward = []
     ep_tardiness = []
-    dqn_agent = Agent(custom_env=init_custom_factory_env(max_steps=env_max_steps))
+    dqn_agent = Agent(custom_env=init_custom_factory_env(max_steps=env_max_steps, is_evaluation=True))
     dqn_agent.load(agent_path)
     for e in range(n_episodes):
         env = init_custom_factory_env(is_verbose=False)
@@ -177,9 +177,9 @@ if __name__ == "__main__":
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=MAX_STEPS))
 
-    # agent.learn(
-    #     total_time_steps=MAX_STEPS, log_interval=10, callback=plot_training_callback
-    # )
+    agent.learn(
+        total_time_steps=MAX_STEPS, log_interval=10, callback=plot_training_callback
+    )
     # # agent.learn()
 
     agent.save()
