@@ -5,6 +5,12 @@ from torch import save
 import numpy as np
 
 
+def get_trendline(data: list[float] = None):
+    episode_numbers = np.arange(1, len(data) + 1)
+    coefficients = np.polyfit(episode_numbers, data, 5)
+    return np.polyval(coefficients, episode_numbers)
+
+
 class PlotTrainingCallback(BaseCallback):
     """
     Callback subclass for plotting the training of an agent. Extends Stable_Baselines3 BaseCallback class.
@@ -128,20 +134,31 @@ class PlotTrainingCallback(BaseCallback):
         """
         Plot training data
         """
+
         # Plot Mean Episodic Rewards
+        episode_numbers = np.arange(1, len(self.__mean_episodic_reward) + 1)
         plt.figure(figsize=(10, 6))
         plt.title(label=f"{self.__algo} Agent Mean Episodic Rewards")
         plt.xlabel(xlabel="Episode")
         plt.ylabel(ylabel="Mean Reward")
-        plt.plot(self.__mean_episodic_reward)
+        # plt.plot(self.__mean_episodic_reward)
+        plt.plot(episode_numbers, self.__mean_episodic_reward, label="Mean Reward")
+        plt.plot(episode_numbers, get_trendline(self.__mean_episodic_reward), label="Trend Line", linestyle="--",
+                 color="red")
+        plt.legend()
         plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_rewards.png", format="png")
 
         # Plot Mean Policy Rewards
+        policy_numbers = np.arange(1, len(self.__mean_policy_reward) + 1)
         plt.figure(figsize=(10, 6))
         plt.title(label=f"{self.__algo} Agent Mean Policy Rewards")
         plt.xlabel(xlabel="Policy Nr")
-        plt.ylabel(ylabel="Mean Policy Returns")
-        plt.plot(self.__mean_policy_reward)
+        plt.ylabel(ylabel="Mean Reward")
+        # plt.plot(self.__mean_policy_reward)
+        plt.plot(policy_numbers, self.__mean_policy_reward, label="Mean Policy Reward")
+        plt.plot(policy_numbers, get_trendline(self.__mean_policy_reward), label="Trend Line", linestyle="--",
+                 color="red")
+        plt.legend()
         plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_rewards.png", format="png")
 
         # Plot Mean Episodic Tardiness
@@ -149,15 +166,23 @@ class PlotTrainingCallback(BaseCallback):
         plt.title(label=f"{self.__algo} Agent Mean Episodic Tardiness")
         plt.xlabel(xlabel="Episode")
         plt.ylabel(ylabel="Mean Tardiness")
-        plt.plot(self.__mean_episodic_tardiness)
+        # plt.plot(self.__mean_episodic_tardiness)
+        plt.plot(episode_numbers, self.__mean_episodic_tardiness, label="Mean Reward")
+        plt.plot(episode_numbers, get_trendline(self.__mean_episodic_tardiness), label="Trend Line", linestyle="--",
+                 color="red")
+        plt.legend()
         plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_tardiness.png", format="png")
 
         # Plot Mean Policy Tardiness
         plt.figure(figsize=(10, 6))
         plt.title(label=f"{self.__algo} Agent Mean Policy Tardiness")
         plt.xlabel(xlabel="Policy Nr")
-        plt.ylabel(ylabel="Mean Policy Tardiness")
-        plt.plot(self.__mean_policy_tardiness)
+        plt.ylabel(ylabel="Mean Tardiness")
+        # plt.plot(self.__mean_policy_tardiness)
+        plt.plot(policy_numbers, self.__mean_policy_tardiness, label="Mean Policy Tardiness")
+        plt.plot(policy_numbers, get_trendline(self.__mean_policy_tardiness), label="Trend Line", linestyle="--",
+                 color="red")
+        plt.legend()
         plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_tardiness.png", format="png")
 
         # There are also variables with total episodic rewards and tardiness and total policy rewards and tardiness

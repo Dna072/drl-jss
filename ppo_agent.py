@@ -95,6 +95,8 @@ def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/p
                        env_max_steps: int = 100):
     ep_reward = []
     ep_tardiness = []
+    ep_jobs_ot = []
+    ep_jobs_not = []
     dqn_agent = Agent(custom_env=init_custom_factory_env(max_steps=env_max_steps, is_evaluation=True))
     dqn_agent.load(agent_path)
     for e in range(n_episodes):
@@ -107,26 +109,30 @@ def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/p
             o, r, te, tr, i = env.step(action)
             curr_tardiness.append(env.get_tardiness_percentage())
             tot_reward += r
+            jobs_ot = env.get_jobs_completed_on_time()
+            jobs_not = env.get_jobs_completed_not_on_time()
             if te:
                 break
         ep_reward.append(tot_reward)
         ep_tardiness.append(np.mean(curr_tardiness))
-    return ep_reward, ep_tardiness
+        ep_jobs_ot.append(jobs_ot)
+        ep_jobs_not.append(jobs_not)
+    return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    MAX_STEPS = 400_000
-    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100, algorithm="PPO")
+    LEARNING_MAX_STEPS = 1_000_000
+    ENVIRONMENT_MAX_STEPS = 25_000
+    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="PPO")
 
-    agent = Agent(custom_env=init_custom_factory_env(max_steps=MAX_STEPS))
+    agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
 
     agent.learn(
-        total_time_steps=MAX_STEPS, log_interval=10, callback=plot_training_callback
+        total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
     )
     # agent.learn()
-    agent.save()
-    haha = input("Finished Learning Process.")
+    agent.save(file_path_name="files/ppo_agent_"+str(LEARNING_MAX_STEPS))
 
-    agent.load()
-    agent.evaluate()
+    # agent.load()
+    # agent.evaluate()

@@ -344,7 +344,7 @@ class FactoryEnv(gym.Env):
         #     self._jobs_completed_per_step_not_on_time
         # ) = 0
 
-        return reward + self._compute_penalties() #+ self.get_avg_time_past_deadline()
+        return reward + self._compute_penalties() # + self.get_avg_time_past_deadline()
 
     def _compute_step_reward(self, action) -> float:
         '''

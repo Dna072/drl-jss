@@ -40,6 +40,8 @@ def episodic_random_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
     jobs: int = 3
     ep_reward = []
     ep_tardiness = []
+    ep_jobs_ot = []
+    ep_jobs_not = []
     for e in range(n_episodes):
         env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps)
         tot_reward = 0
@@ -49,17 +51,23 @@ def episodic_random_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
             o, r, te, tr, i = env.step(action)
             curr_tardiness.append(env.get_tardiness_percentage())
             tot_reward += r
+            jobs_ot = env.get_jobs_completed_on_time()
+            jobs_not = env.get_jobs_completed_not_on_time()
             if te:
                 break
         ep_reward.append(tot_reward)
         ep_tardiness.append(np.mean(curr_tardiness))
-    return ep_reward, ep_tardiness
+        ep_jobs_ot.append(jobs_ot)
+        ep_jobs_not.append(jobs_not)
+    return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
-# mean = np.ones(n_episodes)*np.mean(ep_values)
-# plt.title("Random Agent - 1000 episodes")
-# plt.scatter(
-#     range(episodes), ep_values, c="b", marker="o", s=0.5, label="Tot Rewards Episode"
-# )
-# plt.plot(range(episodes), mean, label="Mean Reward "+str(np.round(mean[0], 2)), c='g')
-# plt.legend()
-# plt.show()
+
+# if __name__ == "__main__":
+#     mean = np.ones(n_episodes)*np.mean(ep_values)
+#     plt.title("Random Agent - 1000 episodes")
+#     plt.scatter(
+#         range(episodes), ep_values, c="b", marker="o", s=0.5, label="Tot Rewards Episode"
+#     )
+#     plt.plot(range(episodes), mean, label="Mean Reward "+str(np.round(mean[0], 2)), c='g')
+#     plt.legend()
+#     plt.show()

@@ -49,7 +49,6 @@ class Agent:
         log_interval: int = 4,
         callback: MaybeCallback = None,
     ) -> None:
-        self.custom_env.set_termination_reward(-1000)
         self.model.learn(
             total_timesteps=total_time_steps,
             log_interval=log_interval,
@@ -64,86 +63,33 @@ class Agent:
 
     def evaluate(self) -> None:
         obs, info = self.custom_env.reset()
-        self.custom_env.set_termination_reward(-100000)
-        num_of_episodes = 100
+        num_of_episodes = 10
         avg_returns_per_episode = []
-        tardiness_per_episode = []
-        job_times_past_deadline = []
-        jobs_completed_on_time = []
-        jobs_completed_late = []
-        avg_tardiness_of_late_jobs_per_episode = []
         returns = []
         episode = 0
         steps = 0
 
         while episode < num_of_episodes:
-            print_jobs(env=self.custom_env)
-            print_observation(obs, nr_machines=len(self.custom_env.get_machines()))
-
             action, _states = self.model.predict(observation=obs, deterministic=True)
-            # action = np.random.randint(low=0, high=7)
-            print(f'Take action: {action}')
-
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
-            print(f"reward: {reward}")
-            print(f"info: {info}")
-
-            print_observation(obs, nr_machines=len(self.custom_env.get_machines()))
-            print(f"reward: {reward}")
-            print(f"info: {info}")
-
-            # test = input("Pause to read")
-
             returns.append(reward)
             steps += 1
 
             if terminated or truncated:
-                print(f"avg return: { np.sum(returns) / steps}")
+                # print(f"avg return: {np.sum(returns) / steps}")
                 avg_returns_per_episode.append(np.sum(returns) / steps)
-                tardiness_per_episode.append(self.custom_env.get_tardiness_percentage())
-                job_times_past_deadline.append(self.custom_env.get_avg_time_past_deadline())
-                jobs_completed_late.append(info['JOBS_NOT_COMPLETED_ON_TIME'])
-                jobs_completed_on_time.append(info['JOBS_COMPLETED_ON_TIME'])
-                avg_tardiness_of_late_jobs_per_episode.append(info['AVG_TARDINESS_OF_LATE_JOBS'])
                 steps = 0
                 returns = []
                 obs, info = self.custom_env.reset()
                 episode += 1
 
-        # plt.figure(figsize=(10, 6))
-        # plt.plot(avg_returns_per_episode)
-        # plt.ylabel('Avg returns')
-        # plt.xlabel('Episodes')
-        # plt.suptitle('Evaluation: Avg returns per episode')
-        # plt.show()
-        print(f"Avg jobs completed on time: {sum(jobs_completed_on_time) / len(jobs_completed_on_time)}")
-        print(f"Avg jobs completed late: {sum(jobs_completed_late) / len(jobs_completed_late)}")
-        print(f"Avg tardiness of late jobs over episodes: "
-              f"{sum(avg_tardiness_of_late_jobs_per_episode) / len(avg_tardiness_of_late_jobs_per_episode)}")
-
-        fig, axs = plt.subplots(3, 1)
-        fig.suptitle("Avg returns per episode")
-        axs[0].plot(avg_returns_per_episode)
-        axs[0].set_title("Rewards plot")
-        axs[0].set(ylabel="Avg returns")
-
-        axs[1].plot(tardiness_per_episode)
-        axs[1].set_title("Tardiness plot")
-        axs[1].set(ylabel="Tardiness percentage")
-
-        axs[2].plot(job_times_past_deadline)
-        axs[2].set_title("Times past deadline")
-        axs[2].set(ylabel="Time")
-
-        for ax in axs.flat:
-            ax.set(xlabel="Episode")
-
-        for ax in axs.flat:
-            ax.label_outer()
-
-        plt.suptitle('DQN Evaluation')
+        plt.figure(figsize=(10, 6))
+        plt.plot(avg_returns_per_episode)
+        plt.ylabel('Avg returns')
+        plt.xlabel('Episodes')
+        plt.suptitle('Avg returns per episode')
         plt.show()
 
 
@@ -151,6 +97,8 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
                        env_max_steps: int = 100):
     ep_reward = []
     ep_tardiness = []
+    ep_jobs_ot = []
+    ep_jobs_not = []
     dqn_agent = Agent(custom_env=init_custom_factory_env(max_steps=env_max_steps, is_evaluation=True))
     dqn_agent.load(agent_path)
     for e in range(n_episodes):
@@ -162,27 +110,32 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
             action, _states = dqn_agent.model.predict(observation=obs, deterministic=True)
             o, r, te, tr, i = env.step(action)
             curr_tardiness.append(env.get_tardiness_percentage())
+            jobs_ot = env.get_jobs_completed_on_time()
+            jobs_not = env.get_jobs_completed_not_on_time()
             tot_reward += r
             if te:
                 break
         ep_reward.append(tot_reward)
         ep_tardiness.append(np.mean(curr_tardiness))
-    return ep_reward, ep_tardiness
+        ep_jobs_ot.append(jobs_ot)
+        ep_jobs_not.append(jobs_not)
+    return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    MAX_STEPS = 300_000
-    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100)
+    LEARNING_MAX_STEPS = 1_000_000
+    ENVIRONMENT_MAX_STEPS = 25_000
+    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
-    agent = Agent(custom_env=init_custom_factory_env(max_steps=MAX_STEPS))
+    agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
 
     agent.learn(
-        total_time_steps=MAX_STEPS, log_interval=10, callback=plot_training_callback
+        total_time_steps=LEARNING_MAX_STEPS, log_interval=100, callback=plot_training_callback
     )
     # # agent.learn()
 
-    agent.save()
+    agent.save(file_path_name="files/dqn_agent_"+str(LEARNING_MAX_STEPS))
 
     # agent.load()
     # agent.evaluate()
