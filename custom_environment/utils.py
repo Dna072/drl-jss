@@ -1,5 +1,5 @@
 #from custom_environment.environment import FactoryEnv
-
+import numpy as np
 
 class TextColors:
     RESET = "\033[0m"
@@ -61,3 +61,13 @@ def min_max_norm(x:float, x_min: float, x_max: float):
         return 0
 
     return (x - x_min)/(x_max - x_min)
+
+
+def create_bins(input_array, group_size=10):
+    # Reshape the array into a 2D array with the specified group size
+    reshaped_array = np.reshape(input_array, (len(input_array) // group_size, group_size))
+
+    # Calculate the mean along the second axis (axis=1)
+    mean_array = np.mean(reshaped_array, axis=1)
+
+    return mean_array

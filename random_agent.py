@@ -45,18 +45,17 @@ def episodic_random_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
     for e in range(n_episodes):
         env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps)
         tot_reward = 0
-        curr_tardiness = []
         while 1:  # the environment has its own termination clauses, so it will trigger the break
             action = np.array(randint(0, machines * jobs))
             o, r, te, tr, i = env.step(action)
-            curr_tardiness.append(env.get_tardiness_percentage())
+            curr_tardiness = env.get_tardiness_percentage()
             tot_reward += r
             jobs_ot = env.get_jobs_completed_on_time()
             jobs_not = env.get_jobs_completed_not_on_time()
             if te:
                 break
         ep_reward.append(tot_reward)
-        ep_tardiness.append(np.mean(curr_tardiness))
+        ep_tardiness.append(curr_tardiness)
         ep_jobs_ot.append(jobs_ot)
         ep_jobs_not.append(jobs_not)
     return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not

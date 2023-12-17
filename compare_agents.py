@@ -1,18 +1,22 @@
 from fifo_agent import episodic_fifo_agent
 from edd_agent import episodic_edd_agent
 from random_agent import episodic_random_agent
-from dqn_agent import episodic_dqn_agent
-from ppo_agent import episodic_ppo_agent
+from dqn_agent import episodic_dqn_agent, Agent as dqn_Agent
+from ppo_agent import episodic_ppo_agent, Agent as ppo_Agent
 import matplotlib.pyplot as plt
 import numpy as np
+from custom_environment.environment_factory import init_custom_factory_env
+from custom_environment.utils import create_bins
 
 ######
 """
 In order to run this code, you will need to have the dqn agent trained and saved
+Then add the path to the saved agent in the PATH constants below.
 """
 ######
 
-N_EPISODES = 10
+N_EPISODES = 1_000
+PLOT_GROUPING = 10
 ENV_MAX_STEPS = 10_000
 DQN_AGENT_PATH = "files/dqn_agent_1000000"
 PPO_AGENT_PATH = "files/ppo_agent_1000000"
@@ -23,28 +27,55 @@ PPO_AGENT_PATH = "files/ppo_agent_1000000"
 random_rewards, random_tardiness, random_jot, random_jnot = episodic_random_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
 edd_rewards, edd_tardiness, edd_jot, edd_jnot = episodic_edd_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
 fifo_rewards, fifo_tardiness,fifo_jot, fifo_jnot = episodic_fifo_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
-dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = episodic_dqn_agent(n_episodes=N_EPISODES,
-                                                agent_path=DQN_AGENT_PATH,
-                                                env_max_steps=ENV_MAX_STEPS
-                                                )
-ppo_rewards, ppo_tardiness,ppo_jot, ppo_jnot = episodic_ppo_agent(n_episodes=N_EPISODES,
-                                                agent_path=PPO_AGENT_PATH,
-                                                env_max_steps=ENV_MAX_STEPS
-                                                )
+# dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = episodic_dqn_agent(n_episodes=N_EPISODES,
+#                                                 agent_path=DQN_AGENT_PATH,
+#                                                 env_max_steps=ENV_MAX_STEPS
+#                                                 )
+agent = dqn_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
+agent.load(file_path_name=DQN_AGENT_PATH)
+dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = agent.evaluate(num_of_episodes = N_EPISODES)
 
-###################
-#       PLOT      #
-###################
+agent = ppo_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
+agent.load(file_path_name=PPO_AGENT_PATH)
+ppo_rewards, ppo_tardiness,ppo_jot, ppo_jnot = agent.evaluate(num_of_episodes = N_EPISODES)
+
+# ppo_rewards, ppo_tardiness,ppo_jot, ppo_jnot = episodic_ppo_agent(n_episodes=N_EPISODES,
+#                                                 agent_path=PPO_AGENT_PATH,
+#                                                 env_max_steps=ENV_MAX_STEPS
+#                                                 )
+
+
+#############################
+#         PLOT CONFIG       #
+#############################
 # Time steps
-time_steps = np.arange(1, N_EPISODES+1)
+time_steps = np.arange(1, PLOT_GROUPING+1)  # N_EPISODES+1
 # Bar width for better visibility
-bar_width = 0.2
+bar_width = 0.15
 # Set up positions for bars
 random_positions = time_steps - 1.5 * bar_width
 fifo_positions = time_steps - 0.5 * bar_width
 edd_positions = time_steps + 0.5 * bar_width
 dqn_positions = time_steps + 1.5 * bar_width
 ppo_positions = time_steps + 2.5 * bar_width
+
+#############################
+#        RESHAPE DATA       #
+#############################
+random_rewards = create_bins(random_rewards, group_size=PLOT_GROUPING)
+random_tardiness = create_bins(random_tardiness, group_size=PLOT_GROUPING)
+edd_rewards = create_bins(edd_rewards, group_size=PLOT_GROUPING)
+edd_tardiness = create_bins(edd_tardiness, group_size=PLOT_GROUPING)
+fifo_rewards = create_bins(fifo_rewards, group_size=PLOT_GROUPING)
+fifo_tardiness = create_bins(fifo_tardiness, group_size=PLOT_GROUPING)
+dqn_rewards = create_bins(dqn_rewards, group_size=PLOT_GROUPING)
+dqn_tardiness = create_bins(dqn_tardiness, group_size=PLOT_GROUPING)
+ppo_rewards = create_bins(ppo_rewards, group_size=PLOT_GROUPING)
+ppo_tardiness = create_bins(ppo_tardiness, group_size=PLOT_GROUPING)
+
+#############################
+#         PLOT REWARDS      #
+#############################
 
 # Plotting
 plt.figure(figsize=(10, 6))
@@ -79,7 +110,7 @@ plt.bar(dqn_positions, dqn_tardiness, width=bar_width, label='DQN Tardiness', co
 plt.bar(ppo_positions, ppo_tardiness, width=bar_width, label='PPO Tardiness', color='red')
 
 # Customize the plot
-plt.title('Comparative Plot for Tardiness at each Episode')
+plt.title('Comparative Plot for Tardiness at the end of each Episode')
 plt.xlabel('Episode')
 plt.ylabel('Tardiness')
 plt.xticks(time_steps)
@@ -120,6 +151,6 @@ for attribute, measurement in values.items():
 ax.set_ylabel('Nr of Jobs')
 ax.set_title('Mean Job Completion per episode')
 ax.set_xticks(x + width, features)
-ax.legend(loc='upper left', ncols=3)
+ax.legend(loc='upper right', ncols=3)
 # ax.set_ylim(0, 250)
 plt.show()

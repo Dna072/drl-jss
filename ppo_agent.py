@@ -59,11 +59,15 @@ class Agent:
     def load(self, file_path_name: str = FILE_PATH_NAME) -> None:
         self.model = PPO.load(path=file_path_name)
 
-    def evaluate(self) -> None:
+    def evaluate(self,num_of_episodes: int = 10) -> None:
         obs, info = self.custom_env.reset()
         num_of_episodes = 10
         avg_returns_per_episode = []
         returns = []
+        ep_reward = []
+        ep_tardiness = []
+        ep_jobs_ot = []
+        ep_jobs_not = []
         episode = 0
         steps = 0
 
@@ -73,22 +77,23 @@ class Agent:
                 action=action
             )
             returns.append(reward)
+            curr_tardiness = self.custom_env.get_tardiness_percentage()
+            jobs_ot = self.custom_env.get_jobs_completed_on_time()
+            jobs_not = self.custom_env.get_jobs_completed_not_on_time()
             steps += 1
 
             if terminated or truncated:
-                print(f"avg return: { np.sum(returns) / steps}")
+                # print(f"avg return: { np.sum(returns) / steps}")
                 avg_returns_per_episode.append(np.sum(returns) / steps)
+                ep_reward.append(np.sum(returns))
+                ep_tardiness.append(curr_tardiness)
+                ep_jobs_ot.append(jobs_ot)
+                ep_jobs_not.append(jobs_not)
                 steps = 0
                 returns = []
                 obs, info = self.custom_env.reset()
                 episode += 1
-
-        plt.figure(figsize=(10, 6))
-        plt.plot(avg_returns_per_episode)
-        plt.ylabel('Avg returns')
-        plt.xlabel('Episodes')
-        plt.suptitle('Avg returns per episode')
-        plt.show()
+        return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
 
 def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/ppo_custom_factory_env",

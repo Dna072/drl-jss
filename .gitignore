@@ -163,3 +163,4 @@ cython_debug/
 *.zip
 
 .ruff_cache
+test.py
