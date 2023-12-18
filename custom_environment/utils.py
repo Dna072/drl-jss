@@ -1,5 +1,6 @@
 #from custom_environment.environment import FactoryEnv
 import numpy as np
+import pickle
 
 class TextColors:
     RESET = "\033[0m"
@@ -71,3 +72,19 @@ def create_bins(input_array, group_size=10):
     mean_array = np.mean(reshaped_array, axis=1)
 
     return mean_array
+
+
+def save_agent_results(rewards, tardiness, jot, jnot, path:str = "files/data/"):
+    data = {
+        "rewards": rewards,
+        "tardiness": tardiness,
+        "jot": jot,
+        "jnot": jnot}
+    with open(path, "wb") as file:
+        pickle.dump(data, file)
+
+
+def load_agent_results(path:str = "files/data/agent_data_1000.pkl"):
+    with open(path, "rb") as file:
+        data = pickle.load(file)
+    return data["rewards"], data["tardiness"], data["jot"], data["jnot"]

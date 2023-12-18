@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from custom_environment.environment_factory import init_custom_factory_env
 from custom_environment.utils import create_bins
+from custom_environment.utils import save_agent_results, load_agent_results
 import pickle
+import os
+
 ######
 """
 In order to run this code, you will need to have the dqn agent trained and saved
@@ -15,60 +18,74 @@ Then add the path to the saved agent in the PATH constants below.
 """
 ######
 
-N_EPISODES = 100_000
-PLOT_GROUPING = N_EPISODES//10
+N_EPISODES = 10_000
+PLOT_GROUPING = N_EPISODES // 10
 ENV_MAX_STEPS = 10_000
-DQN_AGENT_PATH = "files/dqn_agent_5000000"
-PPO_AGENT_PATH = "files/ppo_agent_1000000"
-SAVE_PATH = "files/eval_data.pkl"
+DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_5000000"
+PPO_AGENT_PATH = "files//trainedAgents/ppo_agent_1000000"
+SAVE_PATH = "files/data/"
 
 ###################
 #       EVAL      #
 ###################
-print("Starting Random")
-random_rewards, random_tardiness, random_jot, random_jnot = episodic_random_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
-print("Starting edd")
-edd_rewards, edd_tardiness, edd_jot, edd_jnot = episodic_edd_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
-print("Starting fifo")
-fifo_rewards, fifo_tardiness,fifo_jot, fifo_jnot = episodic_fifo_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
-# dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = episodic_dqn_agent(n_episodes=N_EPISODES,
-#                                                 agent_path=DQN_AGENT_PATH,
-#                                                 env_max_steps=ENV_MAX_STEPS
-#                                                 )
-print("Starting dqn")
-agent = dqn_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
-agent.load(file_path_name=DQN_AGENT_PATH)
-dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = agent.evaluate(num_of_episodes = N_EPISODES)
-print("Starting Rppo")
-p_agent = ppo_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
-p_agent.load(file_path_name=PPO_AGENT_PATH)
-ppo_rewards, ppo_tardiness, ppo_jot, ppo_jnot = p_agent.evaluate(num_of_episodes = N_EPISODES)
+'''
+I added some control over the computations so that if it is already computed, it doesnt calculate everything it again
+In case with a large number of episodes, this will save a lot of time.
+'''
+print("\033[96m"+"Starting Random"+"\033[0m")
+RAND_PATH = SAVE_PATH + "random_data_" + str(N_EPISODES) + ".pkl"
+if not os.path.exists(RAND_PATH):
+    random_rewards, random_tardiness, random_jot, random_jnot = episodic_random_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
+    save_agent_results(random_rewards, random_tardiness, random_jot, random_jnot, path= RAND_PATH)
+else:
+    random_rewards, random_tardiness, random_jot, random_jnot = load_agent_results(RAND_PATH)
 
-# ppo_rewards, ppo_tardiness,ppo_jot, ppo_jnot = episodic_ppo_agent(n_episodes=N_EPISODES,
-#                                                 agent_path=PPO_AGENT_PATH,
-#                                                 env_max_steps=ENV_MAX_STEPS
-#                                                 )
+print("\033[93m"+"Starting EDD"+"\033[0m")
+EDD_PATH= SAVE_PATH + "edd_data_" + str(N_EPISODES) + ".pkl"
+if not os.path.exists(EDD_PATH):
+    edd_rewards, edd_tardiness, edd_jot, edd_jnot = episodic_edd_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
+    save_agent_results(edd_rewards, edd_tardiness, edd_jot, edd_jnot, path= EDD_PATH)
+else:
+    edd_rewards, edd_tardiness, edd_jot, edd_jnot = load_agent_results(EDD_PATH)
+
+
+print("\033[92m"+"Starting FIFO"+"\033[0m")
+FIFO_PATH = SAVE_PATH + "fifo_data_" + str(N_EPISODES) + ".pkl"
+if not os.path.exists(FIFO_PATH):
+    fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot = episodic_fifo_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
+    save_agent_results(fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot, path= FIFO_PATH)
+else:
+    fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot = load_agent_results(FIFO_PATH)
+
+print("\033[96m"+"Starting DQN"+"\033[0m")
+DQN_PATH = SAVE_PATH + "dqn_data_" + str(N_EPISODES) + ".pkl"
+if not os.path.exists(DQN_PATH):
+    agent = dqn_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
+    agent.load(file_path_name=DQN_AGENT_PATH)
+    dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = agent.evaluate(num_of_episodes=N_EPISODES)
+    save_agent_results(dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot, path= DQN_PATH)
+else:
+    dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = load_agent_results(DQN_PATH)
+
+
+print("\033[95m"+"Starting PPO"+"\033[0m")
+PPO_PATH = SAVE_PATH + "ppo_data_" + str(N_EPISODES) + ".pkl"
+if not os.path.exists(PPO_PATH):
+    p_agent = ppo_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
+    p_agent.load(file_path_name=PPO_AGENT_PATH)
+    ppo_rewards, ppo_tardiness, ppo_jot, ppo_jnot = p_agent.evaluate(num_of_episodes=N_EPISODES)
+    save_agent_results(ppo_rewards, ppo_tardiness, ppo_jot, ppo_jnot, path=PPO_PATH)
+else:
+    ppo_rewards, ppo_tardiness, ppo_jot, ppo_jnot = load_agent_results(PPO_PATH)
+
 #############################
 #         TARDINESS %       #
 #############################
-random_tardiness_performance = [a / (b+c) for a, b, c in zip(random_tardiness, random_jot, random_jnot)]
-edd_tardiness_performance = [a / (b+c) for a, b, c in zip(edd_tardiness, edd_jot, edd_jnot)]
-fifo_tardiness_performance = [a / (b+c) for a, b, c in zip(fifo_tardiness, fifo_jot, fifo_jnot)]
-dqn_tardiness_performance = [a / (b+c) for a, b, c in zip(dqn_tardiness, dqn_jot, dqn_jnot)]
-ppo_tardiness_performance = [a / (b+c) for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
-
-#############################
-#          SAVE DATA        #
-#############################
-data = {
-    "random": (random_rewards, random_tardiness, random_jot, random_jnot),
-    "edd": (edd_rewards, edd_tardiness, edd_jot, edd_jnot),
-    "fifo": (fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot),
-    "ppo": (ppo_rewards, ppo_tardiness, ppo_jot, ppo_jnot),
-    "dqn": (dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot)
-    }
-with open(SAVE_PATH, "wb") as file:
-    pickle.dump(data, file)
+random_tardiness_performance = [a / (b + c) for a, b, c in zip(random_tardiness, random_jot, random_jnot)]
+edd_tardiness_performance = [a / (b + c) for a, b, c in zip(edd_tardiness, edd_jot, edd_jnot)]
+fifo_tardiness_performance = [a / (b + c) for a, b, c in zip(fifo_tardiness, fifo_jot, fifo_jnot)]
+dqn_tardiness_performance = [a / (b + c) for a, b, c in zip(dqn_tardiness, dqn_jot, dqn_jnot)]
+ppo_tardiness_performance = [a / (b + c) for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
 
 #############################
 #         PLOT CONFIG       #
@@ -116,7 +133,6 @@ plt.bar(edd_positions, edd_rewards, width=bar_width, label='EDD Rewards', color=
 plt.bar(dqn_positions, dqn_rewards, width=bar_width, label='DQN Rewards', color='blue')
 plt.bar(ppo_positions, ppo_rewards, width=bar_width, label='PPO Rewards', color='orange')
 
-
 # Set y-axis to symlog scale
 plt.yscale('symlog', linthresh=0.1)
 
@@ -128,6 +144,8 @@ plt.xticks(time_steps)
 plt.legend()
 plt.grid(True)
 plt.show()
+
+plt.savefig(f"./files/plots/Evaluation_Rewards_"+str(N_EPISODES)+".png", format="png")
 
 #############################
 #       PLOT TARDINESS      #
@@ -148,7 +166,8 @@ plt.xticks(time_steps)
 plt.legend()
 plt.grid(True)
 plt.show()
-# ------- MAYBE WE CAN APPLY THE SAME APPROACH BUT TO THE MEAN VALUES OVER 100'S OF EPISODES
+
+plt.savefig(f"./files/plots/Evaluation_Tardiness_"+str(N_EPISODES)+".png", format="png")
 
 #############################
 #         TARDINESS %       #
@@ -170,7 +189,8 @@ plt.xticks(time_steps)
 plt.legend()
 plt.grid(True)
 plt.show()
-# ------- MAYBE WE CAN APPLY THE SAME APPROACH BUT TO THE MEAN VALUES OVER 100'S OF EPISODES
+
+plt.savefig(f"./files/plots/Evaluation_TardinessPercentage_"+str(N_EPISODES)+".png", format="png")
 
 ##############################
 #     PLOT JOB COMPLETION    #
@@ -184,8 +204,8 @@ values = {
     'DQN': (np.mean(dqn_jot), np.mean(dqn_jnot)),
     'PPO': (np.mean(ppo_jot), np.mean(ppo_jnot)),
     'RAND': (np.mean(random_jot), np.mean(random_jnot)),
-    'FIFO':(np.mean(fifo_jot), np.mean(fifo_jnot)),
-    'EDD':(np.mean(edd_jot), np.mean(edd_jnot))
+    'FIFO': (np.mean(fifo_jot), np.mean(fifo_jnot)),
+    'EDD': (np.mean(edd_jot), np.mean(edd_jnot))
 }
 
 x = np.arange(len(features))  # the label locations
@@ -207,3 +227,5 @@ ax.set_xticks(x + width, features)
 ax.legend(loc='upper right', ncols=3)
 # ax.set_ylim(0, 250)
 plt.show()
+
+plt.savefig(f"./files/plots/Evaluation_JobsCompleted_"+str(N_EPISODES)+".png", format="png")

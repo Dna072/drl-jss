@@ -139,7 +139,7 @@ if __name__ == "__main__":
     )
     # # agent.learn()
 
-    agent.save(file_path_name="files/dqn_agent_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name="files/trainedAgents/dqn_agent_"+str(LEARNING_MAX_STEPS))
 
     # agent.load()
     # agent.evaluate(num_of_episodes = 1_000)
