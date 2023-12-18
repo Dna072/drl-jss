@@ -128,14 +128,14 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 1_000_000
+    LEARNING_MAX_STEPS = 5_000_000
     ENVIRONMENT_MAX_STEPS = 25_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
 
     agent.learn(
-        total_time_steps=LEARNING_MAX_STEPS, log_interval=100, callback=plot_training_callback
+        total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
     )
     # # agent.learn()
 

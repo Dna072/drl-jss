@@ -15,26 +15,30 @@ Then add the path to the saved agent in the PATH constants below.
 """
 ######
 
-N_EPISODES = 1_000
+N_EPISODES = 100_000
 PLOT_GROUPING = N_EPISODES//10
 ENV_MAX_STEPS = 10_000
-DQN_AGENT_PATH = "files/dqn_agent_1000000"
+DQN_AGENT_PATH = "files/dqn_agent_5000000"
 PPO_AGENT_PATH = "files/ppo_agent_1000000"
 
 ###################
 #       EVAL      #
 ###################
+print("Starting Random")
 random_rewards, random_tardiness, random_jot, random_jnot = episodic_random_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
+print("Starting edd")
 edd_rewards, edd_tardiness, edd_jot, edd_jnot = episodic_edd_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
+print("Starting fifo")
 fifo_rewards, fifo_tardiness,fifo_jot, fifo_jnot = episodic_fifo_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
 # dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = episodic_dqn_agent(n_episodes=N_EPISODES,
 #                                                 agent_path=DQN_AGENT_PATH,
 #                                                 env_max_steps=ENV_MAX_STEPS
 #                                                 )
+print("Starting dqn")
 agent = dqn_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
 agent.load(file_path_name=DQN_AGENT_PATH)
 dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = agent.evaluate(num_of_episodes = N_EPISODES)
-
+print("Starting Rppo")
 p_agent = ppo_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
 p_agent.load(file_path_name=PPO_AGENT_PATH)
 ppo_rewards, ppo_tardiness,ppo_jot, ppo_jnot = p_agent.evaluate(num_of_episodes = N_EPISODES)
