@@ -160,7 +160,7 @@ cython_debug/
 .idea/
 
 # Model zip packages
-#*.zip
+*.zip
 
 .ruff_cache
 test.py

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from os import makedirs, path
 from torch import save
 import numpy as np
-
+import pickle
 
 def get_trendline(data: list[float] = None):
     episode_numbers = np.arange(1, len(data) + 1)
@@ -187,6 +187,17 @@ class PlotTrainingCallback(BaseCallback):
 
         # There are also variables with total episodic rewards and tardiness and total policy rewards and tardiness
         # in case we want to plot them
+        self.save_data()
+
+    def save_data(self):
+        data = {
+            "mean_ep_reward": self.__mean_episodic_reward,
+            "mean_pol_reward": self.__mean_policy_reward,
+            "mean_ep_tardiness": self.__mean_episodic_tardiness,
+            "mean_pol_tardiness": self.__mean_policy_tardiness
+        }
+        with open(self.__FILE_PATH+"training_data_"+self.__algo+".pkl", "wb") as file:
+            pickle.dump(data, file)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from custom_environment.environment_factory import init_custom_factory_env
 from custom_environment.utils import create_bins
-
+import pickle
 ######
 """
 In order to run this code, you will need to have the dqn agent trained and saved
@@ -20,6 +20,7 @@ PLOT_GROUPING = N_EPISODES//10
 ENV_MAX_STEPS = 10_000
 DQN_AGENT_PATH = "files/dqn_agent_5000000"
 PPO_AGENT_PATH = "files/ppo_agent_1000000"
+SAVE_PATH = "files/eval_data.pkl"
 
 ###################
 #       EVAL      #
@@ -41,7 +42,7 @@ dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot = agent.evaluate(num_of_episodes =
 print("Starting Rppo")
 p_agent = ppo_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
 p_agent.load(file_path_name=PPO_AGENT_PATH)
-ppo_rewards, ppo_tardiness,ppo_jot, ppo_jnot = p_agent.evaluate(num_of_episodes = N_EPISODES)
+ppo_rewards, ppo_tardiness, ppo_jot, ppo_jnot = p_agent.evaluate(num_of_episodes = N_EPISODES)
 
 # ppo_rewards, ppo_tardiness,ppo_jot, ppo_jnot = episodic_ppo_agent(n_episodes=N_EPISODES,
 #                                                 agent_path=PPO_AGENT_PATH,
@@ -55,6 +56,19 @@ edd_tardiness_performance = [a / (b+c) for a, b, c in zip(edd_tardiness, edd_jot
 fifo_tardiness_performance = [a / (b+c) for a, b, c in zip(fifo_tardiness, fifo_jot, fifo_jnot)]
 dqn_tardiness_performance = [a / (b+c) for a, b, c in zip(dqn_tardiness, dqn_jot, dqn_jnot)]
 ppo_tardiness_performance = [a / (b+c) for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
+
+#############################
+#          SAVE DATA        #
+#############################
+data = {
+    "random": (random_rewards, random_tardiness, random_jot, random_jnot),
+    "edd": (edd_rewards, edd_tardiness, edd_jot, edd_jnot),
+    "fifo": (fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot),
+    "ppo": (ppo_rewards, ppo_tardiness, ppo_jot, ppo_jnot),
+    "dqn": (dqn_rewards, dqn_tardiness, dqn_jot, dqn_jnot)
+    }
+with open(SAVE_PATH, "wb") as file:
+    pickle.dump(data, file)
 
 #############################
 #         PLOT CONFIG       #

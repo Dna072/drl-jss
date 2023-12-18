@@ -59,7 +59,7 @@ class Agent:
     def load(self, file_path_name: str = FILE_PATH_NAME) -> None:
         self.model = PPO.load(path=file_path_name)
 
-    def evaluate(self,num_of_episodes: int = 10) -> None:
+    def evaluate(self,num_of_episodes: int = 10):
         obs, info = self.custom_env.reset()
         avg_returns_per_episode = []
         returns = []
