@@ -61,7 +61,6 @@ class Agent:
 
     def evaluate(self,num_of_episodes: int = 10) -> None:
         obs, info = self.custom_env.reset()
-        num_of_episodes = 10
         avg_returns_per_episode = []
         returns = []
         ep_reward = []
