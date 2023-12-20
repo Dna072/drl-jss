@@ -8,7 +8,6 @@ import numpy as np
 from custom_environment.environment_factory import init_custom_factory_env
 from custom_environment.utils import create_bins
 from custom_environment.utils import save_agent_results, load_agent_results
-import pickle
 import os
 
 ######
@@ -18,10 +17,10 @@ Then add the path to the saved agent in the PATH constants below.
 """
 ######
 
-N_EPISODES = 10_000
+N_EPISODES = 1_000
 PLOT_GROUPING = N_EPISODES // 10
 ENV_MAX_STEPS = 10_000
-DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_5000000"
+DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_1100000"
 PPO_AGENT_PATH = "files//trainedAgents/ppo_agent_1000000"
 SAVE_PATH = "files/data/"
 
@@ -127,18 +126,18 @@ ppo_tardiness_performance = create_bins(ppo_tardiness_performance, group_size=PL
 
 # Plotting
 plt.figure(figsize=(10, 6))
-plt.bar(random_positions, random_rewards, width=bar_width, label='Random Rewards', color='green')
-plt.bar(fifo_positions, fifo_rewards, width=bar_width, label='FIFO Rewards', color='red')
-plt.bar(edd_positions, edd_rewards, width=bar_width, label='EDD Rewards', color='purple')
-plt.bar(dqn_positions, dqn_rewards, width=bar_width, label='DQN Rewards', color='blue')
-plt.bar(ppo_positions, ppo_rewards, width=bar_width, label='PPO Rewards', color='orange')
+plt.bar(random_positions, random_rewards, width=bar_width, label='Random Rewards', color='#2ca02c')
+plt.bar(fifo_positions, fifo_rewards, width=bar_width, label='FIFO Rewards', color='#d62728')
+plt.bar(edd_positions, edd_rewards, width=bar_width, label='EDD Rewards', color='#9467bd')
+plt.bar(dqn_positions, dqn_rewards, width=bar_width, label='DQN Rewards', color='#1f77b4')
+plt.bar(ppo_positions, ppo_rewards, width=bar_width, label='PPO Rewards', color='#ff7f0e')
 
 # Set y-axis to symlog scale
 plt.yscale('symlog', linthresh=0.1)
 
 # Customize the plot
-plt.title('Comparative Plot for Reward at each Episode (Symlog Scale)')
-plt.xlabel('Episode')
+plt.title('Comparative Plot for Average Episodic Reward (Symlog Scale)')
+plt.xlabel("Episodes (x"+str(N_EPISODES//10)+")")
 plt.ylabel('Rewards (Symlog Scale)')
 plt.xticks(time_steps)
 plt.legend()
@@ -152,15 +151,15 @@ plt.savefig(f"./files/plots/Evaluation_Rewards_"+str(N_EPISODES)+".png", format=
 #############################
 # Plotting
 plt.figure(figsize=(10, 6))
-plt.bar(random_positions, random_tardiness, width=bar_width, label='Random Tardiness', color='green')
-plt.bar(fifo_positions, fifo_tardiness, width=bar_width, label='FIFO Tardiness', color='red')
-plt.bar(edd_positions, edd_tardiness, width=bar_width, label='EDD Tardiness', color='purple')
-plt.bar(dqn_positions, dqn_tardiness, width=bar_width, label='DQN Tardiness', color='blue')
-plt.bar(ppo_positions, ppo_tardiness, width=bar_width, label='PPO Tardiness', color='orange')
+plt.bar(random_positions, random_tardiness, width=bar_width, label='Random Tardiness', color='#2ca02c')
+plt.bar(fifo_positions, fifo_tardiness, width=bar_width, label='FIFO Tardiness', color='#d62728')
+plt.bar(edd_positions, edd_tardiness, width=bar_width, label='EDD Tardiness', color='#9467bd')
+plt.bar(dqn_positions, dqn_tardiness, width=bar_width, label='DQN Tardiness', color='#1f77b4')
+plt.bar(ppo_positions, ppo_tardiness, width=bar_width, label='PPO Tardiness', color='#ff7f0e')
 
 # Customize the plot
-plt.title('Comparative Plot for Tardiness at the end of each Episode')
-plt.xlabel('Episode')
+plt.title('Comparative Plot for Average Episodic Tardiness')
+plt.xlabel("Episodes (x"+str(N_EPISODES//10)+")")
 plt.ylabel('Tardiness')
 plt.xticks(time_steps)
 plt.legend()
@@ -175,15 +174,15 @@ plt.savefig(f"./files/plots/Evaluation_Tardiness_"+str(N_EPISODES)+".png", forma
 # Plotting Tardiness per job completed
 plt.figure(figsize=(10, 6))
 
-plt.bar(random_positions, random_tardiness_performance, width=bar_width, label='Random Tardiness', color='green')
-plt.bar(fifo_positions, fifo_tardiness_performance, width=bar_width, label='FIFO Tardiness', color='red')
-plt.bar(edd_positions, edd_tardiness_performance, width=bar_width, label='EDD Tardiness', color='purple')
-plt.bar(dqn_positions, dqn_tardiness_performance, width=bar_width, label='DQN Tardiness', color='blue')
-plt.bar(ppo_positions, ppo_tardiness_performance, width=bar_width, label='PPO Tardiness', color='orange')
+plt.bar(random_positions, random_tardiness_performance, width=bar_width, label='Random Tardiness', color='#2ca02c')
+plt.bar(fifo_positions, fifo_tardiness_performance, width=bar_width, label='FIFO Tardiness', color='#d62728')
+plt.bar(edd_positions, edd_tardiness_performance, width=bar_width, label='EDD Tardiness', color='#9467bd')
+plt.bar(dqn_positions, dqn_tardiness_performance, width=bar_width, label='DQN Tardiness', color='#1f77b4')
+plt.bar(ppo_positions, ppo_tardiness_performance, width=bar_width, label='PPO Tardiness', color='#ff7f0e')
 
 # Customize the plot
-plt.title('Comparative Plot for Tardiness/Jobs Completed at the end of each Episode')
-plt.xlabel('Episode')
+plt.title('Comparative Plot Average Episodic Tardiness/Jobs Completed')
+plt.xlabel("Episodes (x"+str(N_EPISODES//10)+")")
 plt.ylabel('Tardiness')
 plt.xticks(time_steps)
 plt.legend()
@@ -199,13 +198,13 @@ plt.savefig(f"./files/plots/Evaluation_TardinessPercentage_"+str(N_EPISODES)+".p
 import matplotlib.pyplot as plt
 import numpy as np
 
-features = ("Jobs completed on Time", "Jobs completed Not on time")
+features = ("Jobs Completed On Time", "Jobs Completed Not On Time")
 values = {
-    'DQN': (np.mean(dqn_jot), np.mean(dqn_jnot)),
-    'PPO': (np.mean(ppo_jot), np.mean(ppo_jnot)),
-    'RAND': (np.mean(random_jot), np.mean(random_jnot)),
-    'FIFO': (np.mean(fifo_jot), np.mean(fifo_jnot)),
-    'EDD': (np.mean(edd_jot), np.mean(edd_jnot))
+    'DQN': (round(np.mean(dqn_jot), 2), round(np.mean(dqn_jnot), 2)),
+    'PPO': (round(np.mean(ppo_jot), 2), round(np.mean(ppo_jnot), 2)),
+    'RAND': (round(np.mean(random_jot), 2), round(np.mean(random_jnot), 2)),
+    'FIFO': (round(np.mean(fifo_jot), 2), round(np.mean(fifo_jnot), 2)),
+    'EDD': (round(np.mean(edd_jot), 2), round(np.mean(edd_jnot), 2))
 }
 
 x = np.arange(len(features))  # the label locations

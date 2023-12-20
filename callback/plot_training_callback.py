@@ -4,6 +4,7 @@ from os import makedirs, path
 from torch import save
 import numpy as np
 import pickle
+import datetime
 
 def get_trendline(data: list[float] = None):
     episode_numbers = np.arange(1, len(data) + 1)
@@ -134,7 +135,7 @@ class PlotTrainingCallback(BaseCallback):
         """
         Plot training data
         """
-
+        timestamp = datetime.now().strftime("%y%m%d%H%M")
         # Plot Mean Episodic Rewards
         episode_numbers = np.arange(1, len(self.__mean_episodic_reward) + 1)
         plt.figure(figsize=(10, 6))
@@ -146,7 +147,7 @@ class PlotTrainingCallback(BaseCallback):
         plt.plot(episode_numbers, get_trendline(self.__mean_episodic_reward), label="Trend Line", linestyle="--",
                  color="red")
         plt.legend()
-        plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_rewards.png", format="png")
+        plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_rewards_"+timestamp+".png", format="png")
 
         # Plot Mean Policy Rewards
         policy_numbers = np.arange(1, len(self.__mean_policy_reward) + 1)
@@ -159,7 +160,7 @@ class PlotTrainingCallback(BaseCallback):
         plt.plot(policy_numbers, get_trendline(self.__mean_policy_reward), label="Trend Line", linestyle="--",
                  color="red")
         plt.legend()
-        plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_rewards.png", format="png")
+        plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_rewards_"+timestamp+".png", format="png")
 
         # Plot Mean Episodic Tardiness
         plt.figure(figsize=(10, 6))
@@ -171,7 +172,7 @@ class PlotTrainingCallback(BaseCallback):
         plt.plot(episode_numbers, get_trendline(self.__mean_episodic_tardiness), label="Trend Line", linestyle="--",
                  color="red")
         plt.legend()
-        plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_tardiness.png", format="png")
+        plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_tardiness_"+timestamp+".png", format="png")
 
         # Plot Mean Policy Tardiness
         plt.figure(figsize=(10, 6))
@@ -183,7 +184,7 @@ class PlotTrainingCallback(BaseCallback):
         plt.plot(policy_numbers, get_trendline(self.__mean_policy_tardiness), label="Trend Line", linestyle="--",
                  color="red")
         plt.legend()
-        plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_tardiness.png", format="png")
+        plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_tardiness_"+timestamp+".png", format="png")
 
         # There are also variables with total episodic rewards and tardiness and total policy rewards and tardiness
         # in case we want to plot them
