@@ -18,11 +18,11 @@ Then add the path to the saved agent in the PATH constants below.
 """
 ######
 
-N_EPISODES = 10_000
+N_EPISODES = 50_000
 PLOT_GROUPING = N_EPISODES // 10
 ENV_MAX_STEPS = 10_000
 DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_5000000"
-PPO_AGENT_PATH = "files//trainedAgents/ppo_agent_1000000"
+PPO_AGENT_PATH = "files//trainedAgents/ppo_agent_5000000"
 SAVE_PATH = "files/data/"
 
 ###################
