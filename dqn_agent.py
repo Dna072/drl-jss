@@ -40,7 +40,8 @@ class Agent:
         self.custom_env: FactoryEnv = custom_env
         self.model: DQN = DQN(
             policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, learning_starts=20000,
-            learning_rate=1e-3, gamma=0.6, exploration_fraction=0.25
+            learning_rate=0.000686, gamma=0.2, exploration_fraction=0.15, buffer_size=10_000
+            # learning_rate=1e-3, gamma=0.6, exploration_fraction=0.25,buffer_size=10_000
         )
 
     def learn(
@@ -128,7 +129,7 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 5_000_000
+    LEARNING_MAX_STEPS = 5_100_000
     ENVIRONMENT_MAX_STEPS = 25_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
