@@ -4,7 +4,7 @@ from os import makedirs, path
 from torch import save
 import numpy as np
 import pickle
-import datetime
+from datetime import datetime
 
 def get_trendline(data: list[float] = None):
     episode_numbers = np.arange(1, len(data) + 1)
