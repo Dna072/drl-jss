@@ -29,7 +29,7 @@ class Agent:
     DQN agent for learning the custom FactoryEnv environment
     """
 
-    FILE_PATH_NAME: str = "files/ppo_custom_factory_env"
+    FILE_PATH_NAME: str = "files/ppo_custom_factory_env_multi_job"
     POLICY: str = (
         "MultiInputPolicy"  # converts multiple Dictionary inputs into a single vector
     )
@@ -95,7 +95,7 @@ class Agent:
         return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
 
-def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/ppo_custom_factory_env",
+def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/ppo_custom_factory_env_multi_job",
                        env_max_steps: int = 100):
     ep_reward = []
     ep_tardiness = []
@@ -136,7 +136,7 @@ if __name__ == "__main__":
         total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
     )
     # agent.learn()
-    agent.save(file_path_name="files/trainedAgents/ppo_agent_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
 
     # agent.load()
     # agent.evaluate()

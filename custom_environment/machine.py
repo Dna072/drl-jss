@@ -38,7 +38,7 @@ class Machine:
         factory_id: str,
         process_id: int = 0,
         machine_type: str = "A",
-        tray_capacity: int = 10_000,
+        tray_capacity: int = 1000,
         max_recipes_per_process: int = 1,
     ) -> None:
         """
@@ -59,10 +59,12 @@ class Machine:
 
         self.__is_available: bool = True
         self.__active_jobs: list[Job] = []
+        self.__pending_jobs: list[Job] = []
         self.__timestamp_current_status: datetime = None
         self.__time_active: float = 0.0
         self.__time_idle: float = 0.0
         self._active_recipe: str = ""
+        self._current_tray_capacity: int = tray_capacity
 
     def get_id(self) -> int:
         return self.__id
@@ -78,6 +80,9 @@ class Machine:
 
     def get_tray_capacity(self) -> int:
         return self.__tray_capacity
+
+    def get_current_tray_capacity(self) -> int:
+        return self._current_tray_capacity
 
     def get_max_recipes_per_process(self) -> int:
         return self.__max_recipes_per_process
@@ -105,6 +110,9 @@ class Machine:
 
     def get_active_jobs(self) -> list[Job]:
         return self.__active_jobs
+
+    def get_pending_jobs(self) -> list[Job]:
+        return self.__pending_jobs
 
     def get_max_num_jobs(self) -> int:
         return self.__MAX_JOBS_PER_MACHINE
@@ -142,6 +150,23 @@ class Machine:
 
         return False
 
+    def can_perform_any_pending_job(self, pending_jobs: list[Job]) -> bool:
+        for job in pending_jobs:
+            if self.can_perform_job(job):
+                return True
+
+        return False
+    def start(self) -> bool:
+        if len(self.__pending_jobs) == 0:
+            return False
+
+        self.__is_available = False
+        self.__active_jobs.extend(self.__pending_jobs)
+        self.__pending_jobs.clear()
+
+        return True
+
+
     def assign_job(self, job_to_assign: Job) -> bool:
         available_valid_recipes: list[Recipe] = self.get_job_valid_recipes(
             job=job_to_assign
@@ -171,9 +196,48 @@ class Machine:
                 )
         return not self.__is_available
 
+    def schedule_job(self, job_to_schedule: Job) -> bool:
+        # check if machine has available capacity to take the job
+        if self._current_tray_capacity < job_to_schedule.get_tray_capacity():
+            return False
+
+        available_valid_recipes: list[Recipe] = self.get_job_valid_recipes(
+            job=job_to_schedule
+        )
+
+        is_recipe_assigned: bool = False
+
+        if available_valid_recipes and self.__is_available:
+            # print(f"Can assign job to machine {self.get_id()}")
+            next_valid_recipe_to_process: Recipe = available_valid_recipes[0]
+
+            if len(self.__pending_jobs) > 0:
+                # check if active recipe matches job recipe
+                if not self._active_recipe == next_valid_recipe_to_process.get_factory_id():
+                    return False
+
+            is_recipe_assigned = job_to_schedule.set_recipe_in_progress(
+                next_valid_recipe_to_process
+            )
+
+            if is_recipe_assigned:
+                # print(f"Assigned job to machine ")
+
+                self.__timestamp_current_status = datetime.datetime.now()
+                self.__pending_jobs.append(job_to_schedule)
+                # update machine tray capacity
+                self._current_tray_capacity -= job_to_schedule.get_tray_capacity()
+
+                # for job in self.__active_jobs:
+                #     print(f'Active job {self.__factory_id}: {job.get_factory_id()}')
+                self._active_recipe = next_valid_recipe_to_process.get_factory_id()
+
+        return is_recipe_assigned
+
     def remove_job_assignment(self, job: Job) -> None:
         self.__active_jobs.remove(job)
         self._active_recipe = ""
+        self._current_tray_capacity += job.get_tray_capacity()
         if not self.__active_jobs:
             self.__is_available = True
 
@@ -193,7 +257,9 @@ class Machine:
     def reset(self) -> None:
         self.__is_available = True
         self.__active_jobs = []
+        self.__pending_jobs = []
         self.__timestamp_current_status = None
         self.__time_active = 0.0
         self.__time_idle = 0.0
         self._active_recipe = ""
+        self._current_tray_capacity = self.__tray_capacity

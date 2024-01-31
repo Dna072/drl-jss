@@ -22,7 +22,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
 import numpy as np
 import matplotlib.pyplot as plt
-from custom_environment.utils import print_observation, print_jobs
+from custom_environment.utils import print_observation, print_jobs, print_scheduled_jobs, print_capacity_obs
 
 
 class Agent:
@@ -30,7 +30,7 @@ class Agent:
     DQN agent for learning the custom FactoryEnv environment
     """
 
-    FILE_PATH_NAME: str = "files/dqn_custom_factory_env_2"
+    FILE_PATH_NAME: str = "files/dqn_custom_factory_env_3"
     POLICY: str = (
         "MultiInputPolicy"  # converts multiple Dictionary inputs into a single vector
     )
@@ -40,13 +40,13 @@ class Agent:
         self.custom_env: FactoryEnv = custom_env
         self.model: DQN = DQN(
             policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, learning_starts=20000,
-            learning_rate=0.000686, gamma=0.2, exploration_fraction=0.15, buffer_size=10_000
+            learning_rate=0.000686, gamma=0.6, exploration_fraction=0.3, buffer_size=10_000
             # learning_rate=1e-3, gamma=0.6, exploration_fraction=0.25,buffer_size=10_000
         )
 
     def learn(
         self,
-        total_time_steps: int = 10_000,
+        total_time_steps: int = 100_000,
         log_interval: int = 4,
         callback: MaybeCallback = None,
     ) -> None:
@@ -78,6 +78,10 @@ class Agent:
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
+            print_jobs(self.custom_env)
+            print_capacity_obs(obs, machines=self.custom_env.get_machines(), n_machines=2, print_length=10)
+            print_scheduled_jobs(self.custom_env)
+            test = input('Enter to continue')
             returns.append(reward)
             curr_tardiness = self.custom_env.get_tardiness_percentage()
             jobs_ot = self.custom_env.get_jobs_completed_on_time()
@@ -85,7 +89,7 @@ class Agent:
             steps += 1
 
             if terminated or truncated:
-                # print(f"avg return: {np.sum(returns) / steps}")
+                print(f"avg return: {np.sum(returns) / steps}")
                 avg_returns_per_episode.append(np.sum(returns) / steps)
                 ep_reward.append(np.sum(returns))
                 ep_tardiness.append(curr_tardiness)
@@ -129,18 +133,18 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 5_100_000
-    ENVIRONMENT_MAX_STEPS = 25_000
+    LEARNING_MAX_STEPS = 1_000_000
+    ENVIRONMENT_MAX_STEPS = 50_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
 
-    agent.learn(
-        total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
-    )
+    # agent.learn(
+    #     total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
+    # )
     # # agent.learn()
 
-    agent.save(file_path_name="files/trainedAgents/dqn_agent_"+str(LEARNING_MAX_STEPS))
+    #agent.save(file_path_name="files/trainedAgents/dqn_agent_multi_job_"+str(LEARNING_MAX_STEPS))
 
-    # agent.load()
-    # agent.evaluate(num_of_episodes = 1_000)
+    agent.load(file_path_name='files/trainedAgents/dqn_agent_multi_job_1000000')
+    agent.evaluate(num_of_episodes = 1_000)

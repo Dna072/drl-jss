@@ -58,6 +58,7 @@ class Job:
         process_id: int = 0,
         deadline: int = 0,
         factory_time: int = 0,
+        tray_capacity: int = 30
     ) -> None:
         """
         Job class constructor method
@@ -78,6 +79,8 @@ class Job:
         ]  # limit num recipes to max per job
         self.__recipes_in_progress: list[Recipe] = []
         self.__recipes_completed: list[Recipe] = []
+        # set number of trays required for job
+        self.__tray_capacity: int = tray_capacity
 
         # self.__start_op_datetime: datetime | None = None
         # self.__is_past_deadline: bool = False
@@ -102,6 +105,9 @@ class Job:
 
     def get_steps_to_deadline(self) -> float:
         return self._steps_to_deadline
+
+    def get_tray_capacity(self) -> int:
+        return self.__tray_capacity
 
     def update_steps_to_deadline(self, difference):
         self._steps_to_deadline += difference

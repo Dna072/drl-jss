@@ -3,7 +3,7 @@ from custom_environment.environment import FactoryEnv
 from matplotlib import pyplot as plt
 from random import randint
 import numpy as np
-from custom_environment.utils import print_observation
+from custom_environment.utils import print_observation, print_jobs, print_scheduled_jobs, print_capacity_obs
 
 
 class TextColors:
@@ -24,7 +24,7 @@ s = 0
 tot_reward: int = 0
 
 env: FactoryEnv = init_custom_factory_env(is_verbose=True)
-nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
+nr_pending_jobs: int = len(env.get_pending_jobs())
 
 r_values: list[int] = []
 tr_values: list[int] = []
@@ -36,7 +36,10 @@ while s < max_steps and nr_pending_jobs > 0:
     act = input(TextColors.CYAN + "Select an action: " + TextColors.RESET)
     action: np.ndarray = int(act)
     o, r, te, tr, i = env.step(action)
-    print_observation(o, machines)
+    print_jobs(env)
+    #print_observation(o, machines)
+    print_capacity_obs(obs=o, machines=env.get_machines(), n_machines=machines, print_length=10)
+    print_scheduled_jobs(env)
     # env.render()
     print(TextColors.YELLOW + "Reward:" + TextColors.RESET, r)
     tot_reward += r

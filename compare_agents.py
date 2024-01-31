@@ -20,8 +20,8 @@ Then add the path to the saved agent in the PATH constants below.
 N_EPISODES = 1_000
 PLOT_GROUPING = N_EPISODES // 10
 ENV_MAX_STEPS = 10_000
-DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_1100000"
-PPO_AGENT_PATH = "files//trainedAgents/ppo_agent_1000000"
+DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_multi_job_1000000"
+PPO_AGENT_PATH = "files//trainedAgents/ppo_agent_multi_job_5000000"
 SAVE_PATH = "files/data/"
 
 ###################
@@ -57,7 +57,7 @@ else:
     fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot = load_agent_results(FIFO_PATH)
 
 print("\033[96m"+"Starting DQN"+"\033[0m")
-DQN_PATH = SAVE_PATH + "dqn_data_" + str(N_EPISODES) + ".pkl"
+DQN_PATH = SAVE_PATH + "dqn_data_multi_job" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(DQN_PATH):
     agent = dqn_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
     agent.load(file_path_name=DQN_AGENT_PATH)
@@ -68,7 +68,7 @@ else:
 
 
 print("\033[95m"+"Starting PPO"+"\033[0m")
-PPO_PATH = SAVE_PATH + "ppo_data_" + str(N_EPISODES) + ".pkl"
+PPO_PATH = SAVE_PATH + "ppo_data_multi_job" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(PPO_PATH):
     p_agent = ppo_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
     p_agent.load(file_path_name=PPO_AGENT_PATH)
@@ -84,7 +84,7 @@ random_tardiness_performance = [a / (b + c) for a, b, c in zip(random_tardiness,
 edd_tardiness_performance = [a / (b + c) for a, b, c in zip(edd_tardiness, edd_jot, edd_jnot)]
 fifo_tardiness_performance = [a / (b + c) for a, b, c in zip(fifo_tardiness, fifo_jot, fifo_jnot)]
 dqn_tardiness_performance = [a / (b + c) for a, b, c in zip(dqn_tardiness, dqn_jot, dqn_jnot)]
-ppo_tardiness_performance = [a / (b + c) for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
+#ppo_tardiness_performance = [a / (b + c) for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
 
 #############################
 #         PLOT CONFIG       #
@@ -118,7 +118,7 @@ random_tardiness_performance = create_bins(random_tardiness_performance, group_s
 edd_tardiness_performance = create_bins(edd_tardiness_performance, group_size=PLOT_GROUPING)
 fifo_tardiness_performance = create_bins(fifo_tardiness_performance, group_size=PLOT_GROUPING)
 dqn_tardiness_performance = create_bins(dqn_tardiness_performance, group_size=PLOT_GROUPING)
-ppo_tardiness_performance = create_bins(ppo_tardiness_performance, group_size=PLOT_GROUPING)
+#ppo_tardiness_performance = create_bins(ppo_tardiness_performance, group_size=PLOT_GROUPING)
 
 #############################
 #         PLOT REWARDS      #
