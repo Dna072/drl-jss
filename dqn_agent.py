@@ -39,8 +39,8 @@ class Agent:
     def __init__(self, custom_env: FactoryEnv | Monitor) -> None:
         self.custom_env: FactoryEnv = custom_env
         self.model: DQN = DQN(
-            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, learning_starts=20000,
-            learning_rate=0.000686, gamma=0.6, exploration_fraction=0.3, buffer_size=10_000
+            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE,
+             gamma=0.9, exploration_fraction=0.5,
             # learning_rate=1e-3, gamma=0.6, exploration_fraction=0.25,buffer_size=10_000
         )
 
@@ -74,14 +74,18 @@ class Agent:
         steps = 0
 
         while episode < num_of_episodes:
+            # print_jobs(self.custom_env)
+
             action, _states = self.model.predict(observation=obs, deterministic=True)
+            # print(f'Action: {action}')
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
-            print_jobs(self.custom_env)
-            print_capacity_obs(obs, machines=self.custom_env.get_machines(), n_machines=2, print_length=10)
-            print_scheduled_jobs(self.custom_env)
-            test = input('Enter to continue')
+            # print(f'Reward: {reward}')
+            # print_capacity_obs(obs, machines=self.custom_env.get_machines(), n_machines=2, print_length=10)
+            # print_scheduled_jobs(self.custom_env)
+            # test = input('Enter to continue')
+
             returns.append(reward)
             curr_tardiness = self.custom_env.get_tardiness_percentage()
             jobs_ot = self.custom_env.get_jobs_completed_on_time()
@@ -89,7 +93,7 @@ class Agent:
             steps += 1
 
             if terminated or truncated:
-                print(f"avg return: {np.sum(returns) / steps}")
+                # print(f"avg return: {np.sum(returns) / steps}")
                 avg_returns_per_episode.append(np.sum(returns) / steps)
                 ep_reward.append(np.sum(returns))
                 ep_tardiness.append(curr_tardiness)
@@ -133,8 +137,8 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 1_000_000
-    ENVIRONMENT_MAX_STEPS = 50_000
+    LEARNING_MAX_STEPS = 4_000_000
+    ENVIRONMENT_MAX_STEPS = 25_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
@@ -142,9 +146,7 @@ if __name__ == "__main__":
     # agent.learn(
     #     total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
     # )
-    # # agent.learn()
+    # agent.save(file_path_name="files/trainedAgents/dqn_agent_multi_job_"+str(LEARNING_MAX_STEPS))
 
-    #agent.save(file_path_name="files/trainedAgents/dqn_agent_multi_job_"+str(LEARNING_MAX_STEPS))
-
-    agent.load(file_path_name='files/trainedAgents/dqn_agent_multi_job_1000000')
+    agent.load(file_path_name='files/trainedAgents/dqn_agent_multi_job_4000000')
     agent.evaluate(num_of_episodes = 1_000)

@@ -36,6 +36,7 @@ while s < max_steps and nr_pending_jobs > 0:
     act = input(TextColors.CYAN + "Select an action: " + TextColors.RESET)
     action: np.ndarray = int(act)
     o, r, te, tr, i = env.step(action)
+    print(f'Reward: {r}')
     print_jobs(env)
     #print_observation(o, machines)
     print_capacity_obs(obs=o, machines=env.get_machines(), n_machines=machines, print_length=10)

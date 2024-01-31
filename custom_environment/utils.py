@@ -46,8 +46,10 @@ def print_observation(obs, nr_machines):
 
 def print_capacity_obs(obs, n_machines, machines, print_length):
     # o_pending = obs["pending_jobs"]
-    o_machines = obs["machine_capacity"]
-    o_p_remaining = obs["pending_job_remaining_times"]
+    obs_pending_machine_capacity = obs["machine_pending_capacity"]
+    obs_active_machine_capacity = obs["machine_active_capacity"]
+    obs_pending_job_remaining_time = obs["pending_job_remaining_times"]
+    obs_pending_job_recipes = obs["pending_job_recipe"]
     # o_p_steps_to_deadline = obs["pending_job_steps_to_deadline"]
     # o_ip_remaining = obs["inprogress_job_remaining_times"]
     machines_capacity_matrix = [['.' for i in range(print_length)] for m in range(n_machines)]
@@ -56,14 +58,16 @@ def print_capacity_obs(obs, n_machines, machines, print_length):
     # print("Recipes?:\n",o_recipes)
     print(
         TextColors.YELLOW + "Remaining time for jobs pending:\n" + TextColors.RESET,
-        o_p_remaining,
+        obs_pending_job_remaining_time,
     )
     # print(
     #     TextColors.YELLOW + "Steps to deadline for jobs pending:\n" + TextColors.RESET,
     #     o_p_steps_to_deadline,
     # )
     # print(TextColors.YELLOW+"Remaining time for jobs ip:\n"+TextColors.RESET, o_ip_remaining)
-    print(TextColors.YELLOW + "Machine capacity utilization:" + TextColors.RESET, o_machines)
+    print(TextColors.YELLOW + "Pending job recipes:" + TextColors.RESET, obs_pending_job_recipes)
+    print(TextColors.YELLOW + "Machine active capacity utilization:" + TextColors.RESET, obs_active_machine_capacity)
+    print(TextColors.YELLOW + "Machine pending capacity utilization:" + TextColors.RESET, obs_pending_machine_capacity)
 
     # for i in range(n_machines):
     #     print(TextColors.GREEN + "M", i, " " + TextColors.RESET + "[ ", end="")
@@ -113,9 +117,9 @@ def print_scheduled_jobs(env):
     for i in range(nr_machines):
         print(TextColors.GREEN + "M", i, " " + TextColors.RESET + "[ ", end="")
         for j in range(len(machines_matrix[i])):
-            if machines_matrix[i][j] == 1:
+            if machines_matrix[i][j] >= 1:
                 # print(TextColors.GREEN+"M",i," "+TextColors.RESET,machines_matrix[i])
-                print(TextColors.CYAN + "1.  " + TextColors.RESET, end="")
+                print(TextColors.CYAN + f"{machines_matrix[i][j]:.0f}  " + TextColors.RESET, end="")
             else:
                 print("0.  ", end="")
         print("]")

@@ -86,13 +86,13 @@ class FactoryEnv(gym.Env):
     _REWARD_WEIGHTS: dict[str, int] = {
         NO_OP_STR: 0,
         MACHINE_IDLE_STR: -1,
-        MACHINE_UNAVAILABLE_STR: -5,
+        MACHINE_UNAVAILABLE_STR: -10,
         JOB_COMPLETED_ON_TIME_STR: 10,
         JOB_COMPLETED_NOT_ON_TIME_STR: 0,
         JOB_ASSIGNED_STR: 1,
-        INVALID_JOB_RECIPE_STR: -5,
+        INVALID_JOB_RECIPE_STR: -10,
         DEADLINE_EXCEEDED_STR: -5,
-        ILLEGAL_ACTION_STR: -5,
+        ILLEGAL_ACTION_STR: -15,
         NEUTRAL_STR: 0,
     }
 
@@ -105,7 +105,9 @@ class FactoryEnv(gym.Env):
     _PENDING_JOBS_STR: str = "pending_jobs"
     _RECIPE_TYPES_STR: str = "recipes"
     _MACHINES_STR: str = "machines"
-    _MACHINES_CAPACITY_STR: str = "machine_capacity"
+    _MACHINES_PENDING_CAPACITY_STR: str = "machine_pending_capacity"
+    _MACHINES_ACTIVE_CAPACITY_STR: str = "machine_active_capacity"
+    _P_JOB_RECIPE_STR: str = "pending_job_recipe"
     _P_JOB_REMAINING_TIMES_STR: str = "pending_job_remaining_times"
     _P_JOB_STEPS_TO_DEADLINE: str = "pending_job_steps_to_deadline"
     _IP_JOB_REMAINING_TIMES_STR: str = "inprogress_job_remaining_times"
@@ -178,17 +180,26 @@ class FactoryEnv(gym.Env):
 
         machine_space: gym.spaces.Box = gym.spaces.Box(
             low=0,
-            high=1,
+            high=2**32,
             shape=(len(self._machines) * self._BUFFER_LEN,),
             dtype=np.float64,
-        )  # binary matrix for mapping machines to jobs they are processing
+        )  # binary matrix for mapping machines to jobs they are or will be processing
+
+        pending_jobs_recipe_space: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=self._BUFFER_LEN, shape=(self._BUFFER_LEN,), dtype=np.float64
+        )
+
         pending_job_remaining_times_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )  # normalized vector for jobs pending deadline proportional to recipe processing duration times
 
-        machine_capacity_space: gym.spaces.Box = gym.spaces.Box(
+        machine_pending_capacity_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(len(self._machines),), dtype=np.float64
-        ) # normalized vector for utilized machine tray capacity
+        ) # normalized vector for utilized machine tray capacity for scheduled jobs
+
+        machine_active_capacity_space: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=1, shape=(len(self._machines),), dtype=np.float64
+        )# normalized vector for utilized machine tray capacity for active jobs
 
         pending_job_steps_to_deadline_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(self._BUFFER_LEN, ), dtype=np.float64
@@ -197,8 +208,10 @@ class FactoryEnv(gym.Env):
         self.observation_space: gym.spaces.Dict = gym.spaces.Dict(
             {
                 # self._PENDING_JOBS_STR: pending_jobs_space,
-                # self._MACHINES_STR: machine_space,
-                self._MACHINES_CAPACITY_STR: machine_capacity_space,
+                #self._MACHINES_STR: machine_space,
+                self._P_JOB_RECIPE_STR: pending_jobs_recipe_space,
+                self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_space,
+                self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_space,
                 self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times_space,
                 # self._P_JOB_STEPS_TO_DEADLINE: pending_job_steps_to_deadline_space
             }
@@ -222,7 +235,7 @@ class FactoryEnv(gym.Env):
             (len(self._machines), self._BUFFER_LEN + 1), dtype=np.float64
         )
         for machine in self._machines:
-            is_machines_active_jobs[machine.get_id(), self._BUFFER_LEN] = machine.get_current_tray_capacity()
+            is_machines_active_jobs[machine.get_id(), self._BUFFER_LEN] = machine.get_pending_tray_capacity()
 
             for job in machine.get_active_jobs():
                 is_machines_active_jobs[machine.get_id(), job.get_id()] = 1.0
@@ -279,9 +292,17 @@ class FactoryEnv(gym.Env):
         ###############################################################
         # update mapping jobs to machines processing them observation #
         ###############################################################
-        machine_capacity_utilization: np.ndarray = np.zeros(len(self._machines), dtype=np.float64)
+        machine_pending_capacity_utilization: np.ndarray = np.zeros(len(self._machines), dtype=np.float64)
+        machine_active_capacity_utilization: np.ndarray = np.zeros(len(self._machines), dtype=np.float64)
+        is_machines_active_jobs: np.ndarray = np.zeros(
+            (len(self._machines), self._BUFFER_LEN), dtype=np.float64
+        )
         for machine in self._machines:
-            machine_capacity_utilization[machine.get_id()] = (machine.get_tray_capacity() - machine.get_current_tray_capacity()) / machine.get_tray_capacity()
+            machine_pending_capacity_utilization[machine.get_id()] = (machine.get_tray_capacity() - machine.get_pending_tray_capacity()) / machine.get_tray_capacity()
+            machine_active_capacity_utilization[machine.get_id()] = (machine.get_tray_capacity() - machine.get_active_tray_capacity()) / machine.get_tray_capacity()
+
+            # for job in machine.get_pending_jobs():
+            #     is_machines_active_jobs[machine.get_id(), job.get_id()] += 1.0
 
         #######################################################################################################
         # update incomplete job pending deadline proportional to recipe processing duration times observation #
@@ -291,7 +312,12 @@ class FactoryEnv(gym.Env):
             self._BUFFER_LEN, dtype=np.float64
         )
 
+        pending_job_recipes: np.ndarray = np.zeros(
+            self._BUFFER_LEN, dtype=np.float64
+        )
+
         for job in self._pending_jobs:
+            pending_job_recipes[job.get_id()] = job.get_recipes()[0].get_id()
             pending_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
             # update max and min duration times for normalizing [0, 1]
             if pending_job_remaining_times[job.get_id()] > max_duration:
@@ -319,7 +345,10 @@ class FactoryEnv(gym.Env):
         ###########################################################
         return {
             # self._PENDING_JOBS_STR: is_pending_jobs,
-            self._MACHINES_CAPACITY_STR: machine_capacity_utilization,
+            #self._MACHINES_STR: is_machines_active_jobs.flatten(),
+            self._P_JOB_RECIPE_STR: pending_job_recipes,
+            self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_utilization,
+            self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_utilization,
             self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times,
         }
 
@@ -329,7 +358,7 @@ class FactoryEnv(gym.Env):
         )
         for machine in self._machines:
             for job in machine.get_pending_jobs():
-                is_machines_pending_jobs[machine.get_id(), job.get_id()] = 1.0
+                is_machines_pending_jobs[machine.get_id(), job.get_id()] += 1.0
 
         return is_machines_pending_jobs
     def get_pending_jobs(self):
@@ -658,9 +687,14 @@ class FactoryEnv(gym.Env):
             # If Start machines action is selected, we have to start running the pending jobs on all machines
             machine_idx = action - (len(self._machines) * self._BUFFER_LEN) - 1
             machine_to_start = self._machines[machine_idx]
-            machine_to_start.start()
-            if len(machine_to_start.get_pending_jobs()) > 0:
-                step_reward += 1
+            machine_started = machine_to_start.start()
+
+            if machine_started:
+                # reward is the number of the jobs scheduled
+                step_reward += len(machine_to_start.get_active_jobs()) * 1.5
+            else:
+                step_reward += self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR]
+
         else:
             # If action wasnt No-Op, then we compute machine-job
             action_selected_machine = self._machines[

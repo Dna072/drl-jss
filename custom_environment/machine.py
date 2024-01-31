@@ -64,7 +64,8 @@ class Machine:
         self.__time_active: float = 0.0
         self.__time_idle: float = 0.0
         self._active_recipe: str = ""
-        self._current_tray_capacity: int = tray_capacity
+        self._pending_tray_capacity: int = tray_capacity
+        self._active_tray_capacity: int = tray_capacity
 
     def get_id(self) -> int:
         return self.__id
@@ -81,8 +82,11 @@ class Machine:
     def get_tray_capacity(self) -> int:
         return self.__tray_capacity
 
-    def get_current_tray_capacity(self) -> int:
-        return self._current_tray_capacity
+    def get_pending_tray_capacity(self) -> int:
+        return self._pending_tray_capacity
+
+    def get_active_tray_capacity(self) -> int:
+        return self._active_tray_capacity
 
     def get_max_recipes_per_process(self) -> int:
         return self.__max_recipes_per_process
@@ -157,12 +161,15 @@ class Machine:
 
         return False
     def start(self) -> bool:
-        if len(self.__pending_jobs) == 0:
+        # To make learning easier, machines cannot be started when unavailable or with no scheduled jobs
+        if len(self.__pending_jobs) == 0 or not self.is_available():
             return False
 
         self.__is_available = False
         self.__active_jobs.extend(self.__pending_jobs)
         self.__pending_jobs.clear()
+        self._active_tray_capacity = self._pending_tray_capacity
+        self._pending_tray_capacity = self.__tray_capacity
 
         return True
 
@@ -198,7 +205,7 @@ class Machine:
 
     def schedule_job(self, job_to_schedule: Job) -> bool:
         # check if machine has available capacity to take the job
-        if self._current_tray_capacity < job_to_schedule.get_tray_capacity():
+        if self._pending_tray_capacity < job_to_schedule.get_tray_capacity():
             return False
 
         available_valid_recipes: list[Recipe] = self.get_job_valid_recipes(
@@ -226,7 +233,7 @@ class Machine:
                 self.__timestamp_current_status = datetime.datetime.now()
                 self.__pending_jobs.append(job_to_schedule)
                 # update machine tray capacity
-                self._current_tray_capacity -= job_to_schedule.get_tray_capacity()
+                self._pending_tray_capacity -= job_to_schedule.get_tray_capacity()
 
                 # for job in self.__active_jobs:
                 #     print(f'Active job {self.__factory_id}: {job.get_factory_id()}')
@@ -237,7 +244,7 @@ class Machine:
     def remove_job_assignment(self, job: Job) -> None:
         self.__active_jobs.remove(job)
         self._active_recipe = ""
-        self._current_tray_capacity += job.get_tray_capacity()
+        self._active_tray_capacity += job.get_tray_capacity()
         if not self.__active_jobs:
             self.__is_available = True
 
@@ -262,4 +269,4 @@ class Machine:
         self.__time_active = 0.0
         self.__time_idle = 0.0
         self._active_recipe = ""
-        self._current_tray_capacity = self.__tray_capacity
+        self._pending_tray_capacity = self.__tray_capacity

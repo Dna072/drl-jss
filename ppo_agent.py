@@ -22,6 +22,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 import numpy as np
 import matplotlib.pyplot as plt
+from custom_environment.utils import print_observation, print_jobs, print_scheduled_jobs, print_capacity_obs
 
 
 class Agent:
@@ -71,10 +72,17 @@ class Agent:
         steps = 0
 
         while episode < num_of_episodes:
+            # print_jobs(self.custom_env)
             action, _states = self.model.predict(observation=obs, deterministic=True)
+            # print(f'Action: {action}')
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
+            # print(f'Reward: {reward}')
+            # print_capacity_obs(obs, machines=self.custom_env.get_machines(), n_machines=2, print_length=10)
+            # print_scheduled_jobs(self.custom_env)
+            # test = input('Enter to continue')
+
             returns.append(reward)
             curr_tardiness = self.custom_env.get_tardiness_percentage()
             jobs_ot = self.custom_env.get_jobs_completed_on_time()
@@ -126,17 +134,16 @@ def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/p
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 5_000_000
+    LEARNING_MAX_STEPS = 4_000_000
     ENVIRONMENT_MAX_STEPS = 25_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="PPO")
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
 
-    agent.learn(
-        total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
-    )
-    # agent.learn()
-    agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
+    # agent.learn(
+    #     total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
+    # )
+    # agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
 
-    # agent.load()
-    # agent.evaluate()
+    agent.load(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
+    agent.evaluate()
