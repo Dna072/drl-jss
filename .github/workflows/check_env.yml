@@ -1,0 +1,40 @@
+name: Custom Environment Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  custom_env_check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # Run using Python 3.11
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+          cache: pip
+          cache-dependency-path: '**/requirements.txt'
+
+      # Install gymnasium, stable-baselines3 and other requirements.txt libraries
+      - name: Install requirements.txt pip libraries
+        run: |
+          pip install -r requirements.txt
+
+      # Check the custom factory environment is valid
+      - name: Check Custom Environment
+        run: |
+          python -c "from stable_baselines3.common.env_checker import check_env; from custom_environment.environment_factory import init_custom_factory_env; check_env(init_custom_factory_env())"
+          # python -c "from stable_baselines3.common.env_checker import check_env; from custom_environment.dispatch_rules.environment_factory_dispatch_rules import init_custom_factory_env; check_env(init_custom_factory_env())"
