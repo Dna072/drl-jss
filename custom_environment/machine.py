@@ -150,6 +150,14 @@ class Machine:
             if recipe.get_recipe_type() in self.__valid_recipe_types
         ]
 
+    def get_job_next_recipe(self, job: Job) -> Recipe:
+        recipe = None
+        if len(job.get_recipes()) > 0:
+            if job.get_recipes()[0].get_recipe_type() in self.__valid_recipe_types:
+                recipe = job.get_recipes()[0]
+
+        return recipe
+
     def can_perform_job(self, job: Job) -> bool:
         for recipe in job.get_pending_recipes():
             if recipe.get_recipe_type() in self.__valid_recipe_types:
@@ -211,15 +219,15 @@ class Machine:
         if self._pending_tray_capacity < job_to_schedule.get_tray_capacity():
             return False
 
-        available_valid_recipes: list[Recipe] = self.get_job_valid_recipes(
+        available_valid_recipe: Recipe = self.get_job_next_recipe(
             job=job_to_schedule
         )
 
         is_recipe_assigned: bool = False
 
-        if available_valid_recipes and self.__is_available:
+        if available_valid_recipe and self.__is_available:
             # print(f"Can assign job to machine {self.get_id()}")
-            next_valid_recipe_to_process: Recipe = available_valid_recipes[0]
+            next_valid_recipe_to_process: Recipe = available_valid_recipe
 
             if len(self.__pending_jobs) > 0:
                 # check if active recipe matches job recipe

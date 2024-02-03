@@ -29,7 +29,7 @@ class Job:
     # public constants #
     ####################
 
-    MAX_NUM_RECIPES_PER_JOB: int = 1
+    MAX_NUM_RECIPES_PER_JOB: int = 5
 
     #####################
     # private constants #
@@ -130,8 +130,14 @@ class Job:
     def get_pending_recipes(self) -> list[Recipe]:
         return self.__recipes_pending
 
+    def get_next_pending_recipe(self) -> Recipe:
+        return self.__recipes_pending[0]
+
     def get_recipes_in_progress(self) -> list[Recipe]:
         return self.__recipes_in_progress
+
+    def get_recipe_in_progress(self) -> Recipe:
+        return self.__recipes_in_progress[0]
 
     def get_recipes_completed(self) -> list[Recipe]:
         return self.__recipes_completed
@@ -147,9 +153,9 @@ class Job:
         self.reset()
 
     def set_recipe_in_progress(self, recipe: Recipe) -> bool:
-        if self.can_perform_recipe(recipe=recipe):
+        if self.is_next_recipe(recipe=recipe):
             self.__recipes_in_progress.append(
-                self.__recipes_pending.pop(self.__recipes_pending.index(recipe))
+                self.__recipes_pending.pop(0)
             )
             self._steps_to_recipe_complete = recipe.get_process_time()
             self.__status = self.__STATUS_IN_PROGRESS_VAL
@@ -176,8 +182,11 @@ class Job:
             self.__status = self.__STATUS_COMPLETED_VAL
         # print("\nAfter processing, job status is:", self.__STATUS_STR[self.__status])
 
-    def can_perform_recipe(self, recipe: Recipe) -> bool:
-        return recipe in self.__recipes_pending
+    def is_next_recipe(self, recipe: Recipe) -> bool:
+        if self.__recipes_pending:
+            return recipe.get_factory_id() == self.__recipes_pending[0].get_factory_id()
+        else:
+            return False
 
     def __str__(self) -> str:
         return (
