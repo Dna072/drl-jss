@@ -42,7 +42,9 @@ while s < max_steps and nr_pending_jobs > 0:
     print_capacity_obs(obs=o, machines=env.get_machines(), n_machines=machines, print_length=10)
     print_scheduled_jobs(env)
     # env.render()
-    print(TextColors.YELLOW + "Reward:" + TextColors.RESET, r)
+    print(
+        f'Reward: {r}, Factory time: {i["CURRENT_TIME"]} JOT: {i["JOBS_COMPLETED_ON_TIME"]}, JNOT: {i["JOBS_NOT_COMPLETED_ON_TIME"]}')
+
     tot_reward += r
     r_values.append(r)
     tr_values.append(tot_reward)

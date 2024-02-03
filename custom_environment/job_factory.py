@@ -10,7 +10,7 @@ def create_job(
     recipes: list[Recipe],
     factory_id: str,
     process_id: int,
-    deadline: str,
+    deadline: int,
     factory_time: int,
 ) -> Job:
     """
@@ -19,6 +19,7 @@ def create_job(
     :param factory_id: the ID given to the job by the factory for identification
     :param process_id: the ID of the Job in respect to RL algorithm
     :param deadline: the deadline datetime for the Job as determined by the factory: YYYY-MM-DD
+    :param factory_time: current factory time
     :return: Job object
     """
     return Job(

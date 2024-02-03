@@ -115,6 +115,9 @@ class Machine:
     def get_active_jobs(self) -> list[Job]:
         return self.__active_jobs
 
+    def get_active_capacity_utilization(self) -> float:
+        return (self.__tray_capacity - self._active_tray_capacity) / self.__tray_capacity
+
     def get_pending_jobs(self) -> list[Job]:
         return self.__pending_jobs
 
@@ -243,10 +246,16 @@ class Machine:
 
     def remove_job_assignment(self, job: Job) -> None:
         self.__active_jobs.remove(job)
-        self._active_recipe = ""
         self._active_tray_capacity += job.get_tray_capacity()
         if not self.__active_jobs:
+            self._active_recipe = ""
             self.__is_available = True
+
+    def remove_completed_jobs(self) -> None:
+        self.__active_jobs.clear()
+        self._active_tray_capacity = self.__tray_capacity
+        self._active_recipe = ""
+        self.__is_available = True
 
     def __str__(self) -> str:
         return (
