@@ -15,7 +15,7 @@ def run_random_agent():
     steps: list[int] = []
     env: FactoryEnv = init_custom_factory_env(is_verbose=False)
     while 1:  # the environment has the condition to terminate after #max_steps
-        action: np.ndarray = np.array(randint(0, machines * jobs))
+        action: np.ndarray = np.array(randint(0, machines * jobs + machines))
         o, r, te, tr, i = env.step(action)
         tot_reward += r
         r_values.append(r)

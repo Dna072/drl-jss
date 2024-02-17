@@ -32,7 +32,7 @@ I added some control over the computations so that if it is already computed, it
 In case with a large number of episodes, this will save a lot of time.
 '''
 print("\033[96m"+"Starting Random"+"\033[0m")
-RAND_PATH = SAVE_PATH + "random_data_" + str(N_EPISODES) + ".pkl"
+RAND_PATH = SAVE_PATH + "random_data_multi_job_" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(RAND_PATH):
     random_rewards, random_tardiness, random_jot, random_jnot = episodic_random_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
     save_agent_results(random_rewards, random_tardiness, random_jot, random_jnot, path= RAND_PATH)
@@ -40,7 +40,7 @@ else:
     random_rewards, random_tardiness, random_jot, random_jnot = load_agent_results(RAND_PATH)
 
 print("\033[93m"+"Starting EDD"+"\033[0m")
-EDD_PATH= SAVE_PATH + "edd_data_" + str(N_EPISODES) + ".pkl"
+EDD_PATH= SAVE_PATH + "edd_data_multi_job_" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(EDD_PATH):
     edd_rewards, edd_tardiness, edd_jot, edd_jnot = episodic_edd_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
     save_agent_results(edd_rewards, edd_tardiness, edd_jot, edd_jnot, path= EDD_PATH)
@@ -49,7 +49,7 @@ else:
 
 
 print("\033[92m"+"Starting FIFO"+"\033[0m")
-FIFO_PATH = SAVE_PATH + "fifo_data_" + str(N_EPISODES) + ".pkl"
+FIFO_PATH = SAVE_PATH + "fifo_data_multi_job_" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(FIFO_PATH):
     fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot = episodic_fifo_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
     save_agent_results(fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot, path= FIFO_PATH)
@@ -80,11 +80,11 @@ else:
 #############################
 #         TARDINESS %       #
 #############################
-random_tardiness_performance = [a / (b + c) for a, b, c in zip(random_tardiness, random_jot, random_jnot)]
+random_tardiness_performance = [a / (b + c) if b + c > 0 else 0 for a, b, c in zip(random_tardiness, random_jot, random_jnot)]
 edd_tardiness_performance = [a / (b + c) for a, b, c in zip(edd_tardiness, edd_jot, edd_jnot)]
 fifo_tardiness_performance = [a / (b + c) for a, b, c in zip(fifo_tardiness, fifo_jot, fifo_jnot)]
 dqn_tardiness_performance = [a / (b + c) for a, b, c in zip(dqn_tardiness, dqn_jot, dqn_jnot)]
-ppo_tardiness_performance = [a / (b + c) for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
+ppo_tardiness_performance = [a / (b + c) if b + c > 0 else 0 for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
 
 #############################
 #         PLOT CONFIG       #
