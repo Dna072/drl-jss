@@ -25,7 +25,7 @@ from custom_environment.machine import Machine
 from custom_environment.job import Job
 from custom_environment.recipe_factory import create_recipe
 from custom_environment.job_factory import create_job
-from custom_environment.utils import min_max_norm
+from custom_environment.utils import min_max_norm, min_max_norm_list
 
 # from datetime import datetime, timedelta
 import gymnasium as gym
@@ -110,13 +110,16 @@ class FactoryEnv(gym.Env):
     _P_JOB_RECIPE_STR: str = "pending_job_recipe"
     _P_JOB_RECIPE_COUNT_STR: str = "pending_job_recipe_count"
     _P_JOB_REMAINING_TIMES_STR: str = "pending_job_remaining_times"
+    _P_JOB_PROCESS_TIME_TO_DEADLINE_RATIO: str = "pending_job_process_time_deadline_ratio"
     _P_JOB_STEPS_TO_DEADLINE: str = "pending_job_steps_to_deadline"
     _UC_JOB_RECIPE_STR: str = "uncompleted_job_recipes"
     _UC_JOB_RECIPE_COUNT_STR: str = "uncompleted_job_recipe_count"
     _UC_JOB_BUFFER_RECIPES: str = "uncompleted_job_buffer_recipes"
     _UC_JOB_BUFFER_RECIPE_COUNT: str = "uncompleted_job_buffer_recipe_count"
     _UC_JOB_REMAINING_TIMES: str = "uncompleted_job_remaining_times"
+    _UC_BUFFER_PROCESS_TIME_TO_DEADLINE_RATIO: str = "uncompleted_job_buffer_process_time_deadline_ratio"
     _UC_JOB_BUFFER_REMAINING_TIMES: str = "uncompleted_job_remaining_times"
+    _LOST_JOBS_COUNT: str = "lost_jobs_count"
 
     _METADATA: dict[int, str] = {0: "vector", 1: "human"}
 
@@ -143,6 +146,7 @@ class FactoryEnv(gym.Env):
         self._completed_jobs: list[Job] = []
         self._uncompleted_jobs: list[Job] = []
         self._uncompleted_jobs_buffer: list[Job] = [] #uncompleted jobs schedulable to machines, length = BUFFER_LEN
+        self._lost_jobs: list[Job] = [] # jobs that may never be completed since they could not be in the uncompleted jobs buffer
         self._jobs_completed_per_step_on_time: int = 0
         self._jobs_completed_per_step_not_on_time: int = 0
 
@@ -175,8 +179,8 @@ class FactoryEnv(gym.Env):
         ################
 
         self.action_space = gym.spaces.Discrete(
-            len(self._machines) * self._BUFFER_LEN + self._NO_OP_SPACE + len(self._machines) + 128
-        )# constant 128 added to cater for action of moving jobs from uncompleted to uncompleted_buffer
+            len(self._machines) * self._BUFFER_LEN * 2 + self._NO_OP_SPACE + len(self._machines)
+        )# space multiplied by 2 to cater for actions from uncompleted_jobs_buffer
 
         #####################
         # observation space #
@@ -189,6 +193,9 @@ class FactoryEnv(gym.Env):
             low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )  # normalized vector for jobs pending deadline proportional to recipe processing duration times
 
+        pending_job_process_time_deadline_ratio: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
+        )
         pending_job_recipe_count_space: gym.spaces.Box = gym.spaces.Box(
             low=1, high=self.MAX_RECIPES_IN_ENV_SYSTEM, shape=(self._BUFFER_LEN,), dtype=np.float64
         )
@@ -210,7 +217,7 @@ class FactoryEnv(gym.Env):
         )
 
         uncompleted_job_buffer_recipe_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=len(self.available_recipes) - 1, shape=(self._BUFFER_LEN,), dtype=np.float64
+            low=-1, high=len(self.available_recipes) - 1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )
 
         uncompleted_job_remaining_times: gym.spaces.Box = gym.spaces.Box(
@@ -218,12 +225,21 @@ class FactoryEnv(gym.Env):
         )
 
         uncompleted_job_buffer_remaining_times: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
+            low=-1, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )
 
         uncompleted_job_buffer_recipe_count_space: gym.spaces.Box = gym.spaces.Box(
-            low=1, high=self.MAX_RECIPES_IN_ENV_SYSTEM, shape=(self._BUFFER_LEN,), dtype=np.float64
+            low=0, high=self.MAX_RECIPES_IN_ENV_SYSTEM, shape=(self._BUFFER_LEN,), dtype=np.float64
         )
+
+        uncompleted_job_buffer_process_time_deadline_ratio: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
+        )
+
+        lost_jobs_count_space: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=2**8, shape=(1,), dtype=np.float64
+        ) # keeps track of the number of lost jobs in the env
+
         pending_job_steps_to_deadline_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(self._BUFFER_LEN, ), dtype=np.float64
         )  # normalized vector (using Min-max scaling [0,1]) for steps to deadline for jobs in buffer
@@ -236,13 +252,17 @@ class FactoryEnv(gym.Env):
                 self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_space,
                 self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_space,
                 self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times_space,
-                self._UC_JOB_RECIPE_STR: uncompleted_job_recipe_space,
+                self._P_JOB_PROCESS_TIME_TO_DEADLINE_RATIO: pending_job_process_time_deadline_ratio,
+                self._P_JOB_STEPS_TO_DEADLINE: pending_job_steps_to_deadline_space,
+                # self._UC_JOB_RECIPE_STR: uncompleted_job_recipe_space,
                 self._UC_JOB_BUFFER_RECIPES: uncompleted_job_buffer_recipe_space,
-                self._UC_JOB_REMAINING_TIMES: uncompleted_job_remaining_times,
+                # self._UC_JOB_REMAINING_TIMES: uncompleted_job_remaining_times,
                 self._UC_JOB_BUFFER_REMAINING_TIMES: uncompleted_job_buffer_remaining_times,
+                self._UC_BUFFER_PROCESS_TIME_TO_DEADLINE_RATIO: uncompleted_job_buffer_process_time_deadline_ratio,
                 self._P_JOB_RECIPE_COUNT_STR: pending_job_recipe_count_space,
-                self._UC_JOB_RECIPE_COUNT_STR: uncompleted_job_recipe_count_space,
-                self._UC_JOB_BUFFER_RECIPE_COUNT: uncompleted_job_buffer_recipe_count_space
+                # self._UC_JOB_RECIPE_COUNT_STR: uncompleted_job_recipe_count_space,
+                self._UC_JOB_BUFFER_RECIPE_COUNT: uncompleted_job_buffer_recipe_count_space,
+                self._LOST_JOBS_COUNT: lost_jobs_count_space
                 # self._P_JOB_STEPS_TO_DEADLINE: pending_job_steps_to_deadline_space
             }
         )
@@ -334,6 +354,12 @@ class FactoryEnv(gym.Env):
             # for job in machine.get_pending_jobs():
             #     is_machines_active_jobs[machine.get_id(), job.get_id()] += 1.0
 
+        # Update lost jobs obs
+        lost_jobs: np.ndarray = np.zeros(
+            1, dtype=np.float64
+        )
+        lost_jobs[0] = len(self._lost_jobs)
+
         #######################################################################################################
         # update incomplete job pending deadline proportional to recipe processing duration times observation #
         #######################################################################################################
@@ -347,7 +373,7 @@ class FactoryEnv(gym.Env):
         )
 
         for job in self._pending_jobs:
-            pending_job_recipes[job.get_id()] = job.get_recipes()[0].get_id()
+            pending_job_recipes[job.get_id()] = job.get_next_pending_recipe().get_id()
             pending_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
             # update max and min duration times for normalizing [0, 1]
             if pending_job_remaining_times[job.get_id()] > max_duration:
@@ -379,6 +405,10 @@ class FactoryEnv(gym.Env):
         pending_job_recipes: np.ndarray = np.zeros(
             self._BUFFER_LEN, dtype=np.float64
         )
+        p_steps_to_deadline_ratio = min_max_norm_list([j.get_process_time_deadline_ratio() for j in self._pending_jobs])
+
+        # uc_buffer_steps_to_deadline_ratio = np.array(
+        #     [j.get_process_time_deadline_ratio() for j in self._uncompleted_jobs_buffer])
 
         for job in self._pending_jobs:
             pending_job_recipes[job.get_id()] = job.get_recipes()[0].get_id()
@@ -405,7 +435,7 @@ class FactoryEnv(gym.Env):
         for idx, val in enumerate(pending_job_remaining_times):
             pending_job_remaining_times[idx] = pending_job_remaining_times[idx] * pending_jobs_steps_to_deadline[idx]
 
-        uc_jobs_obs_list = self.get_uncompleted_job_obs()
+        # uc_jobs_obs_list = self.get_uncompleted_job_obs()
         uc_jobs_buffer_obs_list = self.get_uncompleted_job_buffer_obs()
         pending_jobs_recipe_count, uc_jobs_recipe_count, uc_jobs_buffer_recipe_count = self.get_recipe_count_obs()
         ###########################################################
@@ -418,13 +448,17 @@ class FactoryEnv(gym.Env):
             self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_utilization,
             self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_utilization,
             self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times,
-            self._UC_JOB_RECIPE_STR: uc_jobs_obs_list[0],
-            self._UC_JOB_REMAINING_TIMES: uc_jobs_obs_list[1],
+            self._P_JOB_PROCESS_TIME_TO_DEADLINE_RATIO: p_steps_to_deadline_ratio,
+            self._P_JOB_STEPS_TO_DEADLINE: pending_jobs_steps_to_deadline,
+            # self._UC_JOB_RECIPE_STR: uc_jobs_obs_list[0],
+            # self._UC_JOB_REMAINING_TIMES: uc_jobs_obs_list[1],
             self._UC_JOB_BUFFER_RECIPES: uc_jobs_buffer_obs_list[0],
+            self._UC_BUFFER_PROCESS_TIME_TO_DEADLINE_RATIO: uc_jobs_buffer_obs_list[2],
             self._UC_JOB_BUFFER_REMAINING_TIMES: uc_jobs_buffer_obs_list[1],
             self._P_JOB_RECIPE_COUNT_STR: pending_jobs_recipe_count,
-            self._UC_JOB_RECIPE_COUNT_STR: uc_jobs_recipe_count,
-            self._UC_JOB_BUFFER_RECIPE_COUNT: uc_jobs_buffer_recipe_count
+            # self._UC_JOB_RECIPE_COUNT_STR: uc_jobs_recipe_count,
+            self._UC_JOB_BUFFER_RECIPE_COUNT: uc_jobs_buffer_recipe_count,
+            self._LOST_JOBS_COUNT: lost_jobs
         }
 
     def get_machine_scheduled_jobs_matrix(self):
@@ -510,17 +544,22 @@ class FactoryEnv(gym.Env):
 
     def get_uncompleted_job_buffer_obs(self) -> list[np.ndarray]:
         max_duration = min_duration = 0
-        uc_job_buffer_remaining_times: np.ndarray = np.zeros(
-            len(self._uncompleted_jobs_buffer), dtype=np.float64
+        uc_job_buffer_remaining_times: np.ndarray = np.full(
+            self._BUFFER_LEN, fill_value=-1, dtype=np.float64
         )
 
-        uc_job_buffer_recipes: np.ndarray = np.zeros(
-            len(self._uncompleted_jobs_buffer), dtype=np.float64
+        uc_job_buffer_recipes: np.ndarray = np.full(
+            self._BUFFER_LEN, fill_value=-1, dtype=np.float64
+        )
+
+        uc_job_buffer_process_time_deadline_ratio: np.ndarray = np.full(
+            self._BUFFER_LEN, fill_value=-1, dtype=np.float64
         )
 
         for idx, job in enumerate(self._uncompleted_jobs_buffer):
             uc_job_buffer_recipes[idx] = job.get_pending_recipes()[0].get_id()
             uc_job_buffer_remaining_times[idx] = job.get_remaining_process_time()
+            uc_job_buffer_process_time_deadline_ratio[idx] = job.get_process_time_deadline_ratio()
             # update max and min duration times for normalizing [0, 1]
             if uc_job_buffer_remaining_times[idx] > max_duration:
                 max_duration = uc_job_buffer_remaining_times[idx]
@@ -539,14 +578,14 @@ class FactoryEnv(gym.Env):
             uc_jobs_steps_to_deadline = np.array(
                 [min_max_norm(x, min_deadline, max_deadline) for x in uc_jobs_steps_to_deadline], dtype=np.float64)
 
-            for idx, val in enumerate(uc_job_buffer_remaining_times):
+            for idx, val in enumerate(uc_job_buffer_remaining_times[:len(self._uncompleted_jobs_buffer)]):
                 uc_job_buffer_remaining_times[idx] = uc_job_buffer_remaining_times[idx] * uc_jobs_steps_to_deadline[idx]
 
-        return [uc_job_buffer_recipes, uc_job_buffer_remaining_times]
+        return [uc_job_buffer_recipes, uc_job_buffer_remaining_times, uc_job_buffer_process_time_deadline_ratio]
 
     def get_recipe_count_obs(self) -> list[np.ndarray]:
         uc_jobs_buffer_recipe_count: np.ndarray = np.zeros(
-            len(self._uncompleted_jobs_buffer), dtype=np.float64
+            self._BUFFER_LEN, dtype=np.float64
         )
 
         uc_jobs_recipe_count: np.ndarray = np.zeros(
@@ -654,15 +693,15 @@ class FactoryEnv(gym.Env):
     def _compute_pending_job_penalty(self, action) -> float:
         """Function to check if any of pending jobs is assignable, if it is assignable return negative reward"""
         # get job with the least deadline
-        p_steps_to_deadline = np.array([j.get_steps_to_deadline() for j in self._pending_jobs])
-        uc_buffer_steps_to_deadline = np.array([j.get_steps_to_deadline() for j in self._uncompleted_jobs_buffer])
-        p_min_job_idx = np.argmin(p_steps_to_deadline)
-        reward = 0
+        p_steps_to_deadline_ratio = np.array([j.get_process_time_deadline_ratio() for j in self._pending_jobs])
+        uc_buffer_steps_to_deadline_ratio = np.array([j.get_process_time_deadline_ratio() for j in self._uncompleted_jobs_buffer])
+        p_min_job_idx = np.argmax(p_steps_to_deadline_ratio)
+        reward = len(self._lost_jobs) * -1
 
         least_deadline_job = self._pending_jobs[p_min_job_idx]
 
         if self._uncompleted_jobs_buffer:
-            uc_buffer_min_job_idx = np.argmin(uc_buffer_steps_to_deadline)
+            uc_buffer_min_job_idx = np.argmin(uc_buffer_steps_to_deadline_ratio)
             uc_buffer_least_deadline_job = self._uncompleted_jobs_buffer[uc_buffer_min_job_idx]
 
             if least_deadline_job.get_steps_to_deadline() > uc_buffer_least_deadline_job.get_steps_to_deadline():
@@ -675,8 +714,36 @@ class FactoryEnv(gym.Env):
             for job in self._pending_jobs:
                 if (job.get_next_pending_recipe().get_factory_id() == machine_to_start.get_active_recipe()
                         and machine_to_start.get_pending_tray_capacity() >= job.get_tray_capacity()):
-                    return self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
-            return 0
+                    reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
+
+                    # Also prioritize jobs with multiple recipes
+                    if len(job.get_pending_recipes()) > 1:
+                        for m_pending_job in machine_to_start.get_pending_jobs():
+                            m_p_time_ratio = m_pending_job.get_process_time_deadline_ratio()
+                            job_time_ratio = job.get_process_time_deadline_ratio()
+
+                            if job_time_ratio > m_p_time_ratio:
+                                reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR] * 1.5
+                                break
+
+
+            # check uncompleted buffer as well
+            for job in self._uncompleted_jobs_buffer:
+                if (job.get_next_pending_recipe().get_factory_id() == machine_to_start.get_active_recipe()
+                        and machine_to_start.get_pending_tray_capacity() >= job.get_tray_capacity()):
+                    reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
+
+                    # Also prioritize jobs with multiple recipes
+                    if len(job.get_pending_recipes()) > 1:
+                        for m_pending_job in machine_to_start.get_pending_jobs():
+                            m_p_time_ratio = m_pending_job.get_process_time_deadline_ratio()
+                            job_time_ratio = job.get_process_time_deadline_ratio()
+
+                            if job_time_ratio > m_p_time_ratio:
+                                reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR] * 1.5
+                                break
+
+            return reward
 
         # print(f"action: {action}")
         if (action != len(self._machines) * self._BUFFER_LEN
@@ -697,34 +764,47 @@ class FactoryEnv(gym.Env):
 
                     if (action_selected_job.get_next_pending_recipe().get_factory_id() == job.get_next_pending_recipe().get_factory_id()
                             and action_selected_job.get_factory_id() != job.get_factory_id()
-                            and action_selected_job.get_steps_to_deadline() > job.get_steps_to_deadline()
+                            and action_selected_job.get_process_time_deadline_ratio() < job.get_process_time_deadline_ratio()
                     ):
                         # same job recipes but picked job with higher deadline
                         reward += -2
+
+                # check for jobs in uncompleted buffer that could have been done
+                for idx, job in enumerate(self._uncompleted_jobs_buffer):
+                    if (action_selected_job.get_next_pending_recipe().get_factory_id() == job.get_next_pending_recipe().get_factory_id()
+                            and action_selected_job.get_factory_id() != job.get_factory_id()
+                            and action_selected_job.get_steps_to_deadline() > job.get_steps_to_deadline()
+                    ):
+                        # same job recipes but picked job with higher deadline and in pending buffer
+                        reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
             else:
                 action_offset = len(self._machines) * self._BUFFER_LEN + len(self._machines) + 1
                 decoded_action = action - action_offset
                 machine_idx = decoded_action // self._BUFFER_LEN
                 job_idx = decoded_action % self._BUFFER_LEN
                 action_selected_machine = self._machines[machine_idx]
+                if job_idx >= len(self._uncompleted_jobs_buffer):
+                    reward += self._REWARD_WEIGHTS[self.ILLEGAL_ACTION_STR]
+                    return reward
+
                 action_selected_job = self._uncompleted_jobs_buffer[job_idx]
 
-                for idx, job in enumerate(self._pending_jobs):
+                for idx, job in enumerate(self._uncompleted_jobs_buffer):
                     if idx == job_idx:
                         continue
 
                     if (action_selected_job.get_next_pending_recipe().get_factory_id() == job.get_next_pending_recipe().get_factory_id()
                             and action_selected_job.get_factory_id() != job.get_factory_id()
-                            and action_selected_job.get_steps_to_deadline() > job.get_steps_to_deadline()
+                            and action_selected_job.get_process_time_deadline_ratio() < job.get_process_time_deadline_ratio()
                     ):
                         # same job recipes but picked job with higher deadline
                         reward += -2
 
-
             if len(action_selected_machine.get_valid_recipes()) == 1:
-                reward += 1
+                reward += 0
             else:
                 # check if there is a specialised machine available
+                found_specialised_machine = False
                 for idx, machine in enumerate(self._machines):
                     if idx == machine_idx:
                         continue
@@ -736,15 +816,37 @@ class FactoryEnv(gym.Env):
                     ):
                         #print(f"Another specialised machine could have done job: {action_selected_job}")
                         reward += -1
+                        found_specialised_machine = True
+                # no specialised machine, agent should be rewarded for taking this action
+                if not found_specialised_machine:
+                    reward += 0
 
             # Also if all jobs are of the same type, the agent should be punished for picking a job with a higher deadline
             # than an already existing job
 
             # if the deadline will pass after executing this job, give a negative reward
-            if action_selected_job.get_steps_to_deadline() - action_selected_job.get_recipes()[0].get_process_time() < 0:
-                reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
+            # if action_selected_job.get_steps_to_deadline() - action_selected_job.get_recipes()[0].get_process_time() < 0:
+            #     reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
 
             return reward
+
+        #if action is no-op, check if any available machine could have been started
+        if action == len(self._machines) * self._BUFFER_LEN:
+            for machine in self._machines:
+                if machine.is_available():
+                    jobs_assignable = False
+                    for job in self._pending_jobs:
+                        if machine.can_perform_job(job):
+                            jobs_assignable = True
+                            reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
+                    for job in self._uncompleted_jobs_buffer:
+                        if machine.can_perform_job(job):
+                            jobs_assignable = True
+                            reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
+
+                    if not jobs_assignable and len(machine.get_pending_jobs()) > 0:
+                        # machine should have been started
+                        reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
 
         for machine in self._machines:
             if machine.is_available() and machine.can_perform_job(least_deadline_job):
@@ -769,11 +871,14 @@ class FactoryEnv(gym.Env):
 
     def _update_deadlines(self, time_delta: float):
         for j in self._pending_jobs:
-            j.update_steps_to_deadline(difference=time_delta * -1)
+            #j.update_steps_to_deadline(difference=time_delta * -1)
+            j.sync_steps_to_deadline(self.factory_time)
         for j in self._uncompleted_jobs_buffer:
-            j.update_steps_to_deadline(difference=time_delta * -1)
-        for j in self._uncompleted_jobs:
-            j.update_steps_to_deadline(difference=time_delta * -1)
+            #j.update_steps_to_deadline(difference=time_delta * -1)
+            j.sync_steps_to_deadline(self.factory_time)
+        for j in self._lost_jobs:
+            #j.update_steps_to_deadline(difference=time_delta * -1)
+            j.sync_steps_to_deadline(self.factory_time)
         for m in self._machines:
             for j in m.get_active_jobs():
                 j.update_steps_to_deadline(difference=time_delta * -1)
@@ -851,11 +956,13 @@ class FactoryEnv(gym.Env):
                             # return an immediate reward for job completion that takes into considering the amount of time to deadline
                             job_completed_reward = self._compute_job_completed_reward(j)
                         else:
+                            # set back the time to deadline for job, since it will be updated in the update_deadlines function
+                            j.update_steps_to_deadline(time_delta * 1)
                             # job recipe completed, but job has pending recipes
                             if len(self._uncompleted_jobs_buffer) < self._BUFFER_LEN:
                                 self._uncompleted_jobs_buffer.append(j)
                             else:
-                                self._uncompleted_jobs.append(j)
+                                self._lost_jobs.append(j)
 
                         if idx == len(machine.get_active_jobs()) - 1:
                             machine.remove_completed_jobs()
@@ -863,7 +970,7 @@ class FactoryEnv(gym.Env):
         self._update_deadlines(time_delta)
         return job_completed_reward
 
-    def _init_machine_job(self, selected_machine: Machine, selected_job: Job) -> bool:
+    def _init_machine_job(self, selected_machine: Machine, selected_job: Job, from_pending_buffer: bool = True) -> bool:
         """
         Add one pending job to one available machine given one job recipe is valid for given machine.
         Helper private method for Env step() method
@@ -873,7 +980,10 @@ class FactoryEnv(gym.Env):
         """
         if selected_machine.schedule_job(job_to_schedule=selected_job):
             self._jobs_in_progress.append((selected_machine, selected_job))
-            self._pending_jobs.remove(selected_job)
+            if from_pending_buffer:
+                self._pending_jobs.remove(selected_job)
+            else:
+                self._uncompleted_jobs_buffer.remove(selected_job)
             return True
             # print(f'Assigned job {selected_job} to machine {selected_machine.get_factory_id()}')
         return False
@@ -891,11 +1001,19 @@ class FactoryEnv(gym.Env):
             for m in self._machines
             if not m.is_available()
         ]
-        if times != []:
-            if min(times) // 4 <= 1:
+        # if there's a free machine, check if any jobs are assignable to it
+        eligible_job_exists = False
+        for m in self._machines:
+            if m.is_available():
+                eligible_job_exists = (m.can_perform_any_pending_job(self._pending_jobs)
+                                       or m.can_perform_any_pending_job(self._uncompleted_jobs_buffer))
+
+
+        if times:
+            if eligible_job_exists:
                 return 1
             else:
-                return min(times) // 4
+                return min(times)
         return 1
 
     def step(
@@ -964,7 +1082,7 @@ class FactoryEnv(gym.Env):
                 decoded_action // self._BUFFER_LEN
                 ]
             if action_selected_machine.is_available():
-                if decoded_action % self._BUFFER_LEN >= len(self._uncompleted_jobs):
+                if decoded_action % self._BUFFER_LEN >= len(self._uncompleted_jobs_buffer):
                     step_reward += self._REWARD_WEIGHTS[self.ILLEGAL_ACTION_STR]
                 else:
                     action_selected_job = self._uncompleted_jobs_buffer[
@@ -973,27 +1091,29 @@ class FactoryEnv(gym.Env):
                     if self._init_machine_job(
                             selected_machine=action_selected_machine,
                             selected_job=action_selected_job,
+                            from_pending_buffer=False
                     ):
                         step_reward += 1
                     else:
                         step_reward += self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR]
             else:
                 step_reward += self._REWARD_WEIGHTS[self.MACHINE_UNAVAILABLE_STR]
-        else:
-            # Action is for moving jobs from uncompleted_jobs list to uncompleted_jobs_buffer
-            action_offset = (len(self._machines) * self._BUFFER_LEN) * 2 + len(self._machines) + 1
-            decoded_action = action - action_offset
-            if len(self._uncompleted_jobs) < decoded_action + 1:
-                step_reward += self._REWARD_WEIGHTS[self.ILLEGAL_ACTION_STR]
-            else:
-                # check if _uncompleted_jobs_buffer is not full, otherwise negative reward
-                if len(self._uncompleted_jobs_buffer) < self._BUFFER_LEN:
-                    #move job to buffer
-                    job_to_move = self._uncompleted_jobs.pop(decoded_action)
-                    self._uncompleted_jobs_buffer.append(job_to_move)
-                    step_reward += 1.0 # TODO: find better reward depending on if the right job was moved
-                else:
-                    step_reward += self._REWARD_WEIGHTS[self.ILLEGAL_ACTION_STR]
+        # TODO: remove the `else` block
+        # else:
+        #     # Action is for moving jobs from uncompleted_jobs list to uncompleted_jobs_buffer
+        #     action_offset = (len(self._machines) * self._BUFFER_LEN) * 2 + len(self._machines) + 1
+        #     decoded_action = action - action_offset
+        #     if len(self._uncompleted_jobs) < decoded_action + 1:
+        #         step_reward += self._REWARD_WEIGHTS[self.ILLEGAL_ACTION_STR]
+        #     else:
+        #         # check if _uncompleted_jobs_buffer is not full, otherwise negative reward
+        #         if len(self._uncompleted_jobs_buffer) < self._BUFFER_LEN:
+        #             #move job to buffer
+        #             job_to_move = self._uncompleted_jobs.pop(decoded_action)
+        #             self._uncompleted_jobs_buffer.append(job_to_move)
+        #             step_reward += 1.0 # TODO: find better reward depending on if the right job was moved
+        #         else:
+        #             step_reward += self._REWARD_WEIGHTS[self.ILLEGAL_ACTION_STR]
         #########################
         #     2-UPDATE ENV      #
         #########################
@@ -1015,9 +1135,10 @@ class FactoryEnv(gym.Env):
             state_reward = self._compute_reward()
             reward += state_reward
         #########################
-        #    5-UPDATE BUFFER    #
+        #    5-UPDATE BUFFERS    #
         #########################
         self.update_buffer()
+        self.update_uncompleted_buffer()
         # print(TextColors.MAGENTA+"Factory Time after step: "+TextColors.RESET,self.factory_time)
         #########################
         #        6-RETURN       #
@@ -1033,7 +1154,7 @@ class FactoryEnv(gym.Env):
              "AVG_TARDINESS_OF_LATE_JOBS": self.get_avg_time_past_deadline(),
              "CURRENT_TIME": self.factory_time,
              "UNCOMPLETED_JOBS_BUFFER": len(self._uncompleted_jobs_buffer),
-             "UNCOMPLETED_JOBS": len(self._uncompleted_jobs)
+             "LOST_JOBS": len(self._lost_jobs)
              },
         )
 
@@ -1055,17 +1176,33 @@ class FactoryEnv(gym.Env):
                 if i not in pending_idx:
                     # Create job
                     r = random.choice(self.available_recipes,)
+                    r2 = random.choice(self.available_recipes,)
+                    use_multiple_recipes = np.random.randint(low=0, high=10) % 2 == 0
+                    deadline = 100 if r.get_recipe_type() == "R1" else 1000
+                    if use_multiple_recipes:
+                        if r.get_recipe_type() == "R2" or r2.get_recipe_type() == "R2":
+                            deadline = 1000
                     # NOTE:Note that “process time” should be 5%-30% of the difference between deadline-arrival
                     new_job = create_job(
-                        recipes=[r],
+                        recipes=[r] if not use_multiple_recipes else [r,r2],
                         factory_id="J" + str(i),
                         process_id=i,
-                        deadline=100 if r.get_recipe_type() == "R1" else 1000,
+                        deadline=deadline,
                         factory_time=self.factory_time,
                     )
                     # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
                     # print(new_job)
                     self._pending_jobs.insert(i, new_job)
+
+    def update_uncompleted_buffer(self):
+        """
+        This method will move any jobs in lost_jobs to the uncompleted buffer.
+        TODO: Update so only jobs that are within deadline are movable
+        """
+        if len(self._lost_jobs) > 0 and len(self._uncompleted_jobs_buffer) < self._BUFFER_LEN:
+            job = self._lost_jobs.pop(0)
+            self._uncompleted_jobs_buffer.append(job)
+
 
     def render(self):
         """
@@ -1125,6 +1262,9 @@ class FactoryEnv(gym.Env):
         self._jobs_in_progress = []
         self._completed_jobs = []
         self._late_jobs_time_past_deadline = []
+        self._uncompleted_jobs_buffer = []
+        self._lost_jobs = []
+
 
         return self.get_capacity_obs(), {}
 

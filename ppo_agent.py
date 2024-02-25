@@ -39,7 +39,7 @@ class Agent:
     def __init__(self, custom_env: FactoryEnv | Monitor) -> None:
         self.custom_env: FactoryEnv = custom_env
         self.model: PPO = PPO(
-            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE
+            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, batch_size=10_000
         )
 
     def learn(

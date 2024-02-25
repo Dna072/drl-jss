@@ -70,6 +70,7 @@ class Job:
         self.__id: int = process_id
         self.__factory_id: str = factory_id
         self._steps_to_deadline: float = deadline
+        self.__deadline: float = deadline
         self.__status: int = self.__STATUS_AVAILABLE_VAL
         self.__creation_step: int = factory_time
 
@@ -97,6 +98,15 @@ class Job:
         """
         return sum([recipe.get_process_time() for recipe in self.__recipes_pending])
 
+    def get_process_time_deadline_ratio(self) -> float:
+        """
+        This returns the total remaining proces time of the job / steps to deadline
+        """
+        if self.get_remaining_process_time() >= self._steps_to_deadline or self._steps_to_deadline == 0:
+            return 1
+
+        return self.get_remaining_process_time() / self._steps_to_deadline
+
     def get_id(self) -> int:
         return self.__id
 
@@ -111,6 +121,9 @@ class Job:
 
     def update_steps_to_deadline(self, difference):
         self._steps_to_deadline += difference
+
+    def sync_steps_to_deadline(self, factory_time):
+        self._steps_to_deadline = self.__deadline - factory_time + self.__creation_step
 
     def get_start_time(self) -> int:
         return self.__creation_step

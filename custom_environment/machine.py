@@ -152,16 +152,18 @@ class Machine:
 
     def get_job_next_recipe(self, job: Job) -> Recipe:
         recipe = None
-        if len(job.get_recipes()) > 0:
-            if job.get_recipes()[0].get_recipe_type() in self.__valid_recipe_types:
-                recipe = job.get_recipes()[0]
+        if len(job.get_pending_recipes()) > 0:
+            if job.get_next_pending_recipe().get_recipe_type() in self.__valid_recipe_types:
+                recipe = job.get_next_pending_recipe()
 
         return recipe
 
     def can_perform_job(self, job: Job) -> bool:
-        for recipe in job.get_pending_recipes():
-            if recipe.get_recipe_type() in self.__valid_recipe_types:
-                return True
+        if job.get_next_pending_recipe().get_recipe_type() in self.__valid_recipe_types:
+            return True
+        # for recipe in job.get_pending_recipes():
+        #     if recipe.get_recipe_type() in self.__valid_recipe_types:
+        #         return True
 
         return False
 

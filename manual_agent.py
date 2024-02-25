@@ -48,7 +48,7 @@ while s < max_steps and nr_pending_jobs > 0:
         f'Reward: {r}, Factory time: {i["CURRENT_TIME"]} '
         f'JOT: {i["JOBS_COMPLETED_ON_TIME"]}, JNOT: {i["JOBS_NOT_COMPLETED_ON_TIME"]} '
         f'UC_JOBS_BUFFER: {i["UNCOMPLETED_JOBS_BUFFER"]} '
-        f'UC_JOBS: {i["UNCOMPLETED_JOBS"]}')
+        f'LOST_JOBS: {i["LOST_JOBS"]}')
 
     tot_reward += r
     r_values.append(r)

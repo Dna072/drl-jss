@@ -49,18 +49,23 @@ def print_capacity_obs(obs, n_machines, machines, print_length):
     obs_pending_machine_capacity = obs["machine_pending_capacity"]
     obs_active_machine_capacity = obs["machine_active_capacity"]
     obs_pending_job_remaining_time = obs["pending_job_remaining_times"]
+    obs_pending_job_steps_to_deadline = obs["pending_job_steps_to_deadline"]
+
     obs_pending_job_recipes = obs["pending_job_recipe"]
-    obs_uc_job_recipes = obs["uncompleted_job_recipes"]
+    obs_p_job_process_time_deadline_ratio = obs["pending_job_process_time_deadline_ratio"]
+    obs_uc_job_process_time_deadline_ratio = obs["uncompleted_job_buffer_process_time_deadline_ratio"]
+    # obs_uc_job_recipes = obs["uncompleted_job_recipes"]
     obs_uc_job_buffer_recipes = obs["uncompleted_job_buffer_recipes"]
-    obs_uc_job_remaining_times = obs["uncompleted_job_remaining_times"]
+    #obs_uc_job_remaining_times = obs["uncompleted_job_remaining_times"]
     obs_uc_job_buffer_remaining_times = obs["uncompleted_job_remaining_times"]
     obs_pending_job_recipe_count = obs["pending_job_recipe_count"]
-    obs_uc_job_recipe_count = obs["uncompleted_job_recipe_count"]
+    obs_lost_jobs_count = obs["lost_jobs_count"]
+    # obs_uc_job_recipe_count = obs["uncompleted_job_recipe_count"]
     obs_uc_job_buffer_recipe_count = obs["uncompleted_job_buffer_recipe_count"]
 
     # o_p_steps_to_deadline = obs["pending_job_steps_to_deadline"]
     # o_ip_remaining = obs["inprogress_job_remaining_times"]
-    machines_capacity_matrix = [['.' for i in range(print_length)] for m in range(n_machines)]
+
 
     # print(TextColors.YELLOW + "Pending Jobs:\n" + TextColors.RESET, o_pending)
     # print("Recipes?:\n",o_recipes)
@@ -73,16 +78,23 @@ def print_capacity_obs(obs, n_machines, machines, print_length):
     #     o_p_steps_to_deadline,
     # )
     # print(TextColors.YELLOW+"Remaining time for jobs ip:\n"+TextColors.RESET, o_ip_remaining)
+    print(
+        TextColors.YELLOW + "Pending job steps to deadline:\n" + TextColors.RESET,
+        obs_pending_job_steps_to_deadline,
+    )
+    print(
+        TextColors.YELLOW + "Pending jobs process time to deadline ratio:\n" + TextColors.RESET,
+        obs_p_job_process_time_deadline_ratio,
+    )
     print(TextColors.YELLOW + "Pending job recipes:" + TextColors.RESET, obs_pending_job_recipes)
-    print(TextColors.YELLOW + "Uncompleted job recipes:" + TextColors.RESET, obs_uc_job_recipes)
-    print(TextColors.YELLOW + "Uncompleted job remaining times:" + TextColors.RESET, obs_uc_job_remaining_times)
     print(TextColors.YELLOW + "Uncompleted job buffer recipes:" + TextColors.RESET, obs_uc_job_buffer_recipes)
+    print(TextColors.YELLOW + "UC job buffer process time to deadline:" + TextColors.RESET, obs_uc_job_process_time_deadline_ratio)
     print(TextColors.YELLOW + "Uncompleted job  buffer remaining times:" + TextColors.RESET, obs_uc_job_buffer_remaining_times)
     print(TextColors.YELLOW + "Pending job recipe count:" + TextColors.RESET, obs_pending_job_recipe_count)
-    print(TextColors.YELLOW + "Uncompleted job recipe count:" + TextColors.RESET, obs_uc_job_recipe_count)
     print(TextColors.YELLOW + "Uncompleted job buffer recipe count:" + TextColors.RESET, obs_uc_job_buffer_recipe_count)
     print(TextColors.YELLOW + "Machine active capacity utilization:" + TextColors.RESET, obs_active_machine_capacity)
     print(TextColors.YELLOW + "Machine pending capacity utilization:" + TextColors.RESET, obs_pending_machine_capacity)
+    print(TextColors.YELLOW + "Lost jobs count:" + TextColors.RESET, obs_lost_jobs_count)
 
     # for i in range(n_machines):
     #     print(TextColors.GREEN + "M", i, " " + TextColors.RESET + "[ ", end="")
@@ -95,15 +107,23 @@ def print_capacity_obs(obs, n_machines, machines, print_length):
     #     print(f'{machines_matrix[i][-1]}  ', end="")
     #     print("]")
     # print()
-
-    for idx, m in enumerate(machines):
+def print_scheduled_jobs(env, print_length=10):
+    # o_pending = obs["pending_jobs"]
+    o_machines = env.get_machines()
+    nr_machines = len(o_machines)
+    # o_p_steps_to_deadline = obs["pending_job_steps_to_deadline"]
+    # o_ip_remaining = obs["inprogress_job_remaining_times"]
+    machines_matrix = env.get_machine_scheduled_jobs_matrix()
+    machines_capacity_matrix = [['.' for i in range(print_length)] for m in range(nr_machines)]
+    # Print active machine capacity
+    for idx, m in enumerate(o_machines):
         print(TextColors.GREEN + "M", idx, " " + TextColors.RESET + "[ ", end="")
         last_job_cap = 0
         for i, job in enumerate(m.get_active_jobs()):
             j_cap = int(job.get_tray_capacity() / m.get_tray_capacity() * print_length)
 
             machines_capacity_matrix[idx][last_job_cap: j_cap] = [(
-                TextColors.BLUE) + "#" if i % 2 == 0 else TextColors.RED + "#"] * j_cap
+                                                                      TextColors.BLUE) + "#" if i % 2 == 0 else TextColors.RED + "#"] * j_cap
 
             last_job_cap = j_cap
 
@@ -112,21 +132,7 @@ def print_capacity_obs(obs, n_machines, machines, print_length):
 
         print("]")
     print()
-def print_scheduled_jobs(env):
-    # o_pending = obs["pending_jobs"]
-    o_machines = env.get_machines()
-    nr_machines = len(o_machines)
-    # o_p_steps_to_deadline = obs["pending_job_steps_to_deadline"]
-    # o_ip_remaining = obs["inprogress_job_remaining_times"]
-    machines_matrix = env.get_machine_scheduled_jobs_matrix()
-    # print(TextColors.YELLOW + "Pending Jobs:\n" + TextColors.RESET, o_pending)
-    # print("Recipes?:\n",o_recipes)
 
-    # print(
-    #     TextColors.YELLOW + "Steps to deadline for jobs pending:\n" + TextColors.RESET,
-    #     o_p_steps_to_deadline,
-    # )
-    # print(TextColors.YELLOW+"Remaining time for jobs ip:\n"+TextColors.RESET, o_ip_remaining)
     print(TextColors.YELLOW + "Machine scheduled jobs:" + TextColors.RESET)
     print(TextColors.GREEN + "       J0  J1  J2" + TextColors.RESET)
     for i in range(nr_machines):
@@ -172,6 +178,14 @@ def min_max_norm(x:float, x_min: float, x_max: float):
         return 0
 
     return (x - x_min)/(x_max - x_min)
+
+def min_max_norm_list(arr: list[float]):
+    x_min = min(arr)
+    x_max = max(arr)
+
+    new_arr = np.array([min_max_norm(x, x_min, x_max) for x in arr])
+
+    return new_arr
 
 
 def create_bins(input_array, group_size=10):

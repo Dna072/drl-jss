@@ -22,7 +22,9 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
 import numpy as np
 import matplotlib.pyplot as plt
-from custom_environment.utils import print_observation, print_jobs, print_scheduled_jobs, print_capacity_obs
+from custom_environment.utils import (print_observation,
+                                      print_jobs, print_scheduled_jobs,
+                                      print_uncompleted_jobs_buffer, print_capacity_obs)
 
 
 class Agent:
@@ -30,7 +32,7 @@ class Agent:
     DQN agent for learning the custom FactoryEnv environment
     """
 
-    FILE_PATH_NAME: str = "files/dqn_custom_factory_env_3"
+    FILE_PATH_NAME: str = "files/dqn_custom_factory_env_multi_recipe_3"
     POLICY: str = (
         "MultiInputPolicy"  # converts multiple Dictionary inputs into a single vector
     )
@@ -40,7 +42,7 @@ class Agent:
         self.custom_env: FactoryEnv = custom_env
         self.model: DQN = DQN(
             policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE,
-             gamma=0.9, exploration_fraction=0.5,
+             gamma=0.9, exploration_fraction=0.5, batch_size=10_000
             # learning_rate=1e-3, gamma=0.6, exploration_fraction=0.25,buffer_size=10_000
         )
 
@@ -74,17 +76,26 @@ class Agent:
         steps = 0
 
         while episode < num_of_episodes:
-            # print_jobs(self.custom_env)
+            print_jobs(self.custom_env)
+            print_uncompleted_jobs_buffer(self.custom_env)
+            print_capacity_obs(obs, machines=self.custom_env.get_machines(), n_machines=2, print_length=10)
+
 
             action, _states = self.model.predict(observation=obs, deterministic=True)
-            # print(f'Action: {action}')
+            print(f'Action: {action}')
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
-            # print(f'Reward: {reward}, Factory time: {info["CURRENT_TIME"]} JOT: {info["JOBS_COMPLETED_ON_TIME"]}, JNOT: {info["JOBS_NOT_COMPLETED_ON_TIME"]}')
-            # print_capacity_obs(obs, machines=self.custom_env.get_machines(), n_machines=2, print_length=10)
-            # print_scheduled_jobs(self.custom_env)
-            # test = input('Enter to continue')
+            print_scheduled_jobs(self.custom_env)
+            print(f'Reward: {reward}, '
+                  f'Factory time: {info["CURRENT_TIME"]} '
+                  f'JOT: {info["JOBS_COMPLETED_ON_TIME"]}, '
+                  f'JNOT: {info["JOBS_NOT_COMPLETED_ON_TIME"]}, '
+                  f'UC_JOBS_BUFFER: {info["UNCOMPLETED_JOBS_BUFFER"]}, '
+                  f'LOST_JOBS: {info["LOST_JOBS"]}')
+
+
+            test = input('Enter to continue')
 
             returns.append(reward)
             curr_tardiness = self.custom_env.get_tardiness_percentage()
@@ -106,7 +117,7 @@ class Agent:
         return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
 
-def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom_factory_env_2",
+def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom_factory_env_multi_recipe_2",
                        env_max_steps: int = 100):
     ep_reward = []
     ep_tardiness = []
@@ -137,8 +148,8 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 4_000_000
-    ENVIRONMENT_MAX_STEPS = 25_000
+    LEARNING_MAX_STEPS = 8_100_000
+    ENVIRONMENT_MAX_STEPS = 50_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
@@ -146,7 +157,7 @@ if __name__ == "__main__":
     # agent.learn(
     #     total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
     # )
-    # agent.save(file_path_name="files/trainedAgents/dqn_agent_multi_job_"+str(LEARNING_MAX_STEPS))
+    # agent.save(file_path_name="files/trainedAgents/dqn_agent_multi_recipe_job_"+str(LEARNING_MAX_STEPS))
 
-    agent.load(file_path_name='files/trainedAgents/dqn_agent_multi_job_4000000')
+    agent.load(file_path_name='files/trainedAgents/dqn_agent_multi_recipe_job_8100000')
     agent.evaluate(num_of_episodes = 1_000)

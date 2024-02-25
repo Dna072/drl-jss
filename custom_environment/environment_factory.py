@@ -42,10 +42,10 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_
 
     jobs: list[Job] = [
         create_job(
-            recipes=[(recipe_objects[0]), (recipe_objects[1])],
+            recipes=[(recipe_objects[0])],
             factory_id="J0",
             process_id=0,
-            deadline=1000
+            deadline=100
             if [(recipe_objects[0])][0].get_recipe_type() == "R1"
             else 1000,
             factory_time=0,

@@ -55,75 +55,75 @@ def episodic_edd_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
 
 #-------------------- CHECK IF EVERYTHING BELOW THIS LINE CAN BE DELETED --------------
 
-# if __name__ == "__main__":
-#     print("Outside")
-#     machines: int = 2
-#     jobs: int = 3
-#     max_steps: int = 100000
-#
-#     j: int = 0
-#     tot_reward: int = 0
-#
-#     env: FactoryEnv = init_custom_factory_env(is_verbose=False)
-#     env.set_termination_reward(-100000)
-#     #nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
-#
-#     r_values: list[int] = []
-#     tr_values: list[int] = []
-#     tardiness: list[float] = []
-#     steps: list[int] = []
-#
-#     ep_values = []  # array of episode reward
-#     episodes: int = 100
-#     MAX_STEPS = 400000
-#     eps = []
-#     avg_returns_per_episode = []
-#     tardiness_per_episode = []
-#     job_times_past_deadline = []
-#     jobs_completed_on_time = []
-#     jobs_completed_late = []
-#     avg_tardiness_of_late_jobs_per_episode = []
-#     returns = []
-#     current_step = 0
-#     env = init_custom_factory_env(is_verbose=False, max_steps=MAX_STEPS)
-#     env.set_termination_reward(-100000)
-#     obs, info = env.reset()
-#
-#     for e in range(episodes):
-#         tot_reward = 0
-#         while (
-#             1
-#         ):  # the environment has its own termination clauses, so it will trigger the break
-#             print_jobs(env)
-#             print_observation(obs, nr_machines=len(env.get_machines()))
-#             action = np.array(get_edd_action(env))
-#             obs, reward, te, tr, i = env.step(action)
-#
-#             print_observation(obs, nr_machines=len(env.get_machines()))
-#             print(f"reward: {reward}")
-#             print(f"info: {i}")
-#
-#             returns.append(reward)
-#             current_step += 1
-#             if te:
-#                 print(f"avg return: {np.sum(returns) / steps}")
-#                 avg_returns_per_episode.append(np.sum(returns) / current_step)
-#                 tardiness_per_episode.append(env.get_tardiness_percentage())
-#                 job_times_past_deadline.append(env.get_avg_time_past_deadline())
-#                 jobs_completed_late.append(i['JOBS_NOT_COMPLETED_ON_TIME'])
-#                 jobs_completed_on_time.append(i['JOBS_COMPLETED_ON_TIME'])
-#                 avg_tardiness_of_late_jobs_per_episode.append(i['AVG_TARDINESS_OF_LATE_JOBS'])
-#                 current_step = 0
-#                 returns = []
-#                 obs, info = env.reset()
-#                 env.set_termination_reward(-10000000)
-#                 break
-#
-#     print(f"Avg jobs completed on time: {sum(jobs_completed_on_time) / len(jobs_completed_on_time)}")
-#     print(f"Avg jobs completed late: {sum(jobs_completed_late) / len(jobs_completed_late)}")
-#     print(f"Avg tardiness of late jobs over episodes: "
-#           f"{sum(avg_tardiness_of_late_jobs_per_episode) / len(avg_tardiness_of_late_jobs_per_episode)}")
-#
+if __name__ == "__main__":
+    print("Outside")
+    machines: int = 2
+    jobs: int = 3
+    max_steps: int = 100000
+
+    j: int = 0
+    tot_reward: int = 0
+
+    env: FactoryEnv = init_custom_factory_env(is_verbose=False)
+    env.set_termination_reward(-100000)
+    #nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
+
+    r_values: list[int] = []
+    tr_values: list[int] = []
+    tardiness: list[float] = []
+    steps: list[int] = []
+
+    ep_values = []  # array of episode reward
+    episodes: int = 100
+    MAX_STEPS = 400000
+    eps = []
+    avg_returns_per_episode = []
+    tardiness_per_episode = []
+    job_times_past_deadline = []
+    jobs_completed_on_time = []
+    jobs_completed_late = []
+    avg_tardiness_of_late_jobs_per_episode = []
+    returns = []
+    current_step = 0
+    env = init_custom_factory_env(is_verbose=False, max_steps=MAX_STEPS)
+    env.set_termination_reward(-100000)
+    obs, info = env.reset()
+
+    for e in range(episodes):
+        tot_reward = 0
+        while (
+            1
+        ):  # the environment has its own termination clauses, so it will trigger the break
+            print_jobs(env)
+            print_observation(obs, nr_machines=len(env.get_machines()))
+            action = np.array(get_edd_action(env))
+            obs, reward, te, tr, i = env.step(action)
+
+            print_observation(obs, nr_machines=len(env.get_machines()))
+            print(f"reward: {reward}")
+            print(f"info: {i}")
+
+            returns.append(reward)
+            current_step += 1
+            if te:
+                print(f"avg return: {np.sum(returns) / steps}")
+                avg_returns_per_episode.append(np.sum(returns) / current_step)
+                tardiness_per_episode.append(env.get_tardiness_percentage())
+                job_times_past_deadline.append(env.get_avg_time_past_deadline())
+                jobs_completed_late.append(i['JOBS_NOT_COMPLETED_ON_TIME'])
+                jobs_completed_on_time.append(i['JOBS_COMPLETED_ON_TIME'])
+                avg_tardiness_of_late_jobs_per_episode.append(i['AVG_TARDINESS_OF_LATE_JOBS'])
+                current_step = 0
+                returns = []
+                obs, info = env.reset()
+                env.set_termination_reward(-10000000)
+                break
+
+    print(f"Avg jobs completed on time: {sum(jobs_completed_on_time) / len(jobs_completed_on_time)}")
+    print(f"Avg jobs completed late: {sum(jobs_completed_late) / len(jobs_completed_late)}")
+    print(f"Avg tardiness of late jobs over episodes: "
+          f"{sum(avg_tardiness_of_late_jobs_per_episode) / len(avg_tardiness_of_late_jobs_per_episode)}")
+
 #     fig, axs = plt.subplots(3, 1)
 #     fig.suptitle("Avg returns per episode")
 #     axs[0].plot(avg_returns_per_episode)
