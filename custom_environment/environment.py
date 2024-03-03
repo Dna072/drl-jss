@@ -690,11 +690,18 @@ class FactoryEnv(gym.Env):
             for m in self._machines
             if not m.is_available()
         ]
-        if times != []:
-            if min(times) // 4 <= 1:
+        # if there's a free machine, check if any jobs are assignable to it
+        eligible_job_exists = False
+        for m in self._machines:
+            if m.is_available():
+                eligible_job_exists = (m.can_perform_any_pending_job(self._pending_jobs)
+                                       or m.can_perform_any_pending_job(self._uncompleted_jobs_buffer))
+
+        if times:
+            if eligible_job_exists:
                 return 1
             else:
-                return min(times) // 4
+                return min(times)
         return 1
 
     def step(

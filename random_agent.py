@@ -5,6 +5,19 @@ from random import randint
 import numpy as np
 
 
+def get_random_action(env: FactoryEnv):
+    n_machines = len(env.get_machines())
+    action_length = n_machines * env.get_buffer_size()
+    action: np.ndarray = np.array(randint(0, action_length))
+
+    # check for machines that have tray capacity full or almost full and start them
+    for idx, m in enumerate(env.get_machines()):
+        if m.get_pending_tray_capacity() < 30:
+            # start the machine
+            action = action_length + (idx + 1)  # Current No-Op plus index of machine + 1
+
+    return action
+
 def run_random_agent():
     machines: int = 2
     jobs: int = 3
@@ -15,7 +28,10 @@ def run_random_agent():
     steps: list[int] = []
     env: FactoryEnv = init_custom_factory_env(is_verbose=False)
     while 1:  # the environment has the condition to terminate after #max_steps
-        action: np.ndarray = np.array(randint(0, machines * jobs + machines))
+        action: np.ndarray = np.array(randint(0, machines * jobs))
+        # check if any machines are full, if a machine is full start it
+        #for idx, m in env.get_machines():
+
         o, r, te, tr, i = env.step(action)
         tot_reward += r
         r_values.append(r)
@@ -46,7 +62,7 @@ def episodic_random_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
         env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps)
         tot_reward = 0
         while 1:  # the environment has its own termination clauses, so it will trigger the break
-            action = np.array(randint(0, machines * jobs))
+            action = get_random_action(env)
             o, r, te, tr, i = env.step(action)
             curr_tardiness = env.get_tardiness_percentage()
             tot_reward += r

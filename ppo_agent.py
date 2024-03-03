@@ -140,10 +140,10 @@ if __name__ == "__main__":
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
 
-    # agent.learn(
-    #     total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
-    # )
-    # agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
+    agent.learn(
+        total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
+    )
+    agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
 
-    agent.load(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
-    agent.evaluate()
+    # agent.load(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
+    # agent.evaluate()
