@@ -44,7 +44,7 @@ def print_observation(obs, nr_machines):
         print("]")
     print()
 
-def print_capacity_obs(obs, n_machines, machines, print_length):
+def print_capacity_obs(obs):
     # o_pending = obs["pending_jobs"]
     obs_pending_machine_capacity = obs["machine_pending_capacity"]
     obs_active_machine_capacity = obs["machine_active_capacity"]

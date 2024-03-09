@@ -470,6 +470,12 @@ class FactoryEnv(gym.Env):
                 is_machines_pending_jobs[machine.get_id(), job.get_id()] += 1.0
 
         return is_machines_pending_jobs
+
+    @staticmethod
+    def get_actual_process_time_to_deadline_ratio(jobs_list: list[Job]) -> list[float]:
+        steps_to_deadline_ratio = [j.get_process_time_deadline_ratio() for j in jobs_list]
+        return steps_to_deadline_ratio
+
     def get_pending_jobs(self):
         return self._pending_jobs
 

@@ -1,5 +1,6 @@
 from fifo_agent import episodic_fifo_agent
 from edd_agent import episodic_edd_agent
+from heuristic_agent import episodic_heuristic_agent
 from random_agent import episodic_random_agent
 from dqn_agent import episodic_dqn_agent, Agent as dqn_Agent
 from ppo_agent import episodic_ppo_agent, Agent as ppo_Agent
@@ -20,27 +21,34 @@ Then add the path to the saved agent in the PATH constants below.
 N_EPISODES = 1_000
 PLOT_GROUPING = N_EPISODES // 10
 ENV_MAX_STEPS = 10_000
-DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_multi_job_4000000"
-PPO_AGENT_PATH = "files/trainedAgents/ppo_agent_multi_job_4000000"
+DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_multi_recipe_job_8100000"
+PPO_AGENT_PATH = "files/trainedAgents/ppo_agent_multi_recipe_job_8100000"
 SAVE_PATH = "files/data/"
 
 ###################
 #       EVAL      #
 ###################
 '''
-I added some control over the computations so that if it is already computed, it doesnt calculate everything it again
+Added some control over the computations so that if it is already computed no re-computation is done
 In case with a large number of episodes, this will save a lot of time.
 '''
-print("\033[96m"+"Starting Random"+"\033[0m")
-RAND_PATH = SAVE_PATH + "random_data_" + str(N_EPISODES) + ".pkl"
-if not os.path.exists(RAND_PATH):
-    random_rewards, random_tardiness, random_jot, random_jnot = episodic_random_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
-    save_agent_results(random_rewards, random_tardiness, random_jot, random_jnot, path= RAND_PATH)
+# print("\033[96m"+"Starting Random"+"\033[0m")
+# RAND_PATH = SAVE_PATH + "random_data_" + str(N_EPISODES) + ".pkl"
+# if not os.path.exists(RAND_PATH):
+#     random_rewards, random_tardiness, random_jot, random_jnot = episodic_random_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
+#     save_agent_results(random_rewards, random_tardiness, random_jot, random_jnot, path= RAND_PATH)
+# else:
+#     random_rewards, random_tardiness, random_jot, random_jnot = load_agent_results(RAND_PATH)
+print("\033[96m"+"Starting Heuristic"+"\033[0m")
+HEURISTIC_PATH = SAVE_PATH + "heuristic_data_multi_recipe_job" + str(N_EPISODES) + ".pkl"
+if not os.path.exists(HEURISTIC_PATH):
+    heuristic_rewards, heuristic_tardiness, heuristic_jot, heuristic_jnot = episodic_heuristic_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
+    save_agent_results(heuristic_rewards, heuristic_tardiness, heuristic_jot, heuristic_jnot, path= HEURISTIC_PATH)
 else:
-    random_rewards, random_tardiness, random_jot, random_jnot = load_agent_results(RAND_PATH)
+    heuristic_rewards, heuristic_tardiness, heuristic_jot, heuristic_jnot = load_agent_results(HEURISTIC_PATH)
 
 print("\033[93m"+"Starting EDD"+"\033[0m")
-EDD_PATH= SAVE_PATH + "edd_data_" + str(N_EPISODES) + ".pkl"
+EDD_PATH= SAVE_PATH + "edd_data_multi_recipe_job" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(EDD_PATH):
     edd_rewards, edd_tardiness, edd_jot, edd_jnot = episodic_edd_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
     save_agent_results(edd_rewards, edd_tardiness, edd_jot, edd_jnot, path= EDD_PATH)
@@ -49,7 +57,7 @@ else:
 
 
 print("\033[92m"+"Starting FIFO"+"\033[0m")
-FIFO_PATH = SAVE_PATH + "fifo_data_" + str(N_EPISODES) + ".pkl"
+FIFO_PATH = SAVE_PATH + "fifo_data_multi_recipe_job" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(FIFO_PATH):
     fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot = episodic_fifo_agent(n_episodes=N_EPISODES, env_max_steps=ENV_MAX_STEPS)
     save_agent_results(fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot, path= FIFO_PATH)
@@ -57,7 +65,7 @@ else:
     fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot = load_agent_results(FIFO_PATH)
 
 print("\033[96m"+"Starting DQN"+"\033[0m")
-DQN_PATH = SAVE_PATH + "dqn_data_multi_job" + str(N_EPISODES) + ".pkl"
+DQN_PATH = SAVE_PATH + "dqn_data_multi_recipe_job" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(DQN_PATH):
     agent = dqn_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
     agent.load(file_path_name=DQN_AGENT_PATH)
@@ -68,7 +76,7 @@ else:
 
 
 print("\033[95m"+"Starting PPO"+"\033[0m")
-PPO_PATH = SAVE_PATH + "ppo_data_multi_job" + str(N_EPISODES) + ".pkl"
+PPO_PATH = SAVE_PATH + "ppo_data_multi_recipe_job" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(PPO_PATH):
     p_agent = ppo_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
     p_agent.load(file_path_name=PPO_AGENT_PATH)
@@ -80,11 +88,12 @@ else:
 #############################
 #         TARDINESS %       #
 #############################
-random_tardiness_performance = [a / (b + c) for a, b, c in zip(random_tardiness, random_jot, random_jnot)]
+#random_tardiness_performance = [a / (b + c) for a, b, c in zip(random_tardiness, random_jot, random_jnot)]
+heuristic_tardiness_performance = [a / (b + c) for a, b, c in zip(heuristic_tardiness, heuristic_jot, heuristic_jnot)]
 edd_tardiness_performance = [a / (b + c) for a, b, c in zip(edd_tardiness, edd_jot, edd_jnot)]
 fifo_tardiness_performance = [a / (b + c) for a, b, c in zip(fifo_tardiness, fifo_jot, fifo_jnot)]
 dqn_tardiness_performance = [a / (b + c) for a, b, c in zip(dqn_tardiness, dqn_jot, dqn_jnot)]
-ppo_tardiness_performance = [a / (b + c) for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
+ppo_tardiness_performance = [a / (b + c) if b + c > 0 else 0 for a, b, c in zip(ppo_tardiness, ppo_jot, ppo_jnot)]
 
 #############################
 #         PLOT CONFIG       #
@@ -94,7 +103,7 @@ time_steps = np.arange(1, 11)  # 10 bins + 1
 # Bar width for better visibility
 bar_width = 0.15
 # Set up positions for bars
-random_positions = time_steps - 1.5 * bar_width
+heuristic_positions = time_steps - 1.5 * bar_width
 fifo_positions = time_steps - 0.5 * bar_width
 edd_positions = time_steps + 0.5 * bar_width
 dqn_positions = time_steps + 1.5 * bar_width
@@ -103,8 +112,8 @@ ppo_positions = time_steps + 2.5 * bar_width
 #############################
 #        RESHAPE DATA       #
 #############################
-random_rewards = create_bins(random_rewards, group_size=PLOT_GROUPING)
-random_tardiness = create_bins(random_tardiness, group_size=PLOT_GROUPING)
+heuristic_rewards = create_bins(heuristic_rewards, group_size=PLOT_GROUPING)
+heuristic_tardiness = create_bins(heuristic_tardiness, group_size=PLOT_GROUPING)
 edd_rewards = create_bins(edd_rewards, group_size=PLOT_GROUPING)
 edd_tardiness = create_bins(edd_tardiness, group_size=PLOT_GROUPING)
 fifo_rewards = create_bins(fifo_rewards, group_size=PLOT_GROUPING)
@@ -113,8 +122,9 @@ dqn_rewards = create_bins(dqn_rewards, group_size=PLOT_GROUPING)
 dqn_tardiness = create_bins(dqn_tardiness, group_size=PLOT_GROUPING)
 ppo_rewards = create_bins(ppo_rewards, group_size=PLOT_GROUPING)
 ppo_tardiness = create_bins(ppo_tardiness, group_size=PLOT_GROUPING)
+
 # RESHAPE TARDINESS PERFORMANCE VECTORS
-random_tardiness_performance = create_bins(random_tardiness_performance, group_size=PLOT_GROUPING)
+heuristic_tardiness_performance = create_bins(heuristic_tardiness_performance, group_size=PLOT_GROUPING)
 edd_tardiness_performance = create_bins(edd_tardiness_performance, group_size=PLOT_GROUPING)
 fifo_tardiness_performance = create_bins(fifo_tardiness_performance, group_size=PLOT_GROUPING)
 dqn_tardiness_performance = create_bins(dqn_tardiness_performance, group_size=PLOT_GROUPING)
@@ -126,7 +136,7 @@ ppo_tardiness_performance = create_bins(ppo_tardiness_performance, group_size=PL
 
 # Plotting
 plt.figure(figsize=(10, 6))
-plt.bar(random_positions, random_rewards, width=bar_width, label='Random Rewards', color='#2ca02c')
+plt.bar(heuristic_positions, heuristic_rewards, width=bar_width, label='Heuristic Rewards', color='#2ca02c')
 plt.bar(fifo_positions, fifo_rewards, width=bar_width, label='FIFO Rewards', color='#d62728')
 plt.bar(edd_positions, edd_rewards, width=bar_width, label='EDD Rewards', color='#9467bd')
 plt.bar(dqn_positions, dqn_rewards, width=bar_width, label='DQN Rewards', color='#1f77b4')
@@ -151,7 +161,7 @@ plt.savefig(f"./files/plots/Evaluation_Rewards_"+str(N_EPISODES)+".png", format=
 #############################
 # Plotting
 plt.figure(figsize=(10, 6))
-plt.bar(random_positions, random_tardiness, width=bar_width, label='Random Tardiness', color='#2ca02c')
+plt.bar(heuristic_positions, heuristic_tardiness, width=bar_width, label='heuristic Tardiness', color='#2ca02c')
 plt.bar(fifo_positions, fifo_tardiness, width=bar_width, label='FIFO Tardiness', color='#d62728')
 plt.bar(edd_positions, edd_tardiness, width=bar_width, label='EDD Tardiness', color='#9467bd')
 plt.bar(dqn_positions, dqn_tardiness, width=bar_width, label='DQN Tardiness', color='#1f77b4')
@@ -174,7 +184,7 @@ plt.savefig(f"./files/plots/Evaluation_Tardiness_"+str(N_EPISODES)+".png", forma
 # Plotting Tardiness per job completed
 plt.figure(figsize=(10, 6))
 
-plt.bar(random_positions, random_tardiness_performance, width=bar_width, label='Random Tardiness', color='#2ca02c')
+plt.bar(heuristic_positions, heuristic_tardiness_performance, width=bar_width, label='heuristic Tardiness', color='#2ca02c')
 plt.bar(fifo_positions, fifo_tardiness_performance, width=bar_width, label='FIFO Tardiness', color='#d62728')
 plt.bar(edd_positions, edd_tardiness_performance, width=bar_width, label='EDD Tardiness', color='#9467bd')
 plt.bar(dqn_positions, dqn_tardiness_performance, width=bar_width, label='DQN Tardiness', color='#1f77b4')
@@ -202,7 +212,7 @@ features = ("Jobs Completed On Time", "Jobs Completed Not On Time")
 values = {
     'DQN': (round(np.mean(dqn_jot), 2), round(np.mean(dqn_jnot), 2)),
     'PPO': (round(np.mean(ppo_jot), 2), round(np.mean(ppo_jnot), 2)),
-    'RAND': (round(np.mean(random_jot), 2), round(np.mean(random_jnot), 2)),
+    'HEURISTIC': (round(np.mean(heuristic_jot), 2), round(np.mean(heuristic_jnot), 2)),
     'FIFO': (round(np.mean(fifo_jot), 2), round(np.mean(fifo_jnot), 2)),
     'EDD': (round(np.mean(edd_jot), 2), round(np.mean(edd_jnot), 2))
 }

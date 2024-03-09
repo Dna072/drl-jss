@@ -9,17 +9,19 @@ from custom_environment.utils import (print_observation, print_scheduled_jobs,
                                       print_jobs, print_capacity_obs)
 
 
-def get_edd_action(env: FactoryEnv):
+def get_heuristic_action(env: FactoryEnv):
     n_machines = len(env.get_machines())
     no_op_action: int = n_machines * env.get_buffer_size()
     action: int = no_op_action  # by default no-op
-    # First I look for the first created job
-    pj = env.get_pending_jobs()
+
+    pj = env.get_pending_jobs() # pending jobs
     uc_jobs = env.get_uncompleted_jobs_buffer()
-    ttd = [j.get_steps_to_deadline() for j in pj]  # ttd = times to deadline
-    uc_jobs_ttd = [j.get_steps_to_deadline() for j in uc_jobs]
-    job_index = ttd.index(min(ttd))
-    uc_job_index = uc_jobs_ttd.index(min(uc_jobs_ttd)) if len(uc_jobs_ttd) > 0 else -1
+    # ttd = [j.get_steps_to_deadline() for j in pj]  # ttd = times to deadline
+    p_jobs_ptd = FactoryEnv.get_actual_process_time_to_deadline_ratio(pj) # pending jobs process time to deadline ratio
+    # uc_jobs_ttd = [j.get_steps_to_deadline() for j in uc_jobs]
+    uc_jobs_ptd = FactoryEnv.get_actual_process_time_to_deadline_ratio(uc_jobs)
+    p_job_index = p_jobs_ptd.index(max(p_jobs_ptd))
+    uc_job_index = uc_jobs_ptd.index(max(uc_jobs_ptd)) if len(uc_jobs_ptd) > 0 else -1
     # find a suitable machine
     am = env.get_machines()  # am = all machines
     # print_jobs(env)
@@ -30,21 +32,21 @@ def get_edd_action(env: FactoryEnv):
             action += (idx + 1) # Current No-Op plus index of machine + 1
             return action
 
-    if uc_job_index == -1 or min(ttd) < min(uc_jobs_ttd):
+    if uc_job_index == -1 or max(p_jobs_ptd) > max(uc_jobs_ptd):
         for idx, m in enumerate(am):
-            if m.can_perform_job(pj[job_index]) and m.is_available():
-                if m.get_pending_tray_capacity() < pj[job_index].get_tray_capacity():
+            if m.can_perform_job(pj[p_job_index]) and m.is_available():
+                if m.get_pending_tray_capacity() < pj[p_job_index].get_tray_capacity():
                     # can't schedule job for machine due to tray capacity limitation
                     continue
 
                 if (m.get_active_recipe() != "" and
-                        m.get_active_recipe() != pj[job_index].get_next_pending_recipe().get_factory_id()):
+                        m.get_active_recipe() != pj[p_job_index].get_next_pending_recipe().get_factory_id()):
                     # the scheduled job cannot be done, start the machine instead
                     action += (idx + 1)
                     break
 
                 machine_index = idx
-                action = machine_index * env.get_buffer_size() + job_index
+                action = machine_index * env.get_buffer_size() + p_job_index
                 break
     else:
         for idx, m in enumerate(am):
@@ -63,7 +65,7 @@ def get_edd_action(env: FactoryEnv):
                 action = action_offset + (machine_index * env.get_buffer_size()) + uc_job_index
                 break
     # print("Take Action: ", action)
-    # If edd job is not schedulable, start any machines that are available
+    # If heuristic job is not schedulable, start any machines that are available
     if action == no_op_action:
         for idx, m in enumerate(am):
             if m.get_pending_tray_capacity() < 100 and m.is_available():
@@ -74,7 +76,7 @@ def get_edd_action(env: FactoryEnv):
     return action
 
 
-def episodic_edd_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
+def episodic_heuristic_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
     """
     Runs a FIFO agent for #n_episodes and returns an array with the total reward
     for each episode
@@ -87,7 +89,7 @@ def episodic_edd_agent(n_episodes: int = 10, env_max_steps: int = 10_000):
         env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps, is_evaluation=True)
         tot_reward = 0
         while 1:  # the environment has its own termination clauses, so it will trigger the break
-            action = np.array(get_edd_action(env))
+            action = np.array(get_heuristic_action(env))
             o, r, te, tr, i = env.step(action)
             tot_reward += r
             curr_tardiness = env.get_tardiness_percentage()
@@ -146,7 +148,10 @@ if __name__ == "__main__":
             print_uncompleted_jobs_buffer(env)
             # print_observation(obs, nr_machines=len(env.get_machines()))
             print_capacity_obs(obs)
-            action = np.array(get_edd_action(env))
+            print(f"Pending jobs actual ptd: {FactoryEnv.get_actual_process_time_to_deadline_ratio(env.get_pending_jobs())} ")
+            print(
+                f"UC jobs actual ptd: {FactoryEnv.get_actual_process_time_to_deadline_ratio(env.get_uncompleted_jobs_buffer())} ")
+            action = np.array(get_heuristic_action(env))
             print(f'Action: {action}')
             obs, reward, te, tr, i = env.step(action)
 

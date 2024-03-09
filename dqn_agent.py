@@ -76,26 +76,26 @@ class Agent:
         steps = 0
 
         while episode < num_of_episodes:
-            print_jobs(self.custom_env)
-            print_uncompleted_jobs_buffer(self.custom_env)
-            print_capacity_obs(obs, machines=self.custom_env.get_machines(), n_machines=2, print_length=10)
+            #print_jobs(self.custom_env)
+            #print_uncompleted_jobs_buffer(self.custom_env)
+            #print_capacity_obs(obs)
 
 
             action, _states = self.model.predict(observation=obs, deterministic=True)
-            print(f'Action: {action}')
+            #print(f'Action: {action}')
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
-            print_scheduled_jobs(self.custom_env)
-            print(f'Reward: {reward}, '
-                  f'Factory time: {info["CURRENT_TIME"]} '
-                  f'JOT: {info["JOBS_COMPLETED_ON_TIME"]}, '
-                  f'JNOT: {info["JOBS_NOT_COMPLETED_ON_TIME"]}, '
-                  f'UC_JOBS_BUFFER: {info["UNCOMPLETED_JOBS_BUFFER"]}, '
-                  f'LOST_JOBS: {info["LOST_JOBS"]}')
-
-
-            test = input('Enter to continue')
+            # print_scheduled_jobs(self.custom_env)
+            # print(f'Reward: {reward}, '
+            #       f'Factory time: {info["CURRENT_TIME"]} '
+            #       f'JOT: {info["JOBS_COMPLETED_ON_TIME"]}, '
+            #       f'JNOT: {info["JOBS_NOT_COMPLETED_ON_TIME"]}, '
+            #       f'UC_JOBS_BUFFER: {info["UNCOMPLETED_JOBS_BUFFER"]}, '
+            #       f'LOST_JOBS: {info["LOST_JOBS"]}')
+            #
+            #
+            # test = input('Enter to continue')
 
             returns.append(reward)
             curr_tardiness = self.custom_env.get_tardiness_percentage()

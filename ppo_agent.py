@@ -134,8 +134,8 @@ def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/p
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 4_000_000
-    ENVIRONMENT_MAX_STEPS = 25_000
+    LEARNING_MAX_STEPS = 8_100_000
+    ENVIRONMENT_MAX_STEPS = 50_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="PPO")
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
     )
-    agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_recipe_job_"+str(LEARNING_MAX_STEPS))
 
     # agent.load(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
     # agent.evaluate()
