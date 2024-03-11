@@ -134,13 +134,14 @@ def print_scheduled_jobs(env, print_length=10):
     print()
 
     print(TextColors.YELLOW + "Machine scheduled jobs:" + TextColors.RESET)
-    print(TextColors.GREEN + "       J0  J1  J2" + TextColors.RESET)
+    j_labels = " ".join([f"J{i} " for i in range(env.get_buffer_size())])
+    print(TextColors.GREEN + f"       {j_labels}" + TextColors.RESET)
     for i in range(nr_machines):
         print(TextColors.GREEN + "M", i, " " + TextColors.RESET + "[ ", end="")
         for j in range(len(machines_matrix[i])):
             if machines_matrix[i][j] >= 1:
                 # print(TextColors.GREEN+"M",i," "+TextColors.RESET,machines_matrix[i])
-                print(TextColors.CYAN + f"{machines_matrix[i][j]:.0f}  " + TextColors.RESET, end="")
+                print(TextColors.CYAN + f"{machines_matrix[i][j]:.0f}.  " + TextColors.RESET, end="")
             else:
                 print("0.  ", end="")
         print("]")

@@ -42,7 +42,7 @@ class Agent:
         self.custom_env: FactoryEnv = custom_env
         self.model: DQN = DQN(
             policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE,
-             gamma=0.9, exploration_fraction=0.5, batch_size=10_000
+             gamma=0.95, exploration_fraction=0.5, batch_size=30_000
             # learning_rate=1e-3, gamma=0.6, exploration_fraction=0.25,buffer_size=10_000
         )
 
@@ -62,7 +62,7 @@ class Agent:
         self.model.save(path=file_path_name)
 
     def load(self, file_path_name: str = FILE_PATH_NAME) -> None:
-        self.model = DQN.load(path=file_path_name)
+        self.model = DQN.load(path=file_path_name, env=self.custom_env)
 
     def evaluate(self, num_of_episodes: int = 10):
         obs, info = self.custom_env.reset()
@@ -148,16 +148,18 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 8_100_000
+    LEARNING_MAX_STEPS = 16_100_000
     ENVIRONMENT_MAX_STEPS = 50_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
 
-    # agent.learn(
-    #     total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
-    # )
-    # agent.save(file_path_name="files/trainedAgents/dqn_agent_multi_recipe_job_"+str(LEARNING_MAX_STEPS))
+    agent.load(file_path_name='files/trainedAgents/dqn_agent_multi_recipe_job_expanded8100000')
+    agent.custom_env = init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS)
+    agent.learn(
+        total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
+    )
+    agent.save(file_path_name="files/trainedAgents/dqn_agent_multi_recipe_job_expanded"+str(LEARNING_MAX_STEPS))
 
-    agent.load(file_path_name='files/trainedAgents/dqn_agent_multi_recipe_job_8100000')
-    agent.evaluate(num_of_episodes = 1_000)
+    # agent.load(file_path_name='files/trainedAgents/dqn_agent_multi_recipe_job_8100000')
+    # agent.evaluate(num_of_episodes = 1_000)

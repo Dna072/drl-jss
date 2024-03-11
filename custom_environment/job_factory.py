@@ -1,3 +1,5 @@
+import random
+
 from custom_environment.job import Job
 from custom_environment.recipe import Recipe
 from custom_environment.recipe_factory import create_recipe
@@ -22,12 +24,16 @@ def create_job(
     :param factory_time: current factory time
     :return: Job object
     """
+    tray_capacities = [20, 30, 40, 50]
+    corrected_deadline = sum([r.get_process_time() for r in recipes])
+
     return Job(
         recipes=recipes,
         factory_id=factory_id,
         process_id=process_id,
-        deadline=deadline,
+        deadline=deadline if deadline > corrected_deadline/0.3 else corrected_deadline/0.3,
         factory_time=factory_time,
+        tray_capacity=random.choice(tray_capacities)
     )
 
 

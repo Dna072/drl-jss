@@ -65,24 +65,31 @@ class FactoryEnv(gym.Env):
     ILLEGAL_ACTION_STR: str = "ILLEGAL ACTION"
     NEUTRAL_STR: str = "NEUTRAL"
 
-    MAX_RECIPES_IN_ENV_SYSTEM: int = 2
+    MAX_RECIPES_IN_ENV_SYSTEM: int = 6
     r1 = create_recipe(
         factory_id="R1_ID", process_time=30.0, process_id=0, recipe_type="R1"
     )
     r2 = create_recipe(
         factory_id="R2_ID", process_time=300.0, process_id=1, recipe_type="R2"
     )
-    available_recipes = [r1, r2]
+    r3 = create_recipe(
+        factory_id="R3_ID", process_time=200.0, process_id=2, recipe_type="R3"
+    )
+    r4 = create_recipe(
+        factory_id="R4_ID", process_time=150.0, process_id=3, recipe_type="R4"
+    )
+    r5 = create_recipe(
+        factory_id="R5_ID", process_time=350.0, process_id=5, recipe_type="R5"
+    )
+    available_recipes = [r1, r2, r3, r4, r5]
 
     #####################
     # private constants #
     #####################
 
-    _BUFFER_LEN: int = 3
+    _BUFFER_LEN: int = 6
     _NO_OP_SPACE: int = 1
-    _START_MACHINES_SPACE: int = 1
-    _MAX_MACHINES: int = 2
-    _RECIPES_LENGTH: dict[str, int] = {"R1": 1, "R2": 10}
+    _MAX_MACHINES: int = 5
     _REWARD_WEIGHTS: dict[str, int] = {
         NO_OP_STR: 0,
         MACHINE_IDLE_STR: -1,
@@ -94,11 +101,6 @@ class FactoryEnv(gym.Env):
         DEADLINE_EXCEEDED_STR: -5,
         ILLEGAL_ACTION_STR: -15,
         NEUTRAL_STR: 0,
-    }
-
-    _REWARD_TIME_PENALTIES: dict[str, dict[str, int | float]] = {
-        "10_hrs": {"in_s": 36_000, "weight": 0.4},
-        "24_hrs": {"in_s": 86_400, "weight": 0.8},
     }
 
     # observation space constant dict keys
@@ -208,20 +210,8 @@ class FactoryEnv(gym.Env):
             low=0, high=1, shape=(len(self._machines),), dtype=np.float64
         )# normalized vector for utilized machine tray capacity for active jobs
 
-        uncompleted_job_recipe_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=len(self.available_recipes) - 1, shape=(len(self._uncompleted_jobs),), dtype=np.float64
-        )
-
-        uncompleted_job_recipe_count_space: gym.spaces.Box = gym.spaces.Box(
-            low=1, high=self.MAX_RECIPES_IN_ENV_SYSTEM, shape=(len(self._uncompleted_jobs),), dtype=np.float64
-        )
-
         uncompleted_job_buffer_recipe_space: gym.spaces.Box = gym.spaces.Box(
             low=-1, high=len(self.available_recipes) - 1, shape=(self._BUFFER_LEN,), dtype=np.float64
-        )
-
-        uncompleted_job_remaining_times: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=1, shape=(len(self._uncompleted_jobs),), dtype=np.float64
         )
 
         uncompleted_job_buffer_remaining_times: gym.spaces.Box = gym.spaces.Box(
@@ -1172,33 +1162,36 @@ class FactoryEnv(gym.Env):
         # print(TextColors.RED+"#       Updating the buffer      #"+TextColors.RESET)
         # print(TextColors.RED+"###################################\n"+TextColors.RESET)
         if len(self._pending_jobs) < self._BUFFER_LEN:
-            # dif = self._BUFFER_LEN - len(self._pending_jobs)
+            n_diff = self._BUFFER_LEN - len(self._pending_jobs) # jobs to be added
             # print("\n\nupdate_buffer - Buffer should be updated with ",dif," new jobs")
             # print("Length Pending Jobs: ",len(self._pending_jobs))
             # print("First job: ")
             # print(self._pending_jobs[0])
             pending_idx = [j.get_id() for j in self._pending_jobs]
-            for i in range(self._BUFFER_LEN):
-                if i not in pending_idx:
-                    # Create job
-                    r = random.choice(self.available_recipes,)
-                    r2 = random.choice(self.available_recipes,)
-                    use_multiple_recipes = np.random.randint(low=0, high=10) % 2 == 0
-                    deadline = 100 if r.get_recipe_type() == "R1" else 1000
-                    if use_multiple_recipes:
-                        if r.get_recipe_type() == "R2" or r2.get_recipe_type() == "R2":
-                            deadline = 1000
-                    # NOTE:Note that “process time” should be 5%-30% of the difference between deadline-arrival
-                    new_job = create_job(
-                        recipes=[r] if not use_multiple_recipes else [r,r2],
+            for i in range(n_diff):
+                # Create job
+                # r = random.choice(self.available_recipes,)
+                # r2 = random.choice(self.available_recipes,)
+                # r3 = random.choice(self.available_recipes,)
+                # determine length of the recipe
+                n_recipes = random.randint(1,self.MAX_RECIPES_IN_ENV_SYSTEM)
+
+                # use_multiple_recipes = np.random.randint(low=0, high=10) % 2 == 0
+                # deadline = 100 if r.get_recipe_type() == "R1" else 1000
+                # if use_multiple_recipes:
+                #     if r.get_recipe_type() == "R2" or r2.get_recipe_type() == "R2":
+                #         deadline = 1000
+                # NOTE:Note that “process time” should be 5%-30% of the difference between deadline-arrival
+                new_job = create_job(
+                        recipes=random.choices(self.available_recipes, k=n_recipes),
                         factory_id="J" + str(i),
                         process_id=i,
-                        deadline=deadline,
+                        deadline=1000,
                         factory_time=self.factory_time,
                     )
-                    # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
-                    # print(new_job)
-                    self._pending_jobs.insert(i, new_job)
+                # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
+                # print(new_job)
+                self._pending_jobs.append(new_job)
 
     def update_uncompleted_buffer(self):
         """

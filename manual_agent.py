@@ -17,8 +17,8 @@ class TextColors:
     CYAN = "\033[96m"
 
 
-machines: int = 2
-jobs: int = 3
+machines: int = 5
+jobs: int = 6
 max_steps: int = 100
 s = 0
 
@@ -41,7 +41,7 @@ while s < max_steps and nr_pending_jobs > 0:
     print_jobs(env)
     print_uncompleted_jobs_buffer(env)
     #print_observation(o, machines)
-    print_capacity_obs(obs=o, machines=env.get_machines(), n_machines=machines, print_length=10)
+    print_capacity_obs(obs=o)
     print_scheduled_jobs(env)
     # env.render()
     print(

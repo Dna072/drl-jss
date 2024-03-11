@@ -32,6 +32,15 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_
         create_recipe(
             factory_id="R2_ID", process_time=300.0, process_id=1, recipe_type="R2"
         ),
+        create_recipe(
+            factory_id="R3_ID", process_time=200.0, process_id=2, recipe_type="R3"
+        ),
+        create_recipe(
+            factory_id="R4_ID", process_time=150.0, process_id=3, recipe_type="R4"
+        ),
+        create_recipe(
+            factory_id="R5_ID", process_time=350.0, process_id=5, recipe_type="R5"
+        ),
     ]
 
     if is_verbose:
@@ -68,6 +77,27 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_
             else 1000,
             factory_time=0,
         ),
+        create_job(
+            recipes=[(recipe_objects[3])],
+            factory_id="J3",
+            process_id=2,
+            deadline=100,
+            factory_time=0,
+        ),
+        create_job(
+            recipes=[(recipe_objects[4])],
+            factory_id="J4",
+            process_id=2,
+            deadline=100,
+            factory_time=0,
+        ),
+        create_job(
+            recipes=[(recipe_objects[3])],
+            factory_id="J5",
+            process_id=2,
+            deadline=100,
+            factory_time=0,
+        ),
     ]
 
     if is_verbose:
@@ -81,7 +111,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_
             factory_id="M0",
             process_id=0,
             machine_type="A",
-            tray_capacity=100,
+            tray_capacity=1000,
             valid_recipe_types=["R1"],
             max_recipes_per_process=1,
         ),
@@ -89,16 +119,32 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_
             factory_id="M1",
             process_id=1,
             machine_type="AB",
-            tray_capacity=100,
+            tray_capacity=1000,
             valid_recipe_types=["R1", "R2"],
             max_recipes_per_process=2,
         ),
         create_machine(
             factory_id="M2",
             process_id=2,
-            machine_type="A",
-            tray_capacity=100,
-            valid_recipe_types=["R1"],
+            machine_type="ABC",
+            tray_capacity=1000,
+            valid_recipe_types=["R3", "R5"],
+            max_recipes_per_process=2,
+        ),
+        create_machine(
+            factory_id="M3",
+            process_id=3,
+            machine_type="ACB",
+            tray_capacity=1000,
+            valid_recipe_types=["R2", "R4"],
+            max_recipes_per_process=2,
+        ),
+        create_machine(
+            factory_id="M4",
+            process_id=4,
+            machine_type="ABD",
+            tray_capacity=1000,
+            valid_recipe_types=["R3", "R4", "R5"],
             max_recipes_per_process=2,
         ),
     ]
