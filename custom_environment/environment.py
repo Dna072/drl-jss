@@ -79,6 +79,7 @@ class FactoryEnv(gym.Env):
     #####################
 
     _BUFFER_LEN: int = 3
+    _MAX_NEXT_RECIPES: int = 2 #variable to control the number of recipes for a job the agent can see to help in forecasting
     _NO_OP_SPACE: int = 1
     _START_MACHINES_SPACE: int = 1
     _MAX_MACHINES: int = 2
@@ -107,11 +108,14 @@ class FactoryEnv(gym.Env):
     _MACHINES_STR: str = "machines"
     _MACHINES_PENDING_CAPACITY_STR: str = "machine_pending_capacity"
     _MACHINES_ACTIVE_CAPACITY_STR: str = "machine_active_capacity"
+    _MACHINES_ACTIVE_RECIPE_STR: str = "machine_active_recipe"
     _P_JOB_RECIPE_STR: str = "pending_job_recipe"
     _P_JOB_RECIPE_COUNT_STR: str = "pending_job_recipe_count"
     _P_JOB_REMAINING_TIMES_STR: str = "pending_job_remaining_times"
     _P_JOB_PROCESS_TIME_TO_DEADLINE_RATIO: str = "pending_job_process_time_deadline_ratio"
     _P_JOB_STEPS_TO_DEADLINE: str = "pending_job_steps_to_deadline"
+    _P_JOB_NEXT_RECIPES: str = "pending_job_next_recipes"
+    _UC_JOB_NEXT_RECIPES: str = "uncompleted_job_buffer_next_recipes"
     _UC_JOB_RECIPE_STR: str = "uncompleted_job_recipes"
     _UC_JOB_RECIPE_COUNT_STR: str = "uncompleted_job_recipe_count"
     _UC_JOB_BUFFER_RECIPES: str = "uncompleted_job_buffer_recipes"
@@ -200,6 +204,10 @@ class FactoryEnv(gym.Env):
             low=1, high=self.MAX_RECIPES_IN_ENV_SYSTEM, shape=(self._BUFFER_LEN,), dtype=np.float64
         )
 
+        pending_job_next_recipes: gym.spaces.Box = gym.spaces.Box(
+            low=-1, high=len(self.available_recipes) - 1, shape=(self._BUFFER_LEN * self._MAX_NEXT_RECIPES,), dtype=np.float64
+        )
+
         machine_pending_capacity_space: gym.spaces.Box = gym.spaces.Box(
             low=0, high=1, shape=(len(self._machines),), dtype=np.float64
         ) # normalized vector for utilized machine tray capacity for scheduled jobs
@@ -208,20 +216,16 @@ class FactoryEnv(gym.Env):
             low=0, high=1, shape=(len(self._machines),), dtype=np.float64
         )# normalized vector for utilized machine tray capacity for active jobs
 
-        uncompleted_job_recipe_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=len(self.available_recipes) - 1, shape=(len(self._uncompleted_jobs),), dtype=np.float64
+        machine_active_recipe_space: gym.spaces.Box = gym.spaces.Box(
+            low=-1, high=len(self.available_recipes) -1, shape=(len(self._machines),), dtype=np.float64
         )
 
-        uncompleted_job_recipe_count_space: gym.spaces.Box = gym.spaces.Box(
-            low=1, high=self.MAX_RECIPES_IN_ENV_SYSTEM, shape=(len(self._uncompleted_jobs),), dtype=np.float64
+        uncompleted_job_buffer_next_recipes: gym.spaces.Box = gym.spaces.Box(
+            low=-1, high=len(self.available_recipes) - 1, shape=(self._BUFFER_LEN * self._MAX_NEXT_RECIPES,),
+            dtype=np.float64
         )
-
         uncompleted_job_buffer_recipe_space: gym.spaces.Box = gym.spaces.Box(
             low=-1, high=len(self.available_recipes) - 1, shape=(self._BUFFER_LEN,), dtype=np.float64
-        )
-
-        uncompleted_job_remaining_times: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=1, shape=(len(self._uncompleted_jobs),), dtype=np.float64
         )
 
         uncompleted_job_buffer_remaining_times: gym.spaces.Box = gym.spaces.Box(
@@ -251,9 +255,11 @@ class FactoryEnv(gym.Env):
                 self._P_JOB_RECIPE_STR: pending_jobs_recipe_space,
                 self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_space,
                 self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_space,
+                self._MACHINES_ACTIVE_RECIPE_STR: machine_active_recipe_space,
                 self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times_space,
                 self._P_JOB_PROCESS_TIME_TO_DEADLINE_RATIO: pending_job_process_time_deadline_ratio,
                 self._P_JOB_STEPS_TO_DEADLINE: pending_job_steps_to_deadline_space,
+                self._P_JOB_NEXT_RECIPES: pending_job_next_recipes,
                 # self._UC_JOB_RECIPE_STR: uncompleted_job_recipe_space,
                 self._UC_JOB_BUFFER_RECIPES: uncompleted_job_buffer_recipe_space,
                 # self._UC_JOB_REMAINING_TIMES: uncompleted_job_remaining_times,
@@ -262,6 +268,7 @@ class FactoryEnv(gym.Env):
                 self._P_JOB_RECIPE_COUNT_STR: pending_job_recipe_count_space,
                 # self._UC_JOB_RECIPE_COUNT_STR: uncompleted_job_recipe_count_space,
                 self._UC_JOB_BUFFER_RECIPE_COUNT: uncompleted_job_buffer_recipe_count_space,
+                self._UC_JOB_NEXT_RECIPES: uncompleted_job_buffer_next_recipes,
                 self._LOST_JOBS_COUNT: lost_jobs_count_space
                 # self._P_JOB_STEPS_TO_DEADLINE: pending_job_steps_to_deadline_space
             }
@@ -344,13 +351,17 @@ class FactoryEnv(gym.Env):
         ###############################################################
         machine_pending_capacity_utilization: np.ndarray = np.zeros(len(self._machines), dtype=np.float64)
         machine_active_capacity_utilization: np.ndarray = np.zeros(len(self._machines), dtype=np.float64)
-        is_machines_active_jobs: np.ndarray = np.zeros(
-            (len(self._machines), self._BUFFER_LEN), dtype=np.float64
+        machine_active_recipe: np.ndarray = np.full(
+            len(self._machines), fill_value=-1, dtype=np.float64
         )
+        # is_machines_active_jobs: np.ndarray = np.zeros(
+        #     (len(self._machines), self._BUFFER_LEN), dtype=np.float64
+        # )
         for machine in self._machines:
             machine_pending_capacity_utilization[machine.get_id()] = (machine.get_tray_capacity() - machine.get_pending_tray_capacity()) / machine.get_tray_capacity()
             machine_active_capacity_utilization[machine.get_id()] = (machine.get_tray_capacity() - machine.get_active_tray_capacity()) / machine.get_tray_capacity()
-
+            if len(machine.get_pending_jobs()) > 0:
+                machine_active_recipe[machine.get_id()] = machine.get_active_recipe().get_id()
             # for job in machine.get_pending_jobs():
             #     is_machines_active_jobs[machine.get_id(), job.get_id()] += 1.0
 
@@ -372,7 +383,11 @@ class FactoryEnv(gym.Env):
             self._BUFFER_LEN, dtype=np.float64
         )
 
-        for job in self._pending_jobs:
+        pending_job_next_recipes: np.ndarray = np.full(
+            (self._BUFFER_LEN, self._MAX_NEXT_RECIPES), fill_value=-1, dtype=np.float64
+        )
+
+        for j_idx, job in enumerate(self._pending_jobs):
             pending_job_recipes[job.get_id()] = job.get_next_pending_recipe().get_id()
             pending_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
             # update max and min duration times for normalizing [0, 1]
@@ -380,6 +395,10 @@ class FactoryEnv(gym.Env):
                 max_duration = pending_job_remaining_times[job.get_id()]
             elif pending_job_remaining_times[job.get_id()] < min_duration:
                 min_duration = pending_job_remaining_times[job.get_id()]
+
+            for idx, recipe in enumerate(job.get_pending_recipes()):
+                if idx < self._MAX_NEXT_RECIPES:
+                    pending_job_next_recipes[j_idx, idx] = recipe.get_id()
 
         if not sum(pending_job_remaining_times) == 0:
             for job in self._pending_jobs:
@@ -447,14 +466,17 @@ class FactoryEnv(gym.Env):
             self._P_JOB_RECIPE_STR: pending_job_recipes,
             self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_utilization,
             self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_utilization,
+            self._MACHINES_ACTIVE_RECIPE_STR: machine_active_recipe,
             self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times,
             self._P_JOB_PROCESS_TIME_TO_DEADLINE_RATIO: p_steps_to_deadline_ratio,
             self._P_JOB_STEPS_TO_DEADLINE: pending_jobs_steps_to_deadline,
+            self._P_JOB_NEXT_RECIPES: pending_job_next_recipes.flatten(),
             # self._UC_JOB_RECIPE_STR: uc_jobs_obs_list[0],
             # self._UC_JOB_REMAINING_TIMES: uc_jobs_obs_list[1],
             self._UC_JOB_BUFFER_RECIPES: uc_jobs_buffer_obs_list[0],
             self._UC_BUFFER_PROCESS_TIME_TO_DEADLINE_RATIO: uc_jobs_buffer_obs_list[2],
             self._UC_JOB_BUFFER_REMAINING_TIMES: uc_jobs_buffer_obs_list[1],
+            self._UC_JOB_NEXT_RECIPES: uc_jobs_buffer_obs_list[3].flatten(),
             self._P_JOB_RECIPE_COUNT_STR: pending_jobs_recipe_count,
             # self._UC_JOB_RECIPE_COUNT_STR: uc_jobs_recipe_count,
             self._UC_JOB_BUFFER_RECIPE_COUNT: uc_jobs_buffer_recipe_count,
@@ -488,8 +510,11 @@ class FactoryEnv(gym.Env):
     def get_machines(self):
         return self._machines
 
-    def get_buffer_size(self):
+    def get_buffer_size(self) -> int:
         return self._BUFFER_LEN
+
+    def get_max_next_recipes(self) -> int:
+        return self._MAX_NEXT_RECIPES
 
     def get_jobs_completed_on_time(self):
         return self._jobs_completed_per_step_on_time
@@ -562,6 +587,10 @@ class FactoryEnv(gym.Env):
             self._BUFFER_LEN, fill_value=-1, dtype=np.float64
         )
 
+        uc_job_buffer_next_recipes: np.ndarray = np.full(
+            (self._BUFFER_LEN, self._MAX_NEXT_RECIPES), fill_value=-1, dtype=np.float64
+        )
+
         for idx, job in enumerate(self._uncompleted_jobs_buffer):
             uc_job_buffer_recipes[idx] = job.get_pending_recipes()[0].get_id()
             uc_job_buffer_remaining_times[idx] = job.get_remaining_process_time()
@@ -571,6 +600,10 @@ class FactoryEnv(gym.Env):
                 max_duration = uc_job_buffer_remaining_times[idx]
             elif uc_job_buffer_remaining_times[idx] < min_duration:
                 min_duration = uc_job_buffer_remaining_times[idx]
+
+            for r_idx, recipe in enumerate(job.get_pending_recipes()):
+                if r_idx < self._MAX_NEXT_RECIPES:
+                    uc_job_buffer_next_recipes[idx, r_idx] = recipe.get_id()
 
         if not sum(uc_job_buffer_remaining_times) == 0:
             for idx, job in enumerate(self._uncompleted_jobs_buffer):
@@ -587,7 +620,7 @@ class FactoryEnv(gym.Env):
             for idx, val in enumerate(uc_job_buffer_remaining_times[:len(self._uncompleted_jobs_buffer)]):
                 uc_job_buffer_remaining_times[idx] = uc_job_buffer_remaining_times[idx] * uc_jobs_steps_to_deadline[idx]
 
-        return [uc_job_buffer_recipes, uc_job_buffer_remaining_times, uc_job_buffer_process_time_deadline_ratio]
+        return [uc_job_buffer_recipes, uc_job_buffer_remaining_times, uc_job_buffer_process_time_deadline_ratio, uc_job_buffer_next_recipes]
 
     def get_recipe_count_obs(self) -> list[np.ndarray]:
         uc_jobs_buffer_recipe_count: np.ndarray = np.zeros(
@@ -718,7 +751,7 @@ class FactoryEnv(gym.Env):
             machine_idx = action - (len(self._machines) * self._BUFFER_LEN) - 1
             machine_to_start = self._machines[machine_idx]
             for job in self._pending_jobs:
-                if (job.get_next_pending_recipe().get_factory_id() == machine_to_start.get_active_recipe()
+                if (job.get_next_pending_recipe().get_factory_id() == machine_to_start.get_active_recipe_str()
                         and machine_to_start.get_pending_tray_capacity() >= job.get_tray_capacity()):
                     reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
 
@@ -735,7 +768,7 @@ class FactoryEnv(gym.Env):
 
             # check uncompleted buffer as well
             for job in self._uncompleted_jobs_buffer:
-                if (job.get_next_pending_recipe().get_factory_id() == machine_to_start.get_active_recipe()
+                if (job.get_next_pending_recipe().get_factory_id() == machine_to_start.get_active_recipe_str()
                         and machine_to_start.get_pending_tray_capacity() >= job.get_tray_capacity()):
                     reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR]
 

@@ -21,7 +21,7 @@ Then add the path to the saved agent in the PATH constants below.
 N_EPISODES = 1_000
 PLOT_GROUPING = N_EPISODES // 10
 ENV_MAX_STEPS = 10_000
-DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_multi_recipe_job_8100000"
+DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_multi_recipe_job_mr_nj_obs_4100000"
 PPO_AGENT_PATH = "files/trainedAgents/ppo_agent_multi_recipe_job_8100000"
 SAVE_PATH = "files/data/"
 
@@ -65,7 +65,7 @@ else:
     fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot = load_agent_results(FIFO_PATH)
 
 print("\033[96m"+"Starting DQN"+"\033[0m")
-DQN_PATH = SAVE_PATH + "dqn_data_multi_recipe_job" + str(N_EPISODES) + ".pkl"
+DQN_PATH = SAVE_PATH + "dqn_data_multi_recipe_job_mr_nj_obs" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(DQN_PATH):
     agent = dqn_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS))
     agent.load(file_path_name=DQN_AGENT_PATH)

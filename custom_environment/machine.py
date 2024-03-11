@@ -63,15 +63,19 @@ class Machine:
         self.__timestamp_current_status: datetime = None
         self.__time_active: float = 0.0
         self.__time_idle: float = 0.0
-        self._active_recipe: str = ""
+        self.__active_recipe: Recipe = None
+        self._active_recipe_str: str = ""
         self._pending_tray_capacity: int = tray_capacity
         self._active_tray_capacity: int = tray_capacity
 
     def get_id(self) -> int:
         return self.__id
 
-    def get_active_recipe(self) -> str:
-        return self._active_recipe
+    def get_active_recipe_str(self) -> str:
+        return self._active_recipe_str
+
+    def get_active_recipe(self) -> Recipe:
+        return self.__active_recipe
 
     def get_factory_id(self) -> str:
         return self.__factory_id
@@ -210,7 +214,7 @@ class Machine:
                 # for job in self.__active_jobs:
                 #     print(f'Active job {self.__factory_id}: {job.get_factory_id()}')
 
-                self._active_recipe = next_valid_recipe_to_process
+                self._active_recipe_str = next_valid_recipe_to_process
                 job_to_assign.set_recipe_in_progress(
                     recipe=next_valid_recipe_to_process
                 )
@@ -233,7 +237,7 @@ class Machine:
 
             if len(self.__pending_jobs) > 0:
                 # check if active recipe matches job recipe
-                if not self._active_recipe == next_valid_recipe_to_process.get_factory_id():
+                if not self._active_recipe_str == next_valid_recipe_to_process.get_factory_id():
                     return False
 
             is_recipe_assigned = job_to_schedule.set_recipe_in_progress(
@@ -250,7 +254,8 @@ class Machine:
 
                 # for job in self.__active_jobs:
                 #     print(f'Active job {self.__factory_id}: {job.get_factory_id()}')
-                self._active_recipe = next_valid_recipe_to_process.get_factory_id()
+                self._active_recipe_str = next_valid_recipe_to_process.get_factory_id()
+                self.__active_recipe = next_valid_recipe_to_process
 
         return is_recipe_assigned
 
@@ -258,13 +263,13 @@ class Machine:
         self.__active_jobs.remove(job)
         self._active_tray_capacity += job.get_tray_capacity()
         if not self.__active_jobs:
-            self._active_recipe = ""
+            self._active_recipe_str = ""
             self.__is_available = True
 
     def remove_completed_jobs(self) -> None:
         self.__active_jobs.clear()
         self._active_tray_capacity = self.__tray_capacity
-        self._active_recipe = ""
+        self._active_recipe_str = ""
         self.__is_available = True
 
     def __str__(self) -> str:
@@ -287,5 +292,5 @@ class Machine:
         self.__timestamp_current_status = None
         self.__time_active = 0.0
         self.__time_idle = 0.0
-        self._active_recipe = ""
+        self._active_recipe_str = ""
         self._pending_tray_capacity = self.__tray_capacity
