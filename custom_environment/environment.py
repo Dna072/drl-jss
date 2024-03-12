@@ -65,7 +65,7 @@ class FactoryEnv(gym.Env):
     ILLEGAL_ACTION_STR: str = "ILLEGAL ACTION"
     NEUTRAL_STR: str = "NEUTRAL"
 
-    MAX_RECIPES_IN_ENV_SYSTEM: int = 6
+    MAX_RECIPES_IN_ENV_SYSTEM: int = 3
     r1 = create_recipe(
         factory_id="R1_ID", process_time=30.0, process_id=0, recipe_type="R1"
     )
@@ -79,18 +79,18 @@ class FactoryEnv(gym.Env):
         factory_id="R4_ID", process_time=150.0, process_id=3, recipe_type="R4"
     )
     r5 = create_recipe(
-        factory_id="R5_ID", process_time=350.0, process_id=5, recipe_type="R5"
+        factory_id="R5_ID", process_time=350.0, process_id=4, recipe_type="R5"
     )
-    available_recipes = [r1, r2, r3, r4, r5]
+    available_recipes = [r1, r2, r3]
 
     #####################
     # private constants #
     #####################
 
-    _BUFFER_LEN: int = 6
-    _MAX_NEXT_RECIPES: int = 2  # variable to control the number of recipes for a job the agent can see to help in forecasting
+    _BUFFER_LEN: int = 3
+    _MAX_NEXT_RECIPES: int = 3  # variable to control the number of recipes for a job the agent can see to help in forecasting
     _NO_OP_SPACE: int = 1
-    _MAX_MACHINES: int = 5
+    _MAX_MACHINES: int = 4
     _REWARD_WEIGHTS: dict[str, int] = {
         NO_OP_STR: 0,
         MACHINE_IDLE_STR: -1,
@@ -392,13 +392,13 @@ class FactoryEnv(gym.Env):
         )
 
         for j_idx, job in enumerate(self._pending_jobs):
-            pending_job_recipes[job.get_id()] = job.get_next_pending_recipe().get_id()
-            pending_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
+            pending_job_recipes[j_idx] = job.get_next_pending_recipe().get_id()
+            pending_job_remaining_times[j_idx] = job.get_remaining_process_time()
             # update max and min duration times for normalizing [0, 1]
-            if pending_job_remaining_times[job.get_id()] > max_duration:
-                max_duration = pending_job_remaining_times[job.get_id()]
-            elif pending_job_remaining_times[job.get_id()] < min_duration:
-                min_duration = pending_job_remaining_times[job.get_id()]
+            if pending_job_remaining_times[j_idx] > max_duration:
+                max_duration = pending_job_remaining_times[j_idx]
+            elif pending_job_remaining_times[j_idx] < min_duration:
+                min_duration = pending_job_remaining_times[job.j_idx]
 
             for idx, recipe in enumerate(job.get_pending_recipes()):
                 if idx < self._MAX_NEXT_RECIPES:
@@ -420,34 +420,35 @@ class FactoryEnv(gym.Env):
         for idx, val in enumerate(pending_job_remaining_times):
             pending_job_remaining_times[idx] = pending_job_remaining_times[idx] * pending_jobs_steps_to_deadline[idx]
 
-        max_duration = min_duration = 0
-        pending_job_remaining_times: np.ndarray = np.zeros(
-            self._BUFFER_LEN, dtype=np.float64
-        )
-
-        pending_job_recipes: np.ndarray = np.zeros(
-            self._BUFFER_LEN, dtype=np.float64
-        )
-        p_steps_to_deadline_ratio = min_max_norm_list([j.get_process_time_deadline_ratio() for j in self._pending_jobs])
-
-        # uc_buffer_steps_to_deadline_ratio = np.array(
-        #     [j.get_process_time_deadline_ratio() for j in self._uncompleted_jobs_buffer])
-
-        for job in self._pending_jobs:
-            pending_job_recipes[job.get_id()] = job.get_recipes()[0].get_id()
-            pending_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
-            # update max and min duration times for normalizing [0, 1]
-            if pending_job_remaining_times[job.get_id()] > max_duration:
-                max_duration = pending_job_remaining_times[job.get_id()]
-            elif pending_job_remaining_times[job.get_id()] < min_duration:
-                min_duration = pending_job_remaining_times[job.get_id()]
+        # max_duration = min_duration = 0
+        # pending_job_remaining_times: np.ndarray = np.zeros(
+        #     self._BUFFER_LEN, dtype=np.float64
+        # )
+        #
+        # pending_job_recipes: np.ndarray = np.zeros(
+        #     self._BUFFER_LEN, dtype=np.float64
+        # )
+        #
+        # # uc_buffer_steps_to_deadline_ratio = np.array(
+        # #     [j.get_process_time_deadline_ratio() for j in self._uncompleted_jobs_buffer])
+        #
+        # for job in self._pending_jobs:
+        #     pending_job_recipes[job.get_id()] = job.get_recipes()[0].get_id()
+        #     pending_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
+        #     # update max and min duration times for normalizing [0, 1]
+        #     if pending_job_remaining_times[job.get_id()] > max_duration:
+        #         max_duration = pending_job_remaining_times[job.get_id()]
+        #     elif pending_job_remaining_times[job.get_id()] < min_duration:
+        #         min_duration = pending_job_remaining_times[job.get_id()]
 
         if not sum(pending_job_remaining_times) == 0:
-            for job in self._pending_jobs:
-                pending_job_remaining_times[job.get_id()] = (
+            for idx, job in enumerate(self._pending_jobs):
+                pending_job_remaining_times[idx] = (
                                                                     pending_job_remaining_times[
-                                                                        job.get_id()] - min_duration
+                                                                        idx] - min_duration
                                                             ) / (max_duration - min_duration)
+
+        p_steps_to_deadline_ratio = min_max_norm_list([j.get_process_time_deadline_ratio() for j in self._pending_jobs])
 
         pending_jobs_steps_to_deadline = [job.get_steps_to_deadline() for job in self._pending_jobs]
         min_deadline = min(pending_jobs_steps_to_deadline)
@@ -470,6 +471,7 @@ class FactoryEnv(gym.Env):
             self._P_JOB_RECIPE_STR: pending_job_recipes,
             self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_utilization,
             self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_utilization,
+            self._MACHINES_ACTIVE_RECIPE_STR: machine_active_recipe,
             self._P_JOB_REMAINING_TIMES_STR: pending_job_remaining_times,
             self._P_JOB_PROCESS_TIME_TO_DEADLINE_RATIO: p_steps_to_deadline_ratio,
             self._P_JOB_STEPS_TO_DEADLINE: pending_jobs_steps_to_deadline,
@@ -578,6 +580,7 @@ class FactoryEnv(gym.Env):
 
     def get_uncompleted_job_buffer_obs(self) -> list[np.ndarray]:
         max_duration = min_duration = 0
+        max_ratio = min_ratio = 0
         uc_job_buffer_remaining_times: np.ndarray = np.full(
             self._BUFFER_LEN, fill_value=-1, dtype=np.float64
         )
@@ -604,14 +607,25 @@ class FactoryEnv(gym.Env):
             elif uc_job_buffer_remaining_times[idx] < min_duration:
                 min_duration = uc_job_buffer_remaining_times[idx]
 
+            if uc_job_buffer_process_time_deadline_ratio[idx] > max_ratio:
+                max_ratio = uc_job_buffer_process_time_deadline_ratio[idx]
+            elif uc_job_buffer_process_time_deadline_ratio[idx] < min_ratio:
+                min_ratio = uc_job_buffer_process_time_deadline_ratio[idx]
+
             for r_idx, recipe in enumerate(job.get_pending_recipes()):
                 if r_idx < self._MAX_NEXT_RECIPES:
                     uc_job_buffer_next_recipes[idx, r_idx] = recipe.get_id()
 
-        if not sum(uc_job_buffer_remaining_times) == 0:
+        if not sum(uc_job_buffer_remaining_times) == -1 * len(uc_job_buffer_remaining_times):
             for idx, job in enumerate(self._uncompleted_jobs_buffer):
                 uc_job_buffer_remaining_times[idx] = ((uc_job_buffer_remaining_times[idx] - min_duration)
                                                / (max_duration - min_duration))
+
+        if not sum(uc_job_buffer_process_time_deadline_ratio) == -1*len(uc_job_buffer_process_time_deadline_ratio):
+            for idx, job in enumerate(self._uncompleted_jobs_buffer):
+                uc_job_buffer_process_time_deadline_ratio[idx] = ((uc_job_buffer_process_time_deadline_ratio[idx] - min_ratio)
+                                               / (max_ratio - min_ratio))
+
 
         if self._uncompleted_jobs_buffer:
             uc_jobs_steps_to_deadline = [job.get_steps_to_deadline() for job in self._uncompleted_jobs_buffer]

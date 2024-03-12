@@ -31,7 +31,7 @@ def create_job(
         recipes=recipes,
         factory_id=factory_id,
         process_id=process_id,
-        deadline=deadline if deadline > corrected_deadline/0.3 else corrected_deadline/0.3,
+        deadline=deadline if deadline > int(corrected_deadline/0.3) else int(corrected_deadline/0.3),
         factory_time=factory_time,
         tray_capacity=random.choice(tray_capacities)
     )

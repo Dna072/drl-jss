@@ -39,7 +39,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_
             factory_id="R4_ID", process_time=150.0, process_id=3, recipe_type="R4"
         ),
         create_recipe(
-            factory_id="R5_ID", process_time=350.0, process_id=5, recipe_type="R5"
+            factory_id="R5_ID", process_time=350.0, process_id=4, recipe_type="R5"
         ),
     ]
 
@@ -119,7 +119,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_
             factory_id="M1",
             process_id=1,
             machine_type="AB",
-            tray_capacity=1000,
+            tray_capacity=100,
             valid_recipe_types=["R1", "R2"],
             max_recipes_per_process=2,
         ),
@@ -127,16 +127,16 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000, is_
             factory_id="M2",
             process_id=2,
             machine_type="ABC",
-            tray_capacity=1000,
-            valid_recipe_types=["R3", "R5"],
+            tray_capacity=100,
+            valid_recipe_types=["R2", "R3"],
             max_recipes_per_process=2,
         ),
         create_machine(
             factory_id="M3",
             process_id=3,
             machine_type="ACB",
-            tray_capacity=1000,
-            valid_recipe_types=["R2", "R4"],
+            tray_capacity=100,
+            valid_recipe_types=["R2"],
             max_recipes_per_process=2,
         ),
         create_machine(
