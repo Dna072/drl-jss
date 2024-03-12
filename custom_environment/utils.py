@@ -44,7 +44,7 @@ def print_observation(obs, nr_machines):
         print("]")
     print()
 
-def print_capacity_obs(obs):
+def print_capacity_obs(obs, env):
     # o_pending = obs["pending_jobs"]
     obs_pending_machine_capacity = obs["machine_pending_capacity"]
     obs_active_machine_capacity = obs["machine_active_capacity"]
@@ -53,6 +53,8 @@ def print_capacity_obs(obs):
 
     obs_pending_job_recipes = obs["pending_job_recipe"]
     obs_p_job_process_time_deadline_ratio = obs["pending_job_process_time_deadline_ratio"]
+    obs_p_job_next_recipes: np.ndarray = obs['pending_job_next_recipes']
+    obs_uc_job_next_recipes: np.ndarray = obs['uncompleted_job_buffer_next_recipes']
     obs_uc_job_process_time_deadline_ratio = obs["uncompleted_job_buffer_process_time_deadline_ratio"]
     # obs_uc_job_recipes = obs["uncompleted_job_recipes"]
     obs_uc_job_buffer_recipes = obs["uncompleted_job_buffer_recipes"]
@@ -94,6 +96,10 @@ def print_capacity_obs(obs):
     print(TextColors.YELLOW + "Uncompleted job buffer recipe count:" + TextColors.RESET, obs_uc_job_buffer_recipe_count)
     print(TextColors.YELLOW + "Machine active capacity utilization:" + TextColors.RESET, obs_active_machine_capacity)
     print(TextColors.YELLOW + "Machine pending capacity utilization:" + TextColors.RESET, obs_pending_machine_capacity)
+    print(TextColors.YELLOW + "Pending job next recipes:" + TextColors.RESET,
+          obs_p_job_next_recipes.reshape(env.get_buffer_size(), env.get_max_next_recipes()))
+    print(TextColors.YELLOW + "Uncompleted job next recipes:" + TextColors.RESET,
+          obs_uc_job_next_recipes.reshape(env.get_buffer_size(), env.get_max_next_recipes()))
     print(TextColors.YELLOW + "Lost jobs count:" + TextColors.RESET, obs_lost_jobs_count)
 
     # for i in range(n_machines):

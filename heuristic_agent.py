@@ -39,8 +39,8 @@ def get_heuristic_action(env: FactoryEnv):
                     # can't schedule job for machine due to tray capacity limitation
                     continue
 
-                if (m.get_active_recipe() != "" and
-                        m.get_active_recipe() != pj[p_job_index].get_next_pending_recipe().get_factory_id()):
+                if (m.get_active_recipe_str() != "" and
+                        m.get_active_recipe_str() != pj[p_job_index].get_next_pending_recipe().get_factory_id()):
                     # the scheduled job cannot be done, start the machine instead
                     action += (idx + 1)
                     break
@@ -55,8 +55,8 @@ def get_heuristic_action(env: FactoryEnv):
                     # can't schedule job for machine due to tray capacity limitation
                     continue
 
-                if (m.get_active_recipe() != "" and
-                        m.get_active_recipe() != uc_jobs[uc_job_index].get_next_pending_recipe().get_factory_id()):
+                if (m.get_active_recipe_str() != "" and
+                        m.get_active_recipe_str() != uc_jobs[uc_job_index].get_next_pending_recipe().get_factory_id()):
                     # the scheduled job cannot be done, start the machine instead
                     action += (idx + 1)
                     break
@@ -147,7 +147,7 @@ if __name__ == "__main__":
             print_jobs(env)
             print_uncompleted_jobs_buffer(env)
             # print_observation(obs, nr_machines=len(env.get_machines()))
-            print_capacity_obs(obs)
+            print_capacity_obs(obs, env)
             print(f"Pending jobs actual ptd: {FactoryEnv.get_actual_process_time_to_deadline_ratio(env.get_pending_jobs())} ")
             print(
                 f"UC jobs actual ptd: {FactoryEnv.get_actual_process_time_to_deadline_ratio(env.get_uncompleted_jobs_buffer())} ")

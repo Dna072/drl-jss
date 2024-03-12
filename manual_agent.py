@@ -41,7 +41,7 @@ while s < max_steps and nr_pending_jobs > 0:
     print_jobs(env)
     print_uncompleted_jobs_buffer(env)
     #print_observation(o, machines)
-    print_capacity_obs(obs=o)
+    print_capacity_obs(obs=o, env=env)
     print_scheduled_jobs(env)
     # env.render()
     print(
