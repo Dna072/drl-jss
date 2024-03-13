@@ -39,7 +39,7 @@ class Agent:
     def __init__(self, custom_env: FactoryEnv | Monitor) -> None:
         self.custom_env: FactoryEnv = custom_env
         self.model: PPO = PPO(
-            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, batch_size=10_000
+            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, batch_size=2048
         )
 
     def learn(
@@ -134,7 +134,7 @@ def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/p
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 8_100_000
+    LEARNING_MAX_STEPS = 3_100_000
     ENVIRONMENT_MAX_STEPS = 50_000
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="PPO")
 
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
     )
-    agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_recipe_job_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name="files/trainedAgents/ppo_agent_multi_recipe_job_mr_nj_obs_"+str(LEARNING_MAX_STEPS))
 
     # agent.load(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
     # agent.evaluate()
