@@ -117,14 +117,14 @@ def episodic_edd_agent(n_episodes: int = 10,
 if __name__ == "__main__":
     #print("Outside")
     machines: int = 2
-    jobs_buffer_size: int = 5
+    jobs_buffer_size: int = 3
     max_steps: int = 100000
 
     j: int = 0
     tot_reward: int = 0
 
     env: FactoryEnv = init_custom_factory_env(is_verbose=False, buffer_size=jobs_buffer_size,
-                                              n_recipes=3, job_deadline_ratio=0.3, n_machines=4)
+                                              n_recipes=2, job_deadline_ratio=0.3, n_machines=machines)
     env.set_termination_reward(-100000)
     #nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
 

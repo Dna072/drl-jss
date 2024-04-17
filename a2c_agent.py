@@ -140,9 +140,9 @@ def episodic_a2c_agent(a2c_agent: Agent, n_episodes: int = 10):
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 4_100_000
-    ENVIRONMENT_MAX_STEPS = 30_000
-    JOBS_BUFFER_SIZE: int = 3
+    LEARNING_MAX_STEPS = 10_100_000
+    ENVIRONMENT_MAX_STEPS = 10_000
+    JOBS_BUFFER_SIZE: int = 7
     N_MACHINES: int = 2
     N_RECIPES: int = 2
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="A2C")
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
     )
-    agent.save(file_path_name=f"files/trainedAgents/a2c_agent_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name=f"files/trainedAgents/a2c_agent_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_tray_cap_obs_"+str(LEARNING_MAX_STEPS))
 
     # agent.load(file_path_name="files/trainedAgents/a2c_agent_seco_4_machines_"+str(LEARNING_MAX_STEPS))
     # print(agent.evaluate())

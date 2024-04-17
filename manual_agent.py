@@ -24,8 +24,8 @@ s = 0
 
 tot_reward: int = 0
 
-env: FactoryEnv = init_custom_factory_env(is_verbose=True, buffer_size=3,
-                                              n_recipes=2, job_deadline_ratio=0.3, n_machines=3)
+env: FactoryEnv = init_custom_factory_env(is_verbose=True, buffer_size=jobs,
+                                              n_recipes=2, job_deadline_ratio=0.3, n_machines=machines)
 nr_pending_jobs: int = len(env.get_pending_jobs())
 
 r_values: list[int] = []

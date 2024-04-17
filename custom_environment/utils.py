@@ -78,6 +78,7 @@ def print_capacity_obs(obs, env):
 
     obs_pending_job_recipes = obs["pending_job_recipe"]
     obs_p_job_process_time_deadline_ratio = obs["pending_job_process_time_deadline_ratio"]
+    obs_p_job_tray_capacities = obs["pending_job_tray_capacities"]
     # obs_p_job_next_recipes: np.ndarray = obs['pending_job_next_recipes']
     # obs_uc_job_next_recipes: np.ndarray = obs['uncompleted_job_buffer_next_recipes']
     # obs_uc_job_process_time_deadline_ratio = obs["uncompleted_job_buffer_process_time_deadline_ratio"]
@@ -114,6 +115,7 @@ def print_capacity_obs(obs, env):
         obs_p_job_process_time_deadline_ratio,
     )
     print(TextColors.YELLOW + "Pending job recipes:" + TextColors.RESET, obs_pending_job_recipes)
+    print(TextColors.YELLOW + "Pending job tray capacities:" + TextColors.RESET, obs_p_job_tray_capacities)
     # print(TextColors.YELLOW + "Uncompleted job buffer recipes:" + TextColors.RESET, obs_uc_job_buffer_recipes)
     # print(TextColors.YELLOW + "UC job buffer process time to deadline:" + TextColors.RESET, obs_uc_job_process_time_deadline_ratio)
     # print(TextColors.YELLOW + "Uncompleted job  buffer remaining times:" + TextColors.RESET, obs_uc_job_buffer_remaining_times)

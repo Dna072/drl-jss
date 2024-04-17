@@ -25,8 +25,8 @@ def create_job(
     :return: Job object
     """
     corrected_deadline = sum([r.get_process_time() for r in recipes])
-    deadline_ratio = random.uniform(0.2, 0.41)
-    tray_capacity = 30
+    deadline_ratio = random.choice([0.25, 0.5, 0.75])
+    tray_capacity = random.randint(15, 41)
     return Job(
         recipes=recipes,
         factory_id=factory_id,

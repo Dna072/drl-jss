@@ -11,7 +11,8 @@ import numpy as np
 def create_factory_env(machines: list[Machine], jobs: list[Job], recipes: list[Recipe],
                        max_steps: int = 5000, is_evaluation: bool = False,
                        jobs_buffer_size: int = 3, job_deadline_ratio: float = 0.3,
-                       n_machines: int = 2) -> FactoryEnv:
+                       n_machines: int = 2,
+                       machine_tray_capacity: int = 300) -> FactoryEnv:
     """
     Factory function for creating a FactoryEnv object
     :param machines: list of Machine objects
@@ -22,12 +23,14 @@ def create_factory_env(machines: list[Machine], jobs: list[Job], recipes: list[R
     """
     return FactoryEnv(machines=machines, jobs=jobs, max_steps=max_steps,
                       is_evaluation=is_evaluation, jobs_buffer_size=jobs_buffer_size,
-                      recipes=recipes, job_deadline_ratio=job_deadline_ratio, n_machines=n_machines)
+                      recipes=recipes, job_deadline_ratio=job_deadline_ratio,
+                      n_machines=n_machines, machine_tray_capacity=machine_tray_capacity)
 
 
 def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
                             buffer_size: int = 5, n_recipes: int = 2, n_machines: int = 2,
-                            is_evaluation: bool = False, job_deadline_ratio: float = 0.3) -> FactoryEnv:
+                            is_evaluation: bool = False, job_deadline_ratio: float = 0.3,
+                            machine_tray_capacity: int = 300) -> FactoryEnv:
     """
     Create a custom FactoryEnv environment for development and testing
     @param max_steps: Max steps in the env
@@ -37,6 +40,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
     @param n_machines: number of machines in the env
     @param is_evaluation: flag to determine if we are performing evaluation on the env
     @param job_deadline_ratio: ratio of total job recipes to deadline of job
+    @param machine_tray_capacity: Maximum capacity of machines in the env
     :return: custom FactoryEnv environment instance with machine, job and recipe objects
     """
     recipe_durations = [30, 150, 200, 250, 300, 350]
@@ -72,15 +76,15 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
             print(job)
             print("-------")
 
-    valid_recipes = [["R0", "R7"], ["R0", "R1"], ["R0", "R1"],
-                     ["R2", "R3", "R4"], ["R5", "R6"], ["R7","R8"],
+    valid_recipes = [["R0", "R2"], ["R0", "R1"], ["R2", "R3"],
+                     ["R1", "R3"], ["R5", "R6"], ["R7","R8"],
                      ["R2", "R3"], ["R4","R5"], ["R8", "R6"]]
     machines: list[Machine] = [
         create_machine(
             factory_id=f"M{i}",
             process_id=i,
             machine_type="A",
-            tray_capacity=300,
+            tray_capacity=machine_tray_capacity,
             valid_recipe_types=valid_recipes[i % len(valid_recipes)],
             max_recipes_per_process=1,
         )
@@ -95,7 +99,8 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
 
     factory_env: FactoryEnv = create_factory_env(machines=machines, jobs=jobs, max_steps=max_steps, recipes=recipe_objects,
                                                  is_evaluation=is_evaluation, jobs_buffer_size=buffer_size,
-                                                 job_deadline_ratio=job_deadline_ratio, n_machines=n_machines)
+                                                 job_deadline_ratio=job_deadline_ratio, n_machines=n_machines,
+                                                 machine_tray_capacity=machine_tray_capacity)
     return factory_env
 
 
