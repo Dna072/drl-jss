@@ -753,7 +753,7 @@ class FactoryEnv(gym.Env):
             if job.get_steps_to_deadline() - active_recipe.get_process_time() >= 0:
                 reward += self._REWARD_WEIGHTS[self.JOB_COMPLETED_ON_TIME_STR] * job.get_tray_capacity() / machine.get_tray_capacity()
 
-        if self._can_pending_jobs_be_assigned() and machine.get_tray_capacity() - machine.get_active_tray_capacity() >= 40: #40 is the current max job tray size
+        if self._can_pending_jobs_be_assigned() and machine.get_active_tray_capacity() >= 40: #40 is the current max job tray size
             reward += self._REWARD_WEIGHTS[self.MACHINE_UNDER_UTILIZED_STR]
         return reward
     def _compute_job_completed_reward(self, job: Job) -> float:
