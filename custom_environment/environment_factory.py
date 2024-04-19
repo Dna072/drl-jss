@@ -76,7 +76,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
             print(job)
             print("-------")
 
-    valid_recipes = [["R0", "R2"], ["R0", "R1"], ["R2", "R3"],
+    valid_recipes = [["R0", "R1"], ["R0", "R1"], ["R2", "R3"],
                      ["R1", "R3"], ["R5", "R6"], ["R7","R8"],
                      ["R2", "R3"], ["R4","R5"], ["R8", "R6"]]
     machines: list[Machine] = [

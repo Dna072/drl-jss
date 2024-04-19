@@ -173,7 +173,8 @@ class Machine:
 
     def can_perform_any_pending_job(self, pending_jobs: list[Job]) -> bool:
         for job in pending_jobs:
-            if self.can_perform_job(job):
+            if (self.can_perform_job(job) and
+                    (self.__active_recipe.get_factory_id() == job.get_next_pending_recipe().get_factory_id() or self._active_recipe_str == "")):
                 return True
 
         return False

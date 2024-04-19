@@ -47,10 +47,10 @@ if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
     LEARNING_MAX_STEPS = 41_100_000
     ENVIRONMENT_MAX_STEPS = 5_000
-    JOBS_BUFFER_SIZE: int = 3
+    JOBS_BUFFER_SIZE: int =6
     N_MACHINES: int = 2
     N_RECIPES: int = 2
-    GAMMA: float = 0.85
+    GAMMA: float = 0.6
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS,
@@ -60,11 +60,11 @@ if __name__ == "__main__":
                   exploration_fraction=0.5,
                   )
 
-    #agent.load(file_path_name='files/trainedAgents/dqn_agent_seco_4_machines_gamma_0.75_41100000_x4')
+    agent.load(file_path_name='files/trainedAgents/dqn_seco_2m_2r_0.6g_6b_machine_util_41100000', exploration_initial_eps=0.08)
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
     )
-    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_{JOBS_BUFFER_SIZE}b_neg_job_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_{JOBS_BUFFER_SIZE}b_machine_util_x2_"+str(LEARNING_MAX_STEPS))
 
     # agent.load(file_path_name='files/trainedAgents/dqn_agent_seco_4_machines_gamma_0.82_41100000_x1_big_neg_reward')
     # agent.evaluate(num_of_episodes = 1_000)
