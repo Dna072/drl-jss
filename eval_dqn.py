@@ -75,7 +75,7 @@ class Agent:
                               env=self.custom_env,
                               exploration_fraction=0.45,
                               exploration_initial_eps=0.07,
-                              gamma=0.9
+                              gamma=0.6
                               )
 
 
@@ -166,8 +166,8 @@ if __name__ == "__main__":
     LEARNING_MAX_STEPS = 40_200_000
     ENVIRONMENT_MAX_STEPS = 5_000
     JOBS_BUFFER_SIZE: int = 3
-    N_MACHINES: int = 2
-    N_RECIPES: int = 2
+    N_MACHINES: int = 5
+    N_RECIPES: int = 5
     GAMMA: float = 0.6
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
@@ -176,12 +176,12 @@ if __name__ == "__main__":
                                               n_recipes=N_RECIPES, job_deadline_ratio=0.3, n_machines=N_MACHINES),
                   gamma=GAMMA)
 
-    #agent.load(file_path_name=f'files/trainedAgents/dqn_seco_2m_2r_gamma_0.9_machine_utl_40200000')
+    # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_2m_2r_0.6g_all_purpose_machines_40200000')
     # #agent.load(file_path_name='files/trainedAgents/dqn_agent_seco_3_machines_2_recipes_gamma_0.6_5100000')
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
     )
-    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_all_purpose_machines_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_real_"+str(LEARNING_MAX_STEPS))
 
-    # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_2m_2r_gamma_0.9_machine_utl_40200000')
+    # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_5m_5r_0.6g_real_40200000')
     # agent.evaluate(num_of_episodes = 1_000)

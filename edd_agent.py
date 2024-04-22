@@ -25,7 +25,7 @@ def get_edd_action(env: FactoryEnv):
     # print_jobs(env)
     # check for machines that have tray capacity full or almost full and start them
     for idx, m in enumerate(am):
-        if m.get_pending_tray_capacity() < 30:
+        if m.get_pending_tray_capacity() < 1:
             # start the machine
             action += (idx + 1) # Current No-Op plus index of machine + 1
             return action
@@ -116,15 +116,16 @@ def episodic_edd_agent(n_episodes: int = 10,
 
 if __name__ == "__main__":
     #print("Outside")
-    machines: int = 2
-    jobs_buffer_size: int = 3
+    machines: int = 5
+    recipes: int = 5
+    jobs_buffer_size: int = 10
     max_steps: int = 100000
 
     j: int = 0
     tot_reward: int = 0
 
     env: FactoryEnv = init_custom_factory_env(is_verbose=False, buffer_size=jobs_buffer_size,
-                                              n_recipes=2, job_deadline_ratio=0.3, n_machines=machines)
+                                              n_recipes=recipes, job_deadline_ratio=0.3, n_machines=machines)
     env.set_termination_reward(-100000)
     #nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
 

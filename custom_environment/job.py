@@ -58,7 +58,9 @@ class Job:
         process_id: int = 0,
         deadline: int = 0,
         factory_time: int = 0,
-        tray_capacity: int = 30
+        tray_capacity: int = 30,
+        amount: int = 0,
+        amount_per_tray: int = 1
     ) -> None:
         """
         Job class constructor method
@@ -82,6 +84,8 @@ class Job:
         self.__recipes_completed: list[Recipe] = []
         # set number of trays required for job
         self.__tray_capacity: int = tray_capacity
+        self._amount: int = amount
+        self._amount_per_tray: int = amount_per_tray
 
         # self.__start_op_datetime: datetime | None = None
         # self.__is_past_deadline: bool = False
@@ -205,7 +209,7 @@ class Job:
         return (
             f"Job ID: {self.__factory_id}"
             f" Recipes: {[f'{recipe.get_factory_id()} duration: {recipe.get_process_time()}' for recipe in self.__recipes]}"
-            f" Quantity: {len(self.__recipes)}"
+            f" Tray capacity: {self.__tray_capacity}"
             f" Created: {self.__creation_step}"
             f" Steps to Deadline: {self.get_steps_to_deadline()}"
             f" Status: {self.__STATUS_STR[self.__status]}"

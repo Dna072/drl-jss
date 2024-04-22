@@ -41,8 +41,8 @@ def get_fifo_action(env: FactoryEnv):
                     if (m.get_active_recipe_str() != "" and
                             m.get_active_recipe_str() != pj[fifo_job_idx].get_next_pending_recipe().get_factory_id()):
                         # the scheduled job cannot be done, start the machine instead
-                        action += (idx + 1)
-                        break
+                        # action += (idx + 1)
+                        continue
                     machine_index = idx
                     return machine_index * env.get_buffer_size() + fifo_job_idx
     else:
@@ -113,13 +113,14 @@ def episodic_fifo_agent(n_episodes: int = 10,
 # -------------------- CHECK IF EVERYTHING BELOW THIS LINE CAN BE DELETED --------------
 if __name__ == "__main__":
     machines: int = 2
+    recipes: int = 2
     jobs: int = 3
     max_steps: int = 100
 
     j: int = 0
     tot_reward: int = 0
 
-    env: FactoryEnv = init_custom_factory_env(is_verbose=False)
+    env: FactoryEnv = init_custom_factory_env(is_verbose=False, n_recipes=recipes, n_machines=machines, buffer_size=jobs)
     obs, info = env.reset()
     #nr_pending_jobs: int = sum(env.get_obs()["pending_jobs"])
 

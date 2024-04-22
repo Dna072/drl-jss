@@ -81,11 +81,10 @@ class FactoryEnv(gym.Env):
     #####################
 
     _BUFFER_LEN: int = 5
-    _MAX_NEXT_RECIPES: int = 2 #variable to control the number of recipes for a job the agent can see to help in forecasting
+    _MAX_NEXT_RECIPES: int = 1 #variable to control the number of recipes for a job the agent can see to help in forecasting
     _NO_OP_SPACE: int = 1
     _START_MACHINES_SPACE: int = 1
     _MAX_MACHINES: int = 2
-    _RECIPES_LENGTH: dict[str, int] = {"R1": 1, "R2": 10}
     _REWARD_WEIGHTS: dict[str, int] = {
         NO_OP_STR: 0,
         MACHINE_IDLE_STR: -1,
@@ -93,7 +92,7 @@ class FactoryEnv(gym.Env):
         JOB_COMPLETED_ON_TIME_STR: 10,
         JOB_COMPLETED_NOT_ON_TIME_STR: -20,
         JOB_ASSIGNED_STR: 1,
-        INVALID_JOB_RECIPE_STR: -10,
+        INVALID_JOB_RECIPE_STR: -30,
         DEADLINE_EXCEEDED_STR: -5,
         ILLEGAL_ACTION_STR: -15,
         MACHINE_UNDER_UTILIZED_STR: -20,
@@ -133,9 +132,9 @@ class FactoryEnv(gym.Env):
     _METADATA: dict[int, str] = {0: "vector", 1: "human"}
 
     def __init__(
-        self, machines: list[Machine], jobs: list[Job], recipes: list[Recipe],
+        self, machines: list[Machine], jobs: list[Job], recipes: list[Recipe], recipe_probs: list[float],
             max_steps: int = 10_000, is_evaluation: bool = False, jobs_buffer_size: int = 3,
-            job_deadline_ratio: float = 0.3, n_machines: int = 2, machine_tray_capacity: int = 300
+            job_deadline_ratio: float = 0.3, n_machines: int = 2, machine_tray_capacity: int = 40
     ) -> None:
         """
         FactoryEnv class constructor method using gym.Space objects for action and observation space
@@ -155,6 +154,7 @@ class FactoryEnv(gym.Env):
         self._BUFFER_LEN = jobs_buffer_size
         self._jobs: list[Job] = jobs
         self.available_recipes = recipes
+        self.available_recipe_probs = recipe_probs
         self.job_deadline_ratio = job_deadline_ratio
         self._pending_jobs: list[Job] = self._jobs.copy()[
             : self._BUFFER_LEN
@@ -753,7 +753,7 @@ class FactoryEnv(gym.Env):
             if job.get_steps_to_deadline() - active_recipe.get_process_time() >= 0:
                 reward += self._REWARD_WEIGHTS[self.JOB_COMPLETED_ON_TIME_STR] * job.get_tray_capacity() / machine.get_tray_capacity()
 
-        if self._can_pending_jobs_be_assigned() and machine.get_active_tray_capacity() >= 30: #40 is the current max job tray size
+        if self._can_pending_jobs_be_assigned() and machine.get_active_tray_capacity() >= 5: #40 is the current max job tray size
             reward += self._REWARD_WEIGHTS[self.MACHINE_UNDER_UTILIZED_STR]
         return reward
     def _compute_job_completed_reward(self, job: Job) -> float:
@@ -795,7 +795,7 @@ class FactoryEnv(gym.Env):
                             m_p_time_ratio = m_pending_job.get_process_time_deadline_ratio()
                             job_time_ratio = job.get_process_time_deadline_ratio()
 
-                            if job_time_ratio > m_p_time_ratio:
+                            if job_time_ratio > m_p_time_ratio and machine_to_start.get_pending_tray_capacity() >= job.get_tray_capacity():
                                 reward += self._REWARD_WEIGHTS[self.DEADLINE_EXCEEDED_STR] * 1.5
                                 break
 
@@ -838,6 +838,7 @@ class FactoryEnv(gym.Env):
                     if (action_selected_job.get_next_pending_recipe().get_factory_id() == job.get_next_pending_recipe().get_factory_id()
                             and action_selected_job.get_factory_id() != job.get_factory_id()
                             and action_selected_job.get_process_time_deadline_ratio() < job.get_process_time_deadline_ratio()
+                            and action_selected_job.get_tray_capacity() == job.get_tray_capacity()
                     ):
                         # same job recipes but picked job with higher deadline
                         reward += -2
@@ -886,6 +887,7 @@ class FactoryEnv(gym.Env):
                             len(machine.get_valid_recipes()) == 1
                             and machine.is_available()
                             and machine.can_perform_job(action_selected_job)
+                            and machine.get_pending_tray_capacity() >= action_selected_job.get_tray_capacity()
                     ):
                         #print(f"Another specialised machine could have done job: {action_selected_job}")
                         reward += -1
@@ -1260,7 +1262,7 @@ class FactoryEnv(gym.Env):
             for i in range(self._BUFFER_LEN):
                 if i not in pending_idx:
                     # Create job
-                    r = random.choice(self.available_recipes,)
+                    r = np.random.choice(np.array(self.available_recipes), p=self.available_recipe_probs)
                     r2 = random.choice(self.available_recipes,)
                     use_multiple_recipes = False if self.MAX_RECIPES_IN_ENV_SYSTEM == 1 else np.random.randint(low=0, high=10) % 2 == 0
                     deadline = 100 if r.get_recipe_type() == "R1" else 1000

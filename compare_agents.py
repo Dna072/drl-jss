@@ -27,9 +27,9 @@ JOBS_BUFFER_SIZE = 3
 N_RECIPES = 2
 JOB_DEADLINE_RATIO: float = 0.3
 #DQN_AGENT_PATH = "files/trainedAgents/dqn_agent_seco_4_machines_gamma_0.75_41100000_x4"
-DQN_AGENT_PATH = "files/trainedAgents/dqn_seco_2m_2r_3b_0.6g_machine_util_35100000"
+DQN_AGENT_PATH = "files/trainedAgents/dqn_seco_2m_2r_3b_0.5g_all_purpose_35100000"
 PPO_AGENT_PATH = "files/trainedAgents/ppo_agent_multi_recipe_job_8100000"
-A2C_AGENT_PATH = "files/trainedAgents/a2c_agent_seco_2m_2r_3b_tray_cap_obs_6100000"
+A2C_AGENT_PATH = "files/trainedAgents/a2c_agent_seco_2m_2r_3b_all_purpose_10100000"
 SAVE_PATH = "files/data/"
 
 ###################
@@ -90,7 +90,7 @@ else:
     fifo_rewards, fifo_tardiness, fifo_jot, fifo_jnot = load_agent_results(FIFO_PATH)
 
 print("\033[96m"+"Starting DQN"+"\033[0m")
-DQN_PATH = SAVE_PATH + f"dqn_data_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_0.6g_machine_util_1" + str(N_EPISODES) + ".pkl"
+DQN_PATH = SAVE_PATH + f"dqn_data_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_0.5g_all_purpose" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(DQN_PATH):
     agent = dqn_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS, buffer_size=JOBS_BUFFER_SIZE,
                                                          job_deadline_ratio=JOB_DEADLINE_RATIO, is_evaluation=True,
@@ -104,7 +104,7 @@ else:
     print(f"DQN JOT {dqn_jot[:10]}")
 
 print("\033[95m"+"Starting A2C"+"\033[0m")
-A2C_PATH = SAVE_PATH + f"a2c_data_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_step_ptd_" + str(N_EPISODES) + ".pkl"
+A2C_PATH = SAVE_PATH + f"a2c_data_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_all_purpose_" + str(N_EPISODES) + ".pkl"
 if not os.path.exists(A2C_PATH):
     a2c_agent = a2c_Agent(custom_env=init_custom_factory_env(max_steps=ENV_MAX_STEPS, is_evaluation=True,
                                                          buffer_size=JOBS_BUFFER_SIZE, job_deadline_ratio=JOB_DEADLINE_RATIO,

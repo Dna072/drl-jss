@@ -44,8 +44,8 @@ def get_heuristic_action(env: FactoryEnv):
                     if (m.get_active_recipe_str() != "" and
                             m.get_active_recipe_str() != pj[job_idx].get_next_pending_recipe().get_factory_id()):
                         # the scheduled job cannot be done, start the machine instead
-                        action += (idx + 1)
-                        break
+                        # action += (idx + 1)
+                        continue
 
                     machine_index = idx
                     return machine_index * env.get_buffer_size() + job_idx
@@ -119,6 +119,7 @@ if __name__ == "__main__":
     #print("Outside")
     machines: int = 2
     jobs: int = 3
+    recipes: int = 2
     max_steps: int = 100000
 
     j: int = 0
@@ -145,7 +146,7 @@ if __name__ == "__main__":
     avg_tardiness_of_late_jobs_per_episode = []
     returns = []
     current_step = 0
-    env = init_custom_factory_env(is_verbose=False, max_steps=MAX_STEPS)
+    env = init_custom_factory_env(is_verbose=False, max_steps=MAX_STEPS, n_machines=machines, n_recipes=recipes, buffer_size=jobs)
     env.set_termination_reward(-100000)
     obs, info = env.reset()
 

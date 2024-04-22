@@ -163,7 +163,10 @@ class Machine:
         return recipe
 
     def can_perform_job(self, job: Job) -> bool:
-        if job.get_next_pending_recipe().get_recipe_type() in self.__valid_recipe_types:
+        # Update to check if machine can perform the job and has space enough for it
+        if (job.get_next_pending_recipe().get_recipe_type() in self.__valid_recipe_types
+                and self._pending_tray_capacity >= job.get_tray_capacity()
+                and (self._active_recipe_str == job.get_next_pending_recipe().get_factory_id() or self._active_recipe_str == "")) :
             return True
         # for recipe in job.get_pending_recipes():
         #     if recipe.get_recipe_type() in self.__valid_recipe_types:
@@ -174,7 +177,7 @@ class Machine:
     def can_perform_any_pending_job(self, pending_jobs: list[Job]) -> bool:
         for job in pending_jobs:
             if (self.can_perform_job(job) and
-                    (self.__active_recipe.get_factory_id() == job.get_next_pending_recipe().get_factory_id() or self._active_recipe_str == "")):
+                    (self._active_recipe_str == job.get_next_pending_recipe().get_factory_id() or self._active_recipe_str == "")):
                 return True
 
         return False
