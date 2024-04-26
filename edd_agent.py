@@ -117,8 +117,8 @@ def episodic_edd_agent(n_episodes: int = 10,
 if __name__ == "__main__":
     #print("Outside")
     machines: int = 5
-    recipes: int = 5
-    jobs_buffer_size: int = 10
+    recipes: int = 3
+    jobs_buffer_size: int = 3
     max_steps: int = 100000
 
     j: int = 0

@@ -45,20 +45,19 @@ def create_job(
     )
 
 def get_tray_capacity():
-    tray_probs = [15/41, 13/41, 13/41]
-    # Generate a random number between 0 and 1
-    rand_num = random.random()
-    tray_size = 0
-    # Determine which range the random integer falls into based on the probabilities
-    if rand_num < tray_probs[0]:
-        # Range 1 to 15
-        tray_size = random.randint(1, 15)
-    elif rand_num < tray_probs[0] + tray_probs[1]:
-        # Range 16 to 29
-        tray_size = random.randint(16, 29)
-    else:
-        # Range 30 to 40
-        tray_size = random.randint(30, 40)
+    # Define the bin ranges and their frequencies
+    bin_ranges = [
+        (1.00, 6.50), (6.50, 12.00), (12.00, 17.50),
+        (17.50, 23.00), (23.00, 28.50), (28.50, 34.00),
+        (34.00, 40)
+    ]
+    frequencies = [1261, 1507, 1341, 349, 293, 124, 71]
+
+    # Generate a random bin based on the frequencies
+    random_bin = random.choices(bin_ranges, weights=frequencies)[0]
+
+    # Generate a random integer within the chosen bin range
+    tray_size = random.randint(int(random_bin[0]), int(random_bin[1]))
 
     return tray_size
 

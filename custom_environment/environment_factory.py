@@ -47,13 +47,18 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
     if n_machines > 10:
         n_machines = 10
     recipe_durations = [30, 150, 200, 250, 300, 350]
-    seco_recipes = ["274-2","274-3","274-4","274-51","274-7","277-1", "277-2", "277-3", "277-4","277-5","277-6","277-7","277-8","277-11","277-12","277-13","277-14","277-15","277-18","277-61","277-62"]
-    seco_recipe_durations = [155, 280, 210, 120, 175, 180, 75, 215, 140, 140, 120, 235, 230, 365, 305, 290, 205, 135, 200, 180, 240]
-    seco_recipe_freq = [0,0,0,0,0,168,161,433,761,305,1877,32,0,4,0,451,439,185,135,37,31]
-    seco_recipe_dist = [i/sum(seco_recipe_freq) for i in seco_recipe_freq]
+    seco_recipes = ["277-1", "277-11", "277-12", "277-13","277-14","277-15","277-18","277-3","277-5","277-6","277-61","277-62","277-7","277-8"]
+    seco_recipe_durations = [180, 365, 305, 290, 205, 135, 200, 215, 140, 120, 180, 240, 235, 230]
+    seco_recipe_freq = [168,161,433,761,305,1877,32,4,451,439,185,135,37,31]
 
     if n_recipes > len(seco_recipes):
         n_recipes = len(seco_recipes)
+
+    seco_recipes = seco_recipes[:n_recipes]
+    seco_recipe_durations = seco_recipe_durations[:n_recipes]
+    seco_recipe_freq = seco_recipe_freq[:n_recipes]
+    seco_recipe_dist = [i / sum(seco_recipe_freq) for i in seco_recipe_freq]
+
 
     recipe_objects: list[Recipe] = [
         create_recipe(
@@ -65,6 +70,18 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
         for i in range(len(seco_recipe_durations))
     ]
 
+    # recipe_objects: list[Recipe] = [
+    #     create_recipe(
+    #         factory_id=f"R{i}",
+    #         process_time=recipe_durations[i % len(recipe_durations)],
+    #         process_id=i,
+    #         recipe_type=f"R{i}",
+    #     )
+    #     for i in range(n_recipes)
+    # ]
+
+
+
     if is_verbose:
         print("Recipes:")
         for recipe in recipe_objects:
@@ -73,7 +90,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
 
     jobs: list[Job] = [
         create_job(
-            recipes=[np.random.choice(np.array(recipe_objects), p=seco_recipe_dist)],
+            recipes=[np.random.choice(np.array(recipe_objects))],
             factory_id=f"J{i}",
             process_id=i,
             deadline=0,
@@ -87,7 +104,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
             print(job)
             print("-------")
 
-    valid_recipes = [["R0", "R1"], ["R0", "R1"], ["R2", "R3"],
+    valid_recipes = [["R0", "R1"], ["R0", "R1"], ["R1", "R2"],
                      ["R1", "R3"], ["R5", "R6"], ["R7","R8"],
                      ["R2", "R3"], ["R4","R5"], ["R8", "R6"]]
 
@@ -107,11 +124,11 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
                           ]
     machines: list[Machine] = [
         create_machine(
-            factory_id=f"L {seco_machine_names[i]}",
+            factory_id=f"M{i}",
             process_id=i,
-            machine_type=seco_machine_names[i],
+            machine_type=f"M{i}",
             tray_capacity=machine_tray_capacity,
-            valid_recipe_types=seco_valid_recipes[i % len(valid_recipes)],
+            valid_recipe_types=seco_valid_recipes[i % len(seco_valid_recipes)],
             max_recipes_per_process=1,
         )
         for i in range(n_machines)
