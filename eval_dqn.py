@@ -168,7 +168,7 @@ if __name__ == "__main__":
     JOBS_BUFFER_SIZE: int = 5
     N_MACHINES: int = 4
     N_RECIPES: int = 6
-    GAMMA: float = 0.7
+    GAMMA: float = 0.57
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS,
@@ -183,5 +183,5 @@ if __name__ == "__main__":
     )
     agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_{GAMMA}g_real_"+str(LEARNING_MAX_STEPS))
 
-    # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_5m_5b_0.9g_real_30200000')
-    # agent.evaluate(num_of_episodes = 1_000)
+    agent.load(file_path_name=f'files/trainedAgents/dqn_seco_4m_6r_5b_0.7g_real_40200000')
+    agent.evaluate(num_of_episodes = 1_000)

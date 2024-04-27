@@ -68,7 +68,7 @@ def get_edd_action(env: FactoryEnv):
     # If edd job is not schedulable, start any machines that are available
     if action == no_op_action:
         for idx, m in enumerate(am):
-            if m.get_pending_tray_capacity() < 100 and m.is_available():
+            if m.get_pending_tray_capacity() < 40 and m.is_available():
                 # start the machine
                 action += (idx + 1)  # Current No-Op plus index of machine + 1
                 return action
