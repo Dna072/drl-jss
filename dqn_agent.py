@@ -92,26 +92,26 @@ class Agent:
         steps = 0
 
         while episode < num_of_episodes:
-            print_jobs(self.custom_env)
-            print_uncompleted_jobs_buffer(self.custom_env)
-            print_capacity_obs(obs, env=self.custom_env)
+            # print_jobs(self.custom_env)
+            # print_uncompleted_jobs_buffer(self.custom_env)
+            # print_capacity_obs(obs, env=self.custom_env)
 
 
             action, _states = self.model.predict(observation=obs, deterministic=True)
-            print(f'Action: {action}')
+            # print(f'Action: {action}')
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
-            print_scheduled_jobs(self.custom_env, buffer_size=10)
-            print(f'Reward: {reward}, '
-                  f'Factory time: {info["CURRENT_TIME"]} '
-                  f'JOT: {info["JOBS_COMPLETED_ON_TIME"]}, '
-                  f'JNOT: {info["JOBS_NOT_COMPLETED_ON_TIME"]}, '
-                  f'UC_JOBS_BUFFER: {info["UNCOMPLETED_JOBS_BUFFER"]}, '
-                  f'LOST_JOBS: {info["LOST_JOBS"]}')
-
-
-            test = input('Enter to continue')
+            # print_scheduled_jobs(self.custom_env, buffer_size=10)
+            # print(f'Reward: {reward}, '
+            #       f'Factory time: {info["CURRENT_TIME"]} '
+            #       f'JOT: {info["JOBS_COMPLETED_ON_TIME"]}, '
+            #       f'JNOT: {info["JOBS_NOT_COMPLETED_ON_TIME"]}, '
+            #       f'UC_JOBS_BUFFER: {info["UNCOMPLETED_JOBS_BUFFER"]}, '
+            #       f'LOST_JOBS: {info["LOST_JOBS"]}')
+            #
+            #
+            # test = input('Enter to continue')
 
             returns.append(reward)
             curr_tardiness = self.custom_env.get_tardiness_percentage()
@@ -163,18 +163,18 @@ def episodic_dqn_agent(dqn_agent: Agent, n_episodes: int = 10):
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 80_200_000
+    LEARNING_MAX_STEPS = 200_200_000
     ENVIRONMENT_MAX_STEPS = 6_000
     JOBS_BUFFER_SIZE: int = 5
     N_MACHINES: int = 5
-    N_RECIPES: int = 8
+    N_RECIPES: int = 6
     GAMMA: float = 0.6
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS,
                                                      buffer_size=JOBS_BUFFER_SIZE,
                                               n_recipes=N_RECIPES, job_deadline_ratio=0.3, n_machines=N_MACHINES),
-                  gamma=GAMMA)
+                  gamma=GAMMA, exploration_fraction=0.65)
 
     #agent.load(file_path_name='files/trainedAgents/dqn_agent_seco_3_machines_2_recipes_gamma_0.6_5100000')
     agent.learn(

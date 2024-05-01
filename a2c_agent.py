@@ -142,9 +142,9 @@ if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
     LEARNING_MAX_STEPS = 20_100_000
     ENVIRONMENT_MAX_STEPS = 10_000
-    JOBS_BUFFER_SIZE: int = 5
-    N_MACHINES: int = 3
-    N_RECIPES: int = 3
+    JOBS_BUFFER_SIZE: int = 3
+    N_MACHINES: int = 2
+    N_RECIPES: int = 2
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="A2C")
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS, buffer_size=JOBS_BUFFER_SIZE,
