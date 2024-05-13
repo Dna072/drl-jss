@@ -71,6 +71,8 @@ def print_observation(obs, nr_machines):
 
 def print_capacity_obs(obs, env):
     # o_pending = obs["pending_jobs"]
+    obs_jobs_queue = obs["new_jobs_queue"]
+    obs_jobs_queue_capacities = obs["new_jobs_tray_capacities"]
     obs_pending_machine_capacity = obs["machine_pending_capacity"]
     obs_active_machine_capacity = obs["machine_active_capacity"]
     obs_active_machine_recipe = obs["machine_active_recipe"]
@@ -108,6 +110,14 @@ def print_capacity_obs(obs, env):
     #     o_p_steps_to_deadline,
     # )
     # print(TextColors.YELLOW+"Remaining time for jobs ip:\n"+TextColors.RESET, o_ip_remaining)
+    print(
+        TextColors.YELLOW + "Jobs queue:\n" + TextColors.RESET,
+        obs_jobs_queue,
+    )
+    print(
+        TextColors.YELLOW + "Jobs queue capacities:\n" + TextColors.RESET,
+        obs_jobs_queue_capacities,
+    )
     print(
         TextColors.YELLOW + "Pending job steps to deadline:\n" + TextColors.RESET,
         obs_pending_job_steps_to_deadline,

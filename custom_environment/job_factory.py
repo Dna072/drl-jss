@@ -24,14 +24,8 @@ def create_job(
     :param factory_time: current factory time
     :return: Job object
     """
-    seco_recipes = ["274-2","274-3","274-4","274-51","274-7","277-1", "277-2", "277-3", "277-4","277-5","277-6","277-7","277-8","277-11","277-12","277-13","277-14","277-15","277-18","277-61","277-62"]
-    seco_recipe_durations = [155, 280, 210, 120, 175, 180, 75, 215, 140, 140, 120, 235, 230, 365, 305, 290, 205, 135, 200, 180, 240]
-    seco_recipe_freq = [0,0,0,0,0,168,161,433,761,305,1877,32,0,4,0,451,439,185,135,37,31]
-    seco_recipe_dist = [i/sum(seco_recipe_freq) for i in seco_recipe_freq]
-
-
     corrected_deadline = sum([r.get_process_time() for r in recipes])
-    deadline_ratio = random.uniform(0.2, 0.41)
+    deadline_ratio = random.uniform(0.2, 0.28)
     tray_capacity = get_tray_capacity()
 
 

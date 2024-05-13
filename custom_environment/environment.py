@@ -79,7 +79,7 @@ class FactoryEnv(gym.Env):
     #####################
     # private constants #
     #####################
-
+    _JOBS_QUEUE_LEN: int = 10
     _BUFFER_LEN: int = 5
     _MAX_NEXT_RECIPES: int = 1 #variable to control the number of recipes for a job the agent can see to help in forecasting
     _NO_OP_SPACE: int = 1
@@ -105,6 +105,8 @@ class FactoryEnv(gym.Env):
     }
 
     # observation space constant dict keys
+    _NEW_JOBS_QUEUE_STR: str = "new_jobs_queue"
+    _NEW_JOBS_TRAY_CAPACITIES_STR: str = "new_jobs_tray_capacities"
     _PENDING_JOBS_STR: str = "pending_jobs"
     _RECIPE_TYPES_STR: str = "recipes"
     _MACHINES_STR: str = "machines"
@@ -134,7 +136,7 @@ class FactoryEnv(gym.Env):
 
     def __init__(
         self, machines: list[Machine], jobs: list[Job], recipes: list[Recipe], recipe_probs: list[float],
-            max_steps: int = 10_000, is_evaluation: bool = False, jobs_buffer_size: int = 3,
+            max_steps: int = 10_000, is_evaluation: bool = False, jobs_buffer_size: int = 3, jobs_queue_size: int = 10,
             job_deadline_ratio: float = 0.3, n_machines: int = 2, machine_tray_capacity: int = 40
     ) -> None:
         """
@@ -153,13 +155,16 @@ class FactoryEnv(gym.Env):
         ]  # restricted len for max machines being used
         self.is_evaluation: bool = is_evaluation
         self._BUFFER_LEN = jobs_buffer_size
-        self._jobs: list[Job] = jobs
+        self._JOBS_QUEUE_LEN = jobs_queue_size
+        self._jobs_queue: list[Job] = jobs.copy()
         self.available_recipes = recipes
         self.available_recipe_probs = recipe_probs
         self.job_deadline_ratio = job_deadline_ratio
-        self._pending_jobs: list[Job] = self._jobs.copy()[
+        self._pending_jobs: list[Job] = jobs.copy()[
             : self._BUFFER_LEN
         ]  # buffer of restricted len
+
+
         self._jobs_in_progress: list[tuple[Machine, Job]] = []
         self._completed_jobs: list[Job] = []
         self._uncompleted_jobs: list[Job] = []
@@ -203,8 +208,14 @@ class FactoryEnv(gym.Env):
         #####################
         # observation space #
         #####################
+        new_jobs_recipe_space: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=1, shape=(self._JOBS_QUEUE_LEN,), dtype=np.float64
+        )
+        new_jobs_tray_capacities_space: gym.spaces.Box = gym.spaces.Box(
+            low=0, high=1, shape=(self._JOBS_QUEUE_LEN,), dtype=np.float64
+        )
         pending_jobs_recipe_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=len(self.available_recipes) - 1, shape=(self._BUFFER_LEN,), dtype=np.float64
+            low=0, high=1, shape=(self._BUFFER_LEN,), dtype=np.float64
         )
 
         pending_jobs_tray_capacities: gym.spaces.Box = gym.spaces.Box(
@@ -234,11 +245,11 @@ class FactoryEnv(gym.Env):
         )# normalized vector for utilized machine tray capacity for active jobs
 
         machine_active_recipe_space: gym.spaces.Box = gym.spaces.Box(
-            low=-1, high=len(self.available_recipes) -1, shape=(len(self._machines),), dtype=np.float64
+            low=-1, high=1, shape=(len(self._machines),), dtype=np.float64
         )
 
         machine_recipes_space: gym.spaces.Box = gym.spaces.Box(
-            low=0, high=len(self.available_recipes) -1, shape=(len(self.available_recipes) * len(self._machines),), dtype=np.float64
+            low=0, high=1, shape=(len(self.available_recipes) * len(self._machines),), dtype=np.float64
         )
 
         uncompleted_job_buffer_next_recipes: gym.spaces.Box = gym.spaces.Box(
@@ -273,6 +284,8 @@ class FactoryEnv(gym.Env):
             {
                 # self._PENDING_JOBS_STR: pending_jobs_space,
                 #self._MACHINES_STR: machine_space,
+                self._NEW_JOBS_QUEUE_STR: new_jobs_recipe_space,
+                self._NEW_JOBS_TRAY_CAPACITIES_STR: new_jobs_tray_capacities_space,
                 self._P_JOB_RECIPE_STR: pending_jobs_recipe_space,
                 self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_space,
                 self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_space,
@@ -366,8 +379,8 @@ class FactoryEnv(gym.Env):
         # update pending jobs observation #
         ###################################
         is_pending_jobs: np.ndarray = np.zeros(self._BUFFER_LEN, dtype=np.float64)
-        for job in self._pending_jobs:
-            is_pending_jobs[job.get_id()] = 1.0
+        for idx, job in enumerate(self._pending_jobs):
+            is_pending_jobs[idx] = 1.0
 
         ###############################################################
         # update mapping jobs to machines processing them observation #
@@ -388,11 +401,11 @@ class FactoryEnv(gym.Env):
             machine_pending_capacity_utilization[machine.get_id()] = (machine.get_tray_capacity() - machine.get_pending_tray_capacity()) / machine.get_tray_capacity()
             machine_active_capacity_utilization[machine.get_id()] = (machine.get_tray_capacity() - machine.get_active_tray_capacity()) / machine.get_tray_capacity()
             if len(machine.get_pending_jobs()) > 0:
-                machine_active_recipe[machine.get_id()] = machine.get_active_recipe().get_id()
+                machine_active_recipe[machine.get_id()] = min_max_norm(machine.get_active_recipe().get_id(), 0, len(self.available_recipes) - 1)
 
             for idx, recipe in enumerate(self.available_recipes):
                 if recipe.get_factory_id() in machine.get_valid_recipes():
-                    machine_recipes[machine.get_id(), idx] = recipe.get_id()
+                    machine_recipes[machine.get_id(), idx] = min_max_norm(recipe.get_id(), 0, len(self.available_recipes) - 1)
             # for job in machine.get_pending_jobs():
             #     is_machines_active_jobs[machine.get_id(), job.get_id()] += 1.0
 
@@ -402,6 +415,17 @@ class FactoryEnv(gym.Env):
         )
         lost_jobs[0] = len(self._lost_jobs)
 
+        #New jobs queue
+        new_jobs_queue_recipes: np.ndarray = np.full(
+            (self._JOBS_QUEUE_LEN,), fill_value=-1, dtype=np.float64
+        )
+        new_jobs_tray_capacities: np.ndarray = np.full(
+            shape=(self._JOBS_QUEUE_LEN,), fill_value=0, dtype=np.float64
+        )
+
+        for j_idx, job in enumerate(self._jobs_queue):
+            new_jobs_queue_recipes[j_idx] = min_max_norm(job.get_recipes()[0].get_id(), 0, len(self.available_recipes) - 1)
+            new_jobs_tray_capacities[j_idx] = job.get_tray_capacity() / self._MACHINE_TRAY_CAPACITY
         #######################################################################################################
         # update incomplete job pending deadline proportional to recipe processing duration times observation #
         #######################################################################################################
@@ -409,10 +433,6 @@ class FactoryEnv(gym.Env):
         # pending_job_remaining_times: np.ndarray = np.zeros(
         #     self._BUFFER_LEN, dtype=np.float64
         # )
-
-        pending_job_recipes: np.ndarray = np.zeros(
-            self._BUFFER_LEN, dtype=np.float64
-        )
 
         pending_job_next_recipes: np.ndarray = np.full(
             (self._BUFFER_LEN, self._MAX_NEXT_RECIPES), fill_value=-1, dtype=np.float64
@@ -464,21 +484,21 @@ class FactoryEnv(gym.Env):
         # uc_buffer_steps_to_deadline_ratio = np.array(
         #     [j.get_process_time_deadline_ratio() for j in self._uncompleted_jobs_buffer])
 
-        for job in self._pending_jobs:
-            pending_job_recipes[job.get_id()] = job.get_recipes()[0].get_id()
-            pending_job_remaining_times[job.get_id()] = job.get_remaining_process_time()
-            pending_job_tray_capacities[job.get_id()] = job.get_tray_capacity() / self._MACHINE_TRAY_CAPACITY
+        for idx, job in enumerate(self._pending_jobs):
+            pending_job_recipes[idx] = min_max_norm(job.get_recipes()[0].get_id(), 0, len(self.available_recipes) - 1)
+            pending_job_remaining_times[idx] = job.get_remaining_process_time()
+            pending_job_tray_capacities[idx] = job.get_tray_capacity() / self._MACHINE_TRAY_CAPACITY
             # update max and min duration times for normalizing [0, 1]
-            if pending_job_remaining_times[job.get_id()] > max_duration:
-                max_duration = pending_job_remaining_times[job.get_id()]
-            elif pending_job_remaining_times[job.get_id()] < min_duration:
-                min_duration = pending_job_remaining_times[job.get_id()]
+            if pending_job_remaining_times[idx] > max_duration:
+                max_duration = pending_job_remaining_times[idx]
+            elif pending_job_remaining_times[idx] < min_duration:
+                min_duration = pending_job_remaining_times[idx]
 
         if not sum(pending_job_remaining_times) == 0:
-            for job in self._pending_jobs:
-                pending_job_remaining_times[job.get_id()] = (
+            for j_idx, job in enumerate(self._pending_jobs):
+                pending_job_remaining_times[j_idx] = (
                                                                     pending_job_remaining_times[
-                                                                        job.get_id()] - min_duration
+                                                                        j_idx] - min_duration
                                                             ) / (max_duration - min_duration)
 
         pending_jobs_steps_to_deadline = [job.get_steps_to_deadline() for job in self._pending_jobs]
@@ -487,18 +507,20 @@ class FactoryEnv(gym.Env):
         pending_jobs_steps_to_deadline = np.array(
             [min_max_norm(x, min_deadline, max_deadline) for x in pending_jobs_steps_to_deadline], dtype=np.float64)
 
-        for idx, val in enumerate(pending_job_remaining_times):
-            pending_job_remaining_times[idx] = pending_job_remaining_times[idx] * pending_jobs_steps_to_deadline[idx]
+        # for idx, val in enumerate(pending_job_remaining_times):
+        #     pending_job_remaining_times[idx] = pending_job_remaining_times[idx] * pending_jobs_steps_to_deadline[idx]
 
         # uc_jobs_obs_list = self.get_uncompleted_job_obs()
         #uc_jobs_buffer_obs_list = self.get_uncompleted_job_buffer_obs()
-        pending_jobs_recipe_count, uc_jobs_recipe_count, uc_jobs_buffer_recipe_count = self.get_recipe_count_obs()
+        #pending_jobs_recipe_count, uc_jobs_recipe_count, uc_jobs_buffer_recipe_count = self.get_recipe_count_obs()
         ###########################################################
         # return current observation state object for step update #
         ###########################################################
         return {
             # self._PENDING_JOBS_STR: is_pending_jobs,
             #self._MACHINES_STR: is_machines_active_jobs.flatten(),
+            self._NEW_JOBS_QUEUE_STR: new_jobs_queue_recipes,
+            self._NEW_JOBS_TRAY_CAPACITIES_STR: new_jobs_tray_capacities,
             self._P_JOB_RECIPE_STR: pending_job_recipes,
             self._MACHINES_PENDING_CAPACITY_STR: machine_pending_capacity_utilization,
             self._MACHINES_ACTIVE_CAPACITY_STR: machine_active_capacity_utilization,
@@ -527,7 +549,7 @@ class FactoryEnv(gym.Env):
         )
         for machine in self._machines:
             for job in machine.get_pending_jobs():
-                is_machines_pending_jobs[machine.get_id(), job.get_id()] += 1.0
+                is_machines_pending_jobs[machine.get_id(), int(job.get_id())] += 1.0
 
         return is_machines_pending_jobs
 
@@ -1275,28 +1297,27 @@ class FactoryEnv(gym.Env):
             # print("Length Pending Jobs: ",len(self._pending_jobs))
             # print("First job: ")
             # print(self._pending_jobs[0])
-            pending_idx = [j.get_id() for j in self._pending_jobs]
-            for i in range(self._BUFFER_LEN):
-                if i not in pending_idx:
-                    # Create job
-                    r = np.random.choice(np.array(self.available_recipes), p=self.available_recipe_probs)
-                    r2 = random.choice(self.available_recipes,)
-                    use_multiple_recipes = False if self.MAX_RECIPES_IN_ENV_SYSTEM == 1 else np.random.randint(low=0, high=10) % 2 == 0
-                    deadline = 100 if r.get_recipe_type() == "R1" else 1000
-                    if use_multiple_recipes:
-                        if r.get_recipe_type() == "R2" or r2.get_recipe_type() == "R2":
-                            deadline = 1000
-                    # NOTE:Note that “process time” should be 5%-30% of the difference between deadline-arrival
-                    new_job = create_job(
-                        recipes=[r] if not use_multiple_recipes else [r,r2],
-                        factory_id="J" + str(i),
-                        process_id=i,
-                        deadline=0,
-                        factory_time=self.factory_time,
-                    )
-                    # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
-                    # print(new_job)
-                    self._pending_jobs.insert(i, new_job)
+            r = np.random.choice(np.array(self.available_recipes), p=self.available_recipe_probs)
+            r2 = random.choice(self.available_recipes, )
+            use_multiple_recipes = False if self.MAX_RECIPES_IN_ENV_SYSTEM == 1 else np.random.randint(low=0,
+                                                                                                       high=10) % 2 == 0
+
+            # NOTE:Note that “process time” should be 20%-28% of the difference between deadline-arrival
+            job_to_move = self._jobs_queue.pop(0)
+            new_job = create_job(
+                recipes=[r] if not use_multiple_recipes else [r, r2],
+                factory_id="J" + str(self.factory_time % self._BUFFER_LEN),
+                process_id=self.factory_time % self._BUFFER_LEN,
+                deadline=0,
+                factory_time=self.factory_time,
+            )
+            # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
+            # print(new_job)
+            # job_to_move.update_creation_time(self.factory_time) # This makes it seem like the job was created the time it was inserted into the buffer
+            if len(self._jobs_queue) < self._JOBS_QUEUE_LEN:
+                self._jobs_queue.append(new_job)
+
+            self._pending_jobs.append(job_to_move)
 
     def update_uncompleted_buffer(self):
         """
@@ -1345,6 +1366,16 @@ class FactoryEnv(gym.Env):
         self._time_step = 0
         self.factory_time = 0.0
 
+        jobs: list[Job] = [
+            create_job(
+                recipes=[np.random.choice(np.array(self.available_recipes), p=self.available_recipe_probs)],
+                factory_id=f"J{i}",
+                process_id=i % self._BUFFER_LEN,
+                deadline=0,
+                factory_time=0
+            ) for i in range(self._JOBS_QUEUE_LEN)
+        ]
+
         self.episode_reward_sum = 0  # for callback graphing train performance
         self.callback_flag_termination = (
             False  # for callback graphing train performance
@@ -1358,9 +1389,10 @@ class FactoryEnv(gym.Env):
         #     : self._MAX_MACHINES
         # ]
 
-        for job in self._jobs:
+        for job in self._jobs_queue:
             job.reset()
-        self._pending_jobs = self._jobs.copy()[: self._BUFFER_LEN]
+        self._pending_jobs = jobs.copy()[: self._BUFFER_LEN]
+        self._jobs_queue = jobs.copy()[self._BUFFER_LEN: ]
         self._jobs_completed_per_step_on_time = 0
         self._jobs_completed_per_step_not_on_time = 0
         self._jobs_in_progress = []

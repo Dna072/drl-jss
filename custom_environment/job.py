@@ -129,6 +129,10 @@ class Job:
     def sync_steps_to_deadline(self, factory_time):
         self._steps_to_deadline = self.__deadline - factory_time + self.__creation_step
 
+    def update_creation_time(self, factory_time):
+        self.__creation_step = factory_time
+
+
     def get_start_time(self) -> int:
         return self.__creation_step
 
@@ -208,7 +212,7 @@ class Job:
     def __str__(self) -> str:
         return (
             f"Job ID: {self.__factory_id}"
-            f" Recipes: {[f'{recipe.get_factory_id()} duration: {recipe.get_process_time()}' for recipe in self.__recipes]}"
+            f" Recipes: {[f'{recipe.get_factory_id()} ID: {recipe.get_id()} duration: {recipe.get_process_time()}' for recipe in self.__recipes]}"
             f" Tray capacity: {self.__tray_capacity}"
             f" Created: {self.__creation_step}"
             f" Steps to Deadline: {self.get_steps_to_deadline()}"

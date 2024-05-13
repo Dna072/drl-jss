@@ -10,7 +10,7 @@ import numpy as np
 
 def create_factory_env(machines: list[Machine], jobs: list[Job], recipes: list[Recipe],
                        recipe_probs: list[float], max_steps: int = 5000, is_evaluation: bool = False,
-                       jobs_buffer_size: int = 3, job_deadline_ratio: float = 0.3,
+                       jobs_buffer_size: int = 3, jobs_queue_size: int = 10, job_deadline_ratio: float = 0.3,
                        n_machines: int = 2,
                        machine_tray_capacity: int = 300) -> FactoryEnv:
     """
@@ -23,19 +23,21 @@ def create_factory_env(machines: list[Machine], jobs: list[Job], recipes: list[R
     """
     return FactoryEnv(machines=machines, jobs=jobs, max_steps=max_steps,
                       is_evaluation=is_evaluation, jobs_buffer_size=jobs_buffer_size,
+                      jobs_queue_size=jobs_queue_size,
                       recipes=recipes, job_deadline_ratio=job_deadline_ratio,
                       n_machines=n_machines, machine_tray_capacity=machine_tray_capacity,
                       recipe_probs=recipe_probs)
 
 
 def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
-                            buffer_size: int = 5, n_recipes: int = 2, n_machines: int = 2,
+                            buffer_size: int = 5, jobs_queue_size: int = 10, n_recipes: int = 2, n_machines: int = 2,
                             is_evaluation: bool = False, job_deadline_ratio: float = 0.3,
                             machine_tray_capacity: int = 40) -> FactoryEnv:
     """
     Create a custom FactoryEnv environment for development and testing
     @param max_steps: Max steps in the env
     @param buffer_size: Number of jobs in buffer
+    @param jobs_queue_size: Number of jobs in queue to be allocated to buffer
     @param is_verbose: print statements if True
     @param n_recipes: number of recipes in env
     @param n_machines: number of machines in the env
@@ -92,10 +94,10 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
         create_job(
             recipes=[np.random.choice(np.array(recipe_objects))],
             factory_id=f"J{i}",
-            process_id=i,
+            process_id=i % buffer_size,
             deadline=0,
             factory_time=0
-        ) for i in range(buffer_size)
+        ) for i in range(jobs_queue_size)
     ]
 
     if is_verbose:
@@ -141,7 +143,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
             print("-------")
 
     factory_env: FactoryEnv = create_factory_env(machines=machines, jobs=jobs, max_steps=max_steps, recipes=recipe_objects,
-                                                 is_evaluation=is_evaluation, jobs_buffer_size=buffer_size,
+                                                 is_evaluation=is_evaluation, jobs_buffer_size=buffer_size, jobs_queue_size=jobs_queue_size,
                                                  job_deadline_ratio=job_deadline_ratio, n_machines=n_machines,
                                                  machine_tray_capacity=machine_tray_capacity, recipe_probs=seco_recipe_dist)
     return factory_env

@@ -97,6 +97,7 @@ def episodic_heuristic_agent(n_episodes: int = 10,
                                       is_evaluation=True, buffer_size=jobs_buffer_size,
                                       n_recipes=n_recipes, job_deadline_ratio=jobs_deadline_ratio,
                                       n_machines=n_machines)
+        env.reset()
         tot_reward = 0
         while 1:  # the environment has its own termination clauses, so it will trigger the break
             action = np.array(get_heuristic_action(env))
