@@ -16,6 +16,7 @@ Custom Job class for basic concept:
 """
 
 from custom_environment.recipe import Recipe
+import uuid
 
 # from datetime import datetime
 
@@ -76,6 +77,7 @@ class Job:
         self.__status: int = self.__STATUS_AVAILABLE_VAL
         self.__creation_step: int = factory_time
 
+        self.__uuid = uuid.uuid4() # unique job identifier
         self.__recipes: list[Recipe] = recipes
         self.__recipes_pending: list[Recipe] = recipes.copy()[
             : self.MAX_NUM_RECIPES_PER_JOB
@@ -113,6 +115,9 @@ class Job:
 
     def get_id(self) -> int:
         return self.__id
+
+    def get_uuid(self) -> uuid:
+        return self.__uuid
 
     def get_factory_id(self) -> str:
         return self.__factory_id

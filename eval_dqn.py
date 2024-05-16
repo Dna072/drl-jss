@@ -74,8 +74,8 @@ class Agent:
         self.model = DQN.load(path=file_path_name,
                               env=self.custom_env,
                               exploration_fraction=0.45,
-                              exploration_initial_eps=0.07,
-                              gamma=0.6
+                              exploration_initial_eps=0.08,
+                              #gamma=0.6
                               )
 
 
@@ -163,8 +163,8 @@ def episodic_dqn_agent(dqn_agent: Agent, n_episodes: int = 10):
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 50_200_000
-    ENVIRONMENT_MAX_STEPS = 5_000
+    LEARNING_MAX_STEPS = 130_200_000
+    ENVIRONMENT_MAX_STEPS = 4_000
     JOBS_BUFFER_SIZE: int = 3
     N_MACHINES: int = 3
     N_RECIPES: int = 3
@@ -173,15 +173,17 @@ if __name__ == "__main__":
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS,
                                                      buffer_size=JOBS_BUFFER_SIZE,
-                                              n_recipes=N_RECIPES, job_deadline_ratio=0.3, n_machines=N_MACHINES),
-                  gamma=GAMMA, exploration_fraction=0.65)
+                                                     n_recipes=N_RECIPES, job_deadline_ratio=0.3,
+                                                     n_machines=N_MACHINES,
+                                                     refresh_arrival_time=True),
+                  gamma=GAMMA, exploration_fraction=0.65, )
 
     # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_2m_2r_0.6g_all_purpose_machines_40200000')
-    # #agent.load(file_path_name='files/trainedAgents/dqn_agent_seco_3_machines_2_recipes_gamma_0.6_5100000')
+    # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_{GAMMA}g_j_q_refreshed_arrival_'+str(LEARNING_MAX_STEPS))
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
     )
-    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_{GAMMA}g_real_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_{GAMMA}g_j_q_refreshed_arrival_"+str(LEARNING_MAX_STEPS))
 
     # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_4m_6r_5b_0.7g_real_40200000')
     # agent.evaluate(num_of_episodes = 1_000)

@@ -137,13 +137,14 @@ class FactoryEnv(gym.Env):
     def __init__(
         self, machines: list[Machine], jobs: list[Job], recipes: list[Recipe], recipe_probs: list[float],
             max_steps: int = 10_000, is_evaluation: bool = False, jobs_buffer_size: int = 3, jobs_queue_size: int = 10,
-            job_deadline_ratio: float = 0.3, n_machines: int = 2, machine_tray_capacity: int = 40
+            job_deadline_ratio: float = 0.3, n_machines: int = 2, machine_tray_capacity: int = 40, refresh_arrival_time: bool = False
     ) -> None:
         """
         FactoryEnv class constructor method using gym.Space objects for action and observation space
         :param machines: array of Machine instances
         :param jobs: array of Job instances
         :param max_steps: maximum episode length
+        :param refresh_arrival_time: Update the arrival time to now for jobs coming from the queue once it is inserted into the buffer
         :
         """
         super(FactoryEnv, self).__init__()
@@ -163,8 +164,7 @@ class FactoryEnv(gym.Env):
         self._pending_jobs: list[Job] = jobs.copy()[
             : self._BUFFER_LEN
         ]  # buffer of restricted len
-
-
+        self._fresh_arrival_time = refresh_arrival_time
         self._jobs_in_progress: list[tuple[Machine, Job]] = []
         self._completed_jobs: list[Job] = []
         self._uncompleted_jobs: list[Job] = []
@@ -875,9 +875,9 @@ class FactoryEnv(gym.Env):
                         continue
 
                     if (action_selected_job.get_next_pending_recipe().get_factory_id() == job.get_next_pending_recipe().get_factory_id()
-                            and action_selected_job.get_factory_id() != job.get_factory_id()
+                            and action_selected_job.get_uuid() != job.get_uuid()
                             and action_selected_job.get_process_time_deadline_ratio() < job.get_process_time_deadline_ratio()
-                            and action_selected_job.get_tray_capacity() == job.get_tray_capacity()
+                            and job.get_tray_capacity() <= action_selected_machine.get_pending_tray_capacity()
                     ):
                         # same job recipes but picked job with higher deadline
                         reward += -2
@@ -918,18 +918,19 @@ class FactoryEnv(gym.Env):
             else:
                 # check if there is a specialised machine available
                 found_specialised_machine = False
+                min_recipes = math.inf
                 for idx, machine in enumerate(self._machines):
                     if idx == machine_idx:
                         continue
 
                     if (
-                            len(machine.get_valid_recipes()) == 1
+                            len(machine.get_valid_recipes()) < len(action_selected_machine.get_valid_recipes())
                             and machine.is_available()
                             and machine.can_perform_job(action_selected_job)
                             and machine.get_pending_tray_capacity() >= action_selected_job.get_tray_capacity()
                     ):
                         #print(f"Another specialised machine could have done job: {action_selected_job}")
-                        reward += -1
+                        reward += -2
                         found_specialised_machine = True
                 # no specialised machine, agent should be rewarded for taking this action
                 if not found_specialised_machine:
@@ -1313,7 +1314,8 @@ class FactoryEnv(gym.Env):
             )
             # print(TextColors.YELLOW+"Buffer updated with job: "+TextColors.RESET)
             # print(new_job)
-            # job_to_move.update_creation_time(self.factory_time) # This makes it seem like the job was created the time it was inserted into the buffer
+            if self._fresh_arrival_time:
+                job_to_move.update_creation_time(self.factory_time) # This makes it seem like the job was created the time it was inserted into the buffer
             if len(self._jobs_queue) < self._JOBS_QUEUE_LEN:
                 self._jobs_queue.append(new_job)
 

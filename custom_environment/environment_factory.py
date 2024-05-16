@@ -11,7 +11,7 @@ import numpy as np
 def create_factory_env(machines: list[Machine], jobs: list[Job], recipes: list[Recipe],
                        recipe_probs: list[float], max_steps: int = 5000, is_evaluation: bool = False,
                        jobs_buffer_size: int = 3, jobs_queue_size: int = 10, job_deadline_ratio: float = 0.3,
-                       n_machines: int = 2,
+                       n_machines: int = 2, refresh_arrival_time: bool = False,
                        machine_tray_capacity: int = 300) -> FactoryEnv:
     """
     Factory function for creating a FactoryEnv object
@@ -19,6 +19,7 @@ def create_factory_env(machines: list[Machine], jobs: list[Job], recipes: list[R
     :param jobs: list of Job objects
     :max_steps: max steps the environment will take before termination
     :is_evaluation: Enables/Disables the termination condition is reward<-1000 for learning
+    :refresh_arrival_time: Update the arrival time to now for jobs coming from the queue once it is inserted into the buffer
     :return: FactoryEnv object
     """
     return FactoryEnv(machines=machines, jobs=jobs, max_steps=max_steps,
@@ -26,13 +27,13 @@ def create_factory_env(machines: list[Machine], jobs: list[Job], recipes: list[R
                       jobs_queue_size=jobs_queue_size,
                       recipes=recipes, job_deadline_ratio=job_deadline_ratio,
                       n_machines=n_machines, machine_tray_capacity=machine_tray_capacity,
-                      recipe_probs=recipe_probs)
+                      recipe_probs=recipe_probs, refresh_arrival_time=refresh_arrival_time)
 
 
 def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
                             buffer_size: int = 5, jobs_queue_size: int = 10, n_recipes: int = 2, n_machines: int = 2,
                             is_evaluation: bool = False, job_deadline_ratio: float = 0.3,
-                            machine_tray_capacity: int = 40) -> FactoryEnv:
+                            machine_tray_capacity: int = 40,  refresh_arrival_time: bool = False) -> FactoryEnv:
     """
     Create a custom FactoryEnv environment for development and testing
     @param max_steps: Max steps in the env
@@ -44,6 +45,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
     @param is_evaluation: flag to determine if we are performing evaluation on the env
     @param job_deadline_ratio: ratio of total job recipes to deadline of job
     @param machine_tray_capacity: Maximum capacity of machines in the env
+    @param refresh_arrival_time: Update the arrival time to now for jobs coming from the queue once it is inserted into the buffer
     :return: custom FactoryEnv environment instance with machine, job and recipe objects
     """
     if n_machines > 10:
@@ -111,17 +113,16 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
                      ["R2", "R3"], ["R4","R5"], ["R8", "R6"]]
 
     seco_machine_names = ["A", "B", "C", "D", "E","F","G","H","I", "J"]
-    seco_valid_recipes = [["274-2","274-3","274-4","274-51","274-7","277-1", "277-2", "277-3", "277-4","277-5","277-6","277-7","277-11","277-12","277-13","277-14","277-15","277-61","277-62"],
-                          ["274-2","274-3","274-4","274-7","277-1", "277-2", "277-3", "277-4","277-5","277-6","277-7"],
-                          ["274-2","274-3","274-4","274-7","277-1", "277-3", "277-4","277-5","277-6","277-7","277-8","277-11","277-12","277-13","277-14","277-15","277-61","277-62"],
-                          ["274-2","274-3","274-4","274-7","277-1", "277-3", "277-4","277-5","277-6","277-7","277-11","277-12","277-13"],
-                          ["274-4","277-1","277-5","277-6","277-7","277-11","277-12","277-13"],
-                          ["274-4","277-1","277-5","277-6","277-7","277-11","277-12","277-13"],
-                          ["274-4","277-1","277-5","277-6","277-7","277-11","277-12","277-13"],
-                          ["274-2","274-3","274-4","274-51","274-7","277-1", "277-2", "277-3", "277-4","277-5","277-6","277-7","277-8","277-11","277-12","277-13","277-14","277-15","277-18","277-61","277-62"],
+    seco_valid_recipes = [["277-1", "277-2","277-4", "277-5","277-6","277-7","277-11","277-12","277-13","277-14","277-15","277-61","277-62"],
+                          ["277-1", "277-2", "277-4","277-5","277-6","277-7"],
+                          ["277-1", "277-4","277-5","277-6","277-7","277-8","277-11","277-12","277-13","277-14","277-15","277-61","277-62"],
+                          ["277-1", "277-4","277-5","277-6","277-7","277-11","277-12","277-13"],
+                          ["277-1","277-5","277-6","277-7","277-11","277-12","277-13"],
+                          ["277-1","277-5","277-6","277-7","277-11","277-12","277-13"],
+                          ["277-1","277-5","277-6","277-7","277-11","277-12","277-13"],
+                          ["277-1", "277-2", "277-4", "277-5", "277-6","277-7","277-8","277-11","277-12","277-13","277-14","277-15","277-18","277-61","277-62"],
                           ["277-1","277-5","277-11","277-12","277-13", "277-14"],
-                          ["274-2", "274-3", "274-4", "274-51", "274-7", "277-1", "277-2", "277-3", "277-4", "277-5",
-                           "277-6", "277-7", "277-8", "277-11", "277-12", "277-13", "277-14", "277-15", "277-18",
+                          ["277-1", "277-2","277-4", "277-5","277-6", "277-7", "277-8", "277-11", "277-12","277-13", "277-14", "277-15", "277-18",
                            "277-61", "277-62"]
                           ]
     machines: list[Machine] = [
@@ -145,7 +146,7 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
     factory_env: FactoryEnv = create_factory_env(machines=machines, jobs=jobs, max_steps=max_steps, recipes=recipe_objects,
                                                  is_evaluation=is_evaluation, jobs_buffer_size=buffer_size, jobs_queue_size=jobs_queue_size,
                                                  job_deadline_ratio=job_deadline_ratio, n_machines=n_machines,
-                                                 machine_tray_capacity=machine_tray_capacity, recipe_probs=seco_recipe_dist)
+                                                 machine_tray_capacity=machine_tray_capacity, recipe_probs=seco_recipe_dist, refresh_arrival_time=refresh_arrival_time)
     return factory_env
 
 

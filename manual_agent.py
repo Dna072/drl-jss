@@ -24,7 +24,7 @@ s = 0
 
 tot_reward: int = 0
 
-env: FactoryEnv = init_custom_factory_env(is_verbose=True, buffer_size=jobs,
+env: FactoryEnv = init_custom_factory_env(is_verbose=False, buffer_size=jobs,
                                               n_recipes=2, job_deadline_ratio=0.3, n_machines=machines)
 nr_pending_jobs: int = len(env.get_pending_jobs())
 
@@ -34,16 +34,19 @@ steps: list[int] = []
 print(TextColors.GREEN + "*****************************" + TextColors.RESET)
 print(TextColors.GREEN + "**          START          **" + TextColors.RESET)
 print(TextColors.GREEN + "*****************************" + TextColors.RESET)
+o, info = env.reset()
 while s < max_steps and nr_pending_jobs > 0:
+    print_jobs(env)
+    print_uncompleted_jobs_buffer(env)
+    print_capacity_obs(obs=o, env=env)
+    print_scheduled_jobs(env)
     act = input(TextColors.CYAN + "Select an action: " + TextColors.RESET)
     action: np.ndarray = int(act)
     o, r, te, tr, i = env.step(action)
     print(f'Reward: {r}')
-    print_jobs(env)
-    print_uncompleted_jobs_buffer(env)
+
     #print_observation(o, machines)
-    print_capacity_obs(obs=o, env=env)
-    print_scheduled_jobs(env)
+
     # env.render()
     print(
         f'Reward: {r}, Factory time: {i["CURRENT_TIME"]} '
