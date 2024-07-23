@@ -22,6 +22,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 import numpy as np
 import matplotlib.pyplot as plt
+from custom_environment.utils import print_observation, print_jobs, print_scheduled_jobs, print_capacity_obs
 
 
 class Agent:
@@ -29,7 +30,7 @@ class Agent:
     DQN agent for learning the custom FactoryEnv environment
     """
 
-    FILE_PATH_NAME: str = "files/ppo_custom_factory_env"
+    FILE_PATH_NAME: str = "files/ppo_custom_factory_env_multi_job"
     POLICY: str = (
         "MultiInputPolicy"  # converts multiple Dictionary inputs into a single vector
     )
@@ -38,7 +39,7 @@ class Agent:
     def __init__(self, custom_env: FactoryEnv | Monitor) -> None:
         self.custom_env: FactoryEnv = custom_env
         self.model: PPO = PPO(
-            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE
+            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, batch_size=2048
         )
 
     def learn(
@@ -71,10 +72,17 @@ class Agent:
         steps = 0
 
         while episode < num_of_episodes:
+            # print_jobs(self.custom_env)
             action, _states = self.model.predict(observation=obs, deterministic=True)
+            # print(f'Action: {action}')
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
+            # print(f'Reward: {reward}')
+            # print_capacity_obs(obs, machines=self.custom_env.get_machines(), n_machines=2, print_length=10)
+            # print_scheduled_jobs(self.custom_env)
+            # test = input('Enter to continue')
+
             returns.append(reward)
             curr_tardiness = self.custom_env.get_tardiness_percentage()
             jobs_ot = self.custom_env.get_jobs_completed_on_time()
@@ -95,7 +103,7 @@ class Agent:
         return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
 
-def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/ppo_custom_factory_env",
+def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/ppo_custom_factory_env_multi_job",
                        env_max_steps: int = 100):
     ep_reward = []
     ep_tardiness = []
@@ -126,17 +134,18 @@ def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/p
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 5_000_000
-    ENVIRONMENT_MAX_STEPS = 25_000
+    LEARNING_MAX_STEPS = 24_100_000
+    ENVIRONMENT_MAX_STEPS = 50_000
+    JOBS_BUFFER_SIZE: int = 10
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="PPO")
 
-    agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
+    agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS, buffer_size=JOBS_BUFFER_SIZE,
+                                              n_recipes=3, job_deadline_ratio=0.3, n_machines=4))
 
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
     )
-    # agent.learn()
-    agent.save(file_path_name="files/trainedAgents/ppo_agent_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name="files/trainedAgents/ppo_agent_seco_4_machines_"+str(LEARNING_MAX_STEPS))
 
-    # agent.load()
+    # agent.load(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
     # agent.evaluate()

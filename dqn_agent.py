@@ -14,6 +14,7 @@ DQN agent class for basic concept:
         The action space is thus all possible combinations of (J, M) with addition of No-Op action (taken at a timestep)
     10. Only step when a machine is available, and maximum machines chosen at each step is one
 """
+import time
 
 from custom_environment.environment_factory import init_custom_factory_env
 from stable_baselines3.common.type_aliases import MaybeCallback
@@ -21,8 +22,11 @@ from custom_environment.environment import FactoryEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import DQN
 import numpy as np
+import torch as th
 import matplotlib.pyplot as plt
-from custom_environment.utils import print_observation, print_jobs
+from custom_environment.utils import (print_observation,
+                                      print_jobs, print_scheduled_jobs,
+                                      print_uncompleted_jobs_buffer, print_capacity_obs)
 
 
 class Agent:
@@ -30,23 +34,34 @@ class Agent:
     DQN agent for learning the custom FactoryEnv environment
     """
 
-    FILE_PATH_NAME: str = "files/dqn_custom_factory_env_2"
+    FILE_PATH_NAME: str = "files/dqn_custom_factory_env_multi_recipe_3"
     POLICY: str = (
         "MultiInputPolicy"  # converts multiple Dictionary inputs into a single vector
     )
     IS_VERBOSE: int = 1
 
-    def __init__(self, custom_env: FactoryEnv | Monitor) -> None:
+    def __init__(self,
+                 custom_env: FactoryEnv | Monitor,
+                 gamma: float = 0.9,
+                 exploration_fraction: float = 0.5,
+                 buffer_size: int = 20_000,
+                 batch_size: int = 1024,
+                 policy_kwargs=None) -> None:
+
+        if policy_kwargs is None:
+            policy_kwargs = dict(activation_fn=th.nn.ReLU,
+                                 net_arch=[64, 64])
         self.custom_env: FactoryEnv = custom_env
         self.model: DQN = DQN(
-            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, learning_starts=20000,
-            learning_rate=0.000686, gamma=0.2, exploration_fraction=0.15, buffer_size=10_000
+            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE,
+            gamma=gamma, exploration_fraction=exploration_fraction, buffer_size=buffer_size, batch_size=batch_size,
+            policy_kwargs=policy_kwargs
             # learning_rate=1e-3, gamma=0.6, exploration_fraction=0.25,buffer_size=10_000
         )
 
     def learn(
         self,
-        total_time_steps: int = 10_000,
+        total_time_steps: int = 100_000,
         log_interval: int = 4,
         callback: MaybeCallback = None,
     ) -> None:
@@ -59,8 +74,20 @@ class Agent:
     def save(self, file_path_name: str = FILE_PATH_NAME) -> None:
         self.model.save(path=file_path_name)
 
-    def load(self, file_path_name: str = FILE_PATH_NAME) -> None:
-        self.model = DQN.load(path=file_path_name)
+    def load(self,
+             file_path_name: str = FILE_PATH_NAME,
+             exploration_fraction: float = 0.5,
+             exploration_initial_eps: float = 0.5,
+             gamma: float = 0.5) -> None:
+        self.model = DQN.load(path=file_path_name,
+                              env=self.custom_env,
+                              exploration_fraction=0.5,
+                              exploration_initial_eps=0.1,
+                              exploration_final_eps=0.02
+                              # gamma=0.75
+                              )
+
+
 
     def evaluate(self, num_of_episodes: int = 10):
         obs, info = self.custom_env.reset()
@@ -74,10 +101,26 @@ class Agent:
         steps = 0
 
         while episode < num_of_episodes:
+            print_jobs(self.custom_env)
+            print_uncompleted_jobs_buffer(self.custom_env)
+            print_capacity_obs(obs, env=self.custom_env)
+
             action, _states = self.model.predict(observation=obs, deterministic=True)
+            print(f'Action: {action}')
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
             )
+            print_scheduled_jobs(self.custom_env, buffer_size=10)
+            print(f'Reward: {reward}, '
+                  f'Factory time: {info["CURRENT_TIME"]} '
+                  f'JOT: {info["JOBS_COMPLETED_ON_TIME"]}, '
+                  f'JNOT: {info["JOBS_NOT_COMPLETED_ON_TIME"]}, '
+                  f'UC_JOBS_BUFFER: {info["UNCOMPLETED_JOBS_BUFFER"]}, '
+                  f'LOST_JOBS: {info["LOST_JOBS"]}')
+
+
+            test = input('Enter to continue')
+
             returns.append(reward)
             curr_tardiness = self.custom_env.get_tardiness_percentage()
             jobs_ot = self.custom_env.get_jobs_completed_on_time()
@@ -98,16 +141,15 @@ class Agent:
         return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
 
-def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom_factory_env_2",
-                       env_max_steps: int = 100):
+def episodic_dqn_agent(dqn_agent: Agent, n_episodes: int = 10):
     ep_reward = []
     ep_tardiness = []
     ep_jobs_ot = []
     ep_jobs_not = []
-    dqn_agent = Agent(custom_env=init_custom_factory_env(max_steps=env_max_steps, is_evaluation=True))
-    dqn_agent.load(agent_path)
+
+    #dqn_agent.load(agent_path)
     for e in range(n_episodes):
-        env = init_custom_factory_env(is_verbose=False)
+        env = dqn_agent.custom_env
         obs, info = env.reset()
         tot_reward = 0
         curr_tardiness = []
@@ -129,18 +171,41 @@ def episodic_dqn_agent(n_episodes: int = 10, agent_path: str = "files/dqn_custom
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 5_100_000
-    ENVIRONMENT_MAX_STEPS = 25_000
+    LEARNING_MAX_STEPS = 60_200_000
+    ENVIRONMENT_MAX_STEPS = 4_000
+    JOBS_BUFFER_SIZE: int = 3
+    N_MACHINES: int = 3
+    N_RECIPES: int = 3
+    GAMMA: float = 0.99
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
-    agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS))
+    policy_kwargs = dict(
+                         net_arch=[128, 128, 64])
+    agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS,
+                                                     buffer_size=JOBS_BUFFER_SIZE,
+                                                     n_recipes=N_RECIPES,
+                                                     job_deadline_ratio=0.3, n_machines=N_MACHINES),
+                  gamma=GAMMA, exploration_fraction=0.65, policy_kwargs=policy_kwargs)
 
-    agent.learn(
-        total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
-    )
-    # # agent.learn()
-
-    agent.save(file_path_name="files/trainedAgents/dqn_agent_"+str(LEARNING_MAX_STEPS))
-
-    # agent.load()
-    # agent.evaluate(num_of_episodes = 1_000)
+    agent.load(file_path_name=f'files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g'
+                              f'_128_128_64_ma_obs_x5_'+str(LEARNING_MAX_STEPS))
+    # Start time
+    # start_time = time.time()
+    print(agent.model.policy)
+    # agent.learn(
+    #     total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
+    # )
+    # agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_128_128_64"
+    #                           f"_ma_obs_x6_"+str(LEARNING_MAX_STEPS))
+    #
+    # # End time
+    # end_time = time.time()
+    #
+    # # Elapsed time in seconds
+    # elapsed_time_seconds = end_time - start_time
+    #
+    # # Convert elapsed time to hours
+    # elapsed_time_hours = elapsed_time_seconds / 3600
+    # print(f"Elapsed time: {elapsed_time_hours} hours")
+    agent.load(file_path_name='files/trainedAgents/dqn_seco_recipes_3m_3r_gamma_0.88_ma_obs_x2_130200000')
+    agent.evaluate(num_of_episodes = 1_000)

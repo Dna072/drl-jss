@@ -168,7 +168,7 @@ class PlotTrainingCallback(BaseCallback):
         plt.xlabel(xlabel="Episode")
         plt.ylabel(ylabel="Mean Tardiness")
         # plt.plot(self.__mean_episodic_tardiness)
-        plt.plot(episode_numbers, self.__mean_episodic_tardiness, label="Mean Reward")
+        plt.plot(episode_numbers, self.__mean_episodic_tardiness, label="Mean Tardiness")
         plt.plot(episode_numbers, get_trendline(self.__mean_episodic_tardiness), label="Trend Line", linestyle="--",
                  color="red")
         plt.legend()

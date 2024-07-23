@@ -16,6 +16,7 @@ Custom Job class for basic concept:
 """
 
 from custom_environment.recipe import Recipe
+import uuid
 
 # from datetime import datetime
 
@@ -29,7 +30,7 @@ class Job:
     # public constants #
     ####################
 
-    MAX_NUM_RECIPES_PER_JOB: int = 1
+    MAX_NUM_RECIPES_PER_JOB: int = 5
 
     #####################
     # private constants #
@@ -58,6 +59,9 @@ class Job:
         process_id: int = 0,
         deadline: int = 0,
         factory_time: int = 0,
+        tray_capacity: int = 30,
+        amount: int = 0,
+        amount_per_tray: int = 1
     ) -> None:
         """
         Job class constructor method
@@ -69,15 +73,21 @@ class Job:
         self.__id: int = process_id
         self.__factory_id: str = factory_id
         self._steps_to_deadline: float = deadline
+        self.__deadline: float = deadline
         self.__status: int = self.__STATUS_AVAILABLE_VAL
         self.__creation_step: int = factory_time
 
+        self.__uuid = uuid.uuid4() # unique job identifier
         self.__recipes: list[Recipe] = recipes
         self.__recipes_pending: list[Recipe] = recipes.copy()[
             : self.MAX_NUM_RECIPES_PER_JOB
         ]  # limit num recipes to max per job
         self.__recipes_in_progress: list[Recipe] = []
         self.__recipes_completed: list[Recipe] = []
+        # set number of trays required for job
+        self.__tray_capacity: int = tray_capacity
+        self._amount: int = amount
+        self._amount_per_tray: int = amount_per_tray
 
         # self.__start_op_datetime: datetime | None = None
         # self.__is_past_deadline: bool = False
@@ -94,8 +104,20 @@ class Job:
         """
         return sum([recipe.get_process_time() for recipe in self.__recipes_pending])
 
+    def get_process_time_deadline_ratio(self) -> float:
+        """
+        This returns the total remaining proces time of the job / steps to deadline
+        """
+        if self.get_remaining_process_time() >= self._steps_to_deadline or self._steps_to_deadline == 0:
+            return 1
+
+        return self.get_remaining_process_time() / self._steps_to_deadline
+
     def get_id(self) -> int:
         return self.__id
+
+    def get_uuid(self) -> uuid:
+        return self.__uuid
 
     def get_factory_id(self) -> str:
         return self.__factory_id
@@ -103,8 +125,18 @@ class Job:
     def get_steps_to_deadline(self) -> float:
         return self._steps_to_deadline
 
+    def get_tray_capacity(self) -> int:
+        return self.__tray_capacity
+
     def update_steps_to_deadline(self, difference):
         self._steps_to_deadline += difference
+
+    def sync_steps_to_deadline(self, factory_time):
+        self._steps_to_deadline = self.__deadline - factory_time + self.__creation_step
+
+    def update_creation_time(self, factory_time):
+        self.__creation_step = factory_time
+
 
     def get_start_time(self) -> int:
         return self.__creation_step
@@ -124,8 +156,14 @@ class Job:
     def get_pending_recipes(self) -> list[Recipe]:
         return self.__recipes_pending
 
+    def get_next_pending_recipe(self) -> Recipe:
+        return self.__recipes_pending[0]
+
     def get_recipes_in_progress(self) -> list[Recipe]:
         return self.__recipes_in_progress
+
+    def get_recipe_in_progress(self) -> Recipe:
+        return self.__recipes_in_progress[0]
 
     def get_recipes_completed(self) -> list[Recipe]:
         return self.__recipes_completed
@@ -141,9 +179,9 @@ class Job:
         self.reset()
 
     def set_recipe_in_progress(self, recipe: Recipe) -> bool:
-        if self.can_perform_recipe(recipe=recipe):
+        if self.is_next_recipe(recipe=recipe):
             self.__recipes_in_progress.append(
-                self.__recipes_pending.pop(self.__recipes_pending.index(recipe))
+                self.__recipes_pending.pop(0)
             )
             self._steps_to_recipe_complete = recipe.get_process_time()
             self.__status = self.__STATUS_IN_PROGRESS_VAL
@@ -170,20 +208,35 @@ class Job:
             self.__status = self.__STATUS_COMPLETED_VAL
         # print("\nAfter processing, job status is:", self.__STATUS_STR[self.__status])
 
-    def can_perform_recipe(self, recipe: Recipe) -> bool:
-        return recipe in self.__recipes_pending
+    def is_next_recipe(self, recipe: Recipe) -> bool:
+        if self.__recipes_pending:
+            return recipe.get_factory_id() == self.__recipes_pending[0].get_factory_id()
+        else:
+            return False
 
     def __str__(self) -> str:
         return (
             f"Job ID: {self.__factory_id}"
-            f" Recipes: {[f'{recipe.get_factory_id()} duration: {recipe.get_process_time()}' for recipe in self.__recipes]}"
-            f" Quantity: {len(self.__recipes)}"
+            f" Recipes: {[f'{recipe.get_factory_id()} ID: {recipe.get_id()} duration: {recipe.get_process_time()}' for recipe in self.__recipes]}"
+            f" Tray capacity: {self.__tray_capacity}"
             f" Created: {self.__creation_step}"
             f" Steps to Deadline: {self.get_steps_to_deadline()}"
             f" Status: {self.__STATUS_STR[self.__status]}"
             f" In Progress: {[recipe.get_id() for recipe in self.__recipes_in_progress]}"
             f" Completed: {100 * len(self.__recipes_completed) / len(self.__recipes)}%"
         )
+
+    def __gt__(self, other):
+        return self.__deadline > other.__deadline
+
+    def __ge__(self, other):
+        return self.__deadline >= other.__deadline
+
+    def __lt__(self, other):
+        return self.__deadline < other.__deadline
+
+    def __le__(self, other):
+        return self.__deadline <= other.__deadline
 
     def reset(self) -> None:
         self.__status = 0
@@ -192,6 +245,5 @@ class Job:
         self.__recipes_completed = []
         # self.__start_op_datetime = None
         self._steps_to_recipe_complete = 0
-        self._steps_to_deadline = (
-            100 if self.__recipes[0].get_recipe_type() == "R1" else 1000
-        )
+        corrected_deadline = sum([r.get_process_time() for r in self.__recipes])
+        self._steps_to_deadline = self.__deadline if self.__deadline > int(corrected_deadline/0.3) else int(corrected_deadline/0.3)
