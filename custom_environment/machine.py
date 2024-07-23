@@ -33,13 +33,13 @@ class Machine:
     __AVAILABILITY_STR: dict[bool, str] = {False: "UNAVAILABLE", True: "AVAILABLE"}
 
     def __init__(
-        self,
-        valid_recipe_types: list[str],
-        factory_id: str,
-        process_id: int = 0,
-        machine_type: str = "A",
-        tray_capacity: int = 1000,
-        max_recipes_per_process: int = 1,
+            self,
+            valid_recipe_types: list[str],
+            factory_id: str,
+            process_id: int = 0,
+            machine_type: str = "A",
+            tray_capacity: int = 1000,
+            max_recipes_per_process: int = 1,
     ) -> None:
         """
         Machine class constructor method
@@ -138,7 +138,7 @@ class Machine:
         self.__time_idle = new_time_idle
 
     def update_machine_job_recipes(
-        self, job: Job, recipes_update: list[Recipe]
+            self, job: Job, recipes_update: list[Recipe]
     ) -> None:
         self.__active_jobs[self.__active_jobs.index(job)].update_recipes(
             recipes_update=recipes_update
@@ -166,7 +166,9 @@ class Machine:
         # Update to check if machine can perform the job and has space enough for it
         if (job.get_next_pending_recipe().get_recipe_type() in self.__valid_recipe_types
                 and self._pending_tray_capacity >= job.get_tray_capacity()
-                and (self._active_recipe_str == job.get_next_pending_recipe().get_factory_id() or self._active_recipe_str == "")) :
+                and (
+                        self._active_recipe_str == job.get_next_pending_recipe().get_factory_id()
+                        or self._active_recipe_str == "")):
             return True
         # for recipe in job.get_pending_recipes():
         #     if recipe.get_recipe_type() in self.__valid_recipe_types:
@@ -174,13 +176,28 @@ class Machine:
 
         return False
 
+    def has_no_active_recipe(self) -> bool:
+        return self._active_recipe_str == ""
+
+    def is_most_eligible_job(self, job: Job) -> bool:
+        # Check if machine that is already available and with the job recipe and tray capacity
+        if (job.get_next_pending_recipe().get_recipe_type() in self.__valid_recipe_types
+                and self._pending_tray_capacity >= job.get_tray_capacity()
+                and self._active_recipe_str == job.get_next_pending_recipe().get_factory_id()
+                and self.__is_available):
+            return True
+
+        return False
+
     def can_perform_any_pending_job(self, pending_jobs: list[Job]) -> bool:
         for job in pending_jobs:
             if (self.can_perform_job(job) and
-                    (self._active_recipe_str == job.get_next_pending_recipe().get_factory_id() or self._active_recipe_str == "")):
+                    (
+                            self._active_recipe_str == job.get_next_pending_recipe().get_factory_id() or self._active_recipe_str == "")):
                 return True
 
         return False
+
     def start(self) -> bool:
         # To make learning easier, machines cannot be started when unavailable or with no scheduled jobs
         if len(self.__pending_jobs) == 0 or not self.is_available():
@@ -193,7 +210,6 @@ class Machine:
         self._pending_tray_capacity = self.__tray_capacity
 
         return True
-
 
     def assign_job(self, job_to_assign: Job) -> bool:
         available_valid_recipes: list[Recipe] = self.get_job_valid_recipes(

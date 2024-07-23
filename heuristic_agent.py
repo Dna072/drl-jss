@@ -83,7 +83,8 @@ def episodic_heuristic_agent(n_episodes: int = 10,
                              jobs_buffer_size: int = 10,
                              n_recipes: int = 3,
                              jobs_deadline_ratio: float = 0.3,
-                             n_machines: int = 4):
+                             n_machines: int = 4,
+                             refresh_arrival_time: bool = False):
     """
     Runs a FIFO agent for #n_episodes and returns an array with the total reward
     for each episode
@@ -96,7 +97,7 @@ def episodic_heuristic_agent(n_episodes: int = 10,
         env = init_custom_factory_env(is_verbose=False, max_steps=env_max_steps,
                                       is_evaluation=True, buffer_size=jobs_buffer_size,
                                       n_recipes=n_recipes, job_deadline_ratio=jobs_deadline_ratio,
-                                      n_machines=n_machines)
+                                      n_machines=n_machines, refresh_arrival_time=refresh_arrival_time)
         env.reset()
         tot_reward = 0
         while 1:  # the environment has its own termination clauses, so it will trigger the break

@@ -140,21 +140,22 @@ def episodic_a2c_agent(a2c_agent: Agent, n_episodes: int = 10):
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 20_100_000
+    LEARNING_MAX_STEPS = 40_100_000
     ENVIRONMENT_MAX_STEPS = 4_000
     JOBS_BUFFER_SIZE: int = 3
-    N_MACHINES: int = 3
-    N_RECIPES: int = 3
+    N_MACHINES: int = 4
+    N_RECIPES: int = 2
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="A2C")
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS, buffer_size=JOBS_BUFFER_SIZE,
                                               n_recipes=N_RECIPES, job_deadline_ratio=0.3, n_machines=N_MACHINES))
 
-    #agent.load(file_path_name="files/trainedAgents/a2c_agent_seco_4_machines_24100000")
-    agent.learn(
-        total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
-    )
-    agent.save(file_path_name=f"files/trainedAgents/a2c_seco_recipes_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_j_q_"+str(LEARNING_MAX_STEPS))
+    # agent.load(file_path_name=f"files/trainedAgents/a2c_seco_recipes_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_ma_obs_x2_"+str(LEARNING_MAX_STEPS))
+    print(agent.model.policy)
+    # agent.learn(
+    #     total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
+    # )
+    # agent.save(file_path_name=f"files/trainedAgents/a2c_seco_recipes_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_ma_obs_"+str(LEARNING_MAX_STEPS))
 
     # agent.load(file_path_name="files/trainedAgents/a2c_agent_seco_4_machines_"+str(LEARNING_MAX_STEPS))
     # print(agent.evaluate())

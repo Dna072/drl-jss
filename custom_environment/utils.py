@@ -77,6 +77,7 @@ def print_capacity_obs(obs, env):
     obs_active_machine_capacity = obs["machine_active_capacity"]
     obs_active_machine_recipe = obs["machine_active_recipe"]
     obs_machine_recipes = obs["machine_recipes"]
+    obs_machine_availability = obs["machine_is_available"]
     #obs_pending_job_remaining_time = obs["pending_job_remaining_times"]
     obs_pending_job_steps_to_deadline = obs["pending_job_steps_to_deadline"]
 
@@ -133,6 +134,7 @@ def print_capacity_obs(obs, env):
     # print(TextColors.YELLOW + "Uncompleted job  buffer remaining times:" + TextColors.RESET, obs_uc_job_buffer_remaining_times)
     # print(TextColors.YELLOW + "Pending job recipe count:" + TextColors.RESET, obs_pending_job_recipe_count)
     # print(TextColors.YELLOW + "Uncompleted job buffer recipe count:" + TextColors.RESET, obs_uc_job_buffer_recipe_count)
+    print(TextColors.YELLOW + "Machine availability:" + TextColors.RESET, obs_machine_availability)
     print(TextColors.YELLOW + "Machine active capacity utilization:" + TextColors.RESET, obs_active_machine_capacity)
     print(TextColors.YELLOW + "Machine pending capacity utilization:" + TextColors.RESET, obs_pending_machine_capacity)
     print(TextColors.YELLOW + "Machine active recipes:" + TextColors.RESET, obs_active_machine_recipe)

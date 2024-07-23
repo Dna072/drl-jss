@@ -31,8 +31,10 @@
 #
 # plt.show()
 import numpy as np
+import time
 from dqn_agent import Agent
 from custom_environment.environment_factory import init_custom_factory_env
+
 
 def create_mean_array(input_array, group_size=10):
     # Reshape the array into a 2D array with the specified group size
@@ -43,28 +45,44 @@ def create_mean_array(input_array, group_size=10):
 
     return mean_array
 
+
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
-    LEARNING_MAX_STEPS = 200_100_000
-    ENVIRONMENT_MAX_STEPS = 5_000
+
+    LEARNING_MAX_STEPS = 70_100_000
+    ENVIRONMENT_MAX_STEPS = 4_000
     JOBS_BUFFER_SIZE: int = 3
     N_MACHINES: int = 4
-    N_RECIPES: int = 6
-    GAMMA: float = 0.9
+    N_RECIPES: int = 2
+    GAMMA: float = 0.99
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
 
     agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS,
                                                      buffer_size=JOBS_BUFFER_SIZE,
-                                              n_recipes=N_RECIPES, job_deadline_ratio=0.3, n_machines=N_MACHINES),
+                                                     n_recipes=N_RECIPES, job_deadline_ratio=0.3,
+                                                     n_machines=N_MACHINES),
                   gamma=GAMMA,
                   exploration_fraction=0.58,
                   )
 
-    # agent.load(file_path_name='files/trainedAgents/dqn_seco_2m_2r_0.6g_6b_machine_util_41100000', exploration_initial_eps=0.08)
+    agent.load(file_path_name='files/trainedAgents/dqn_seco_4m_2r_0.99g_3b_ma_obs_130M_x2_70100000', gamma=0.99)
+    # Start time
+    start_time = time.time()
+
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
     )
-    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_{JOBS_BUFFER_SIZE}b_norm_ops_j_que"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_{JOBS_BUFFER_SIZE}b_ma_obs_130M_x3_"+str(LEARNING_MAX_STEPS))
 
-    # agent.load(file_path_name='files/trainedAgents/dqn_seco_3m_3r_0.9g_3b_norm_ops_j_que40100000')
-    # agent.evaluate(num_of_episodes = 1_000)
+    # End time
+    end_time = time.time()
+
+    # Elapsed time in seconds
+    elapsed_time_seconds = end_time - start_time
+
+    # Convert elapsed time to hours
+    elapsed_time_hours = elapsed_time_seconds / 3600
+    print(f"Elapsed time: {elapsed_time_hours} hours")
+
+    # agent.load(file_path_name='files/trainedAgents/dqn_seco_3m_3r_0.9g_3b_j_que_ma_obs_x2_70100000')
+    # agent.evaluate(num_of_episodes=1_000)

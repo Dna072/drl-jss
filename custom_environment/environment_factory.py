@@ -95,13 +95,14 @@ def init_custom_factory_env(is_verbose: bool = False, max_steps: int = 5000,
     jobs: list[Job] = [
         create_job(
             recipes=[np.random.choice(np.array(recipe_objects))],
-            factory_id=f"J{i}",
+            factory_id=f"J{i % buffer_size}",
             process_id=i % buffer_size,
             deadline=0,
             factory_time=0
         ) for i in range(jobs_queue_size)
     ]
 
+    jobs.sort()
     if is_verbose:
         print("\nJobs:")
         for job in jobs:

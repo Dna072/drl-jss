@@ -17,7 +17,7 @@ class TextColors:
     CYAN = "\033[96m"
 
 
-machines: int = 2
+machines: int = 3
 jobs: int = 3
 max_steps: int = 100
 s = 0
@@ -25,7 +25,7 @@ s = 0
 tot_reward: int = 0
 
 env: FactoryEnv = init_custom_factory_env(is_verbose=False, buffer_size=jobs,
-                                              n_recipes=2, job_deadline_ratio=0.3, n_machines=machines)
+                                              n_recipes=3, job_deadline_ratio=0.3, n_machines=machines)
 nr_pending_jobs: int = len(env.get_pending_jobs())
 
 r_values: list[int] = []

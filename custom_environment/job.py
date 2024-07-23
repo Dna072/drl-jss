@@ -226,6 +226,18 @@ class Job:
             f" Completed: {100 * len(self.__recipes_completed) / len(self.__recipes)}%"
         )
 
+    def __gt__(self, other):
+        return self.__deadline > other.__deadline
+
+    def __ge__(self, other):
+        return self.__deadline >= other.__deadline
+
+    def __lt__(self, other):
+        return self.__deadline < other.__deadline
+
+    def __le__(self, other):
+        return self.__deadline <= other.__deadline
+
     def reset(self) -> None:
         self.__status = 0
         self.__recipes_pending = self.__recipes.copy()[: self.MAX_NUM_RECIPES_PER_JOB]

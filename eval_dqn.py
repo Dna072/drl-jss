@@ -73,8 +73,9 @@ class Agent:
              gamma: float = 0.5) -> None:
         self.model = DQN.load(path=file_path_name,
                               env=self.custom_env,
-                              exploration_fraction=0.45,
-                              exploration_initial_eps=0.08,
+                              exploration_fraction=0.5,
+                              exploration_initial_eps=0.06,
+                              exploration_final_eps=0.02
                               #gamma=0.6
                               )
 
@@ -175,15 +176,15 @@ if __name__ == "__main__":
                                                      buffer_size=JOBS_BUFFER_SIZE,
                                                      n_recipes=N_RECIPES, job_deadline_ratio=0.3,
                                                      n_machines=N_MACHINES,
-                                                     refresh_arrival_time=True),
+                                                     refresh_arrival_time=False),
                   gamma=GAMMA, exploration_fraction=0.65, )
 
     # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_2m_2r_0.6g_all_purpose_machines_40200000')
-    # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_{GAMMA}g_j_q_refreshed_arrival_'+str(LEARNING_MAX_STEPS))
+    agent.load(file_path_name=f'files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_{GAMMA}g_ma_obs_pure_x2_'+str(LEARNING_MAX_STEPS))
     agent.learn(
         total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
     )
-    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_{GAMMA}g_j_q_refreshed_arrival_"+str(LEARNING_MAX_STEPS))
+    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{JOBS_BUFFER_SIZE}b_{GAMMA}g_ma_obs_pure_x3_"+str(LEARNING_MAX_STEPS))
 
     # agent.load(file_path_name=f'files/trainedAgents/dqn_seco_4m_6r_5b_0.7g_real_40200000')
     # agent.evaluate(num_of_episodes = 1_000)
