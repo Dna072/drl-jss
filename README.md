@@ -13,6 +13,10 @@ This thesis repository modifies and extends upon an [existing project of the sam
 * Adam Ross
 * Nicolas Pablo Viola
 
+and under close supervision by
+
+* Ayça Özçelikkale
+
 I sincerely thank the original project contributors for their foundational work, which made this thesis possible.
 
 ## Modifications
