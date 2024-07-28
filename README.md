@@ -21,7 +21,7 @@ I sincerely thank the original project contributors for their foundational work,
 
 ## Modifications
 
-The original project is modified to exclude requirement-specific contributions existing in the [main branch](https://github.com/Dna072/drl-jss/tree/main) following [the 16th squash commit](https://github.com/Dna072/drl-jss/commit/452446d5309e9930363359e25c004be46352466b).
+The original project is modified to exclude all 'requirement-specific' contributions to the original default [`main`](https://github.com/Dna072/drl-jss/tree/main) branch following [the 16th squash commit](https://github.com/Dna072/drl-jss/commit/452446d5309e9930363359e25c004be46352466b) from [PR #27](https://github.com/University-Project-Repos/DataScienceProject/pull/27) since November 29th 2023!
 
 # Instructions
  
