@@ -5,6 +5,21 @@ Code repository for the _Uppsala University_ Thesis in _Data Science_
 #### Contributors
 
 * Derrick Adjei
+
+# Acknowledgement
+
+This thesis repository modifies and extends upon an [existing project of the same title](https://github.com/University-Project-Repos/DataScienceProject) originally developed in collaboration with
+
+* Adam Ross
+* Nicolas Pablo Viola
+
+I sincerely thank the original project contributors for their foundational work, which made this thesis possible.
+
+## Modifications
+
+The original project is modified to exclude requirement-specific contributions existing in the [main branch](https://github.com/Dna072/drl-jss/tree/main) following [the 16th squash commit](https://github.com/Dna072/drl-jss/commit/452446d5309e9930363359e25c004be46352466b).
+
+# Instructions
  
 ### Install
 
