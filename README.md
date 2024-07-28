@@ -16,12 +16,13 @@ This thesis repository modifies and extends upon an [existing project of the sam
 and under close supervision by
 
 * Ayça Özçelikkale
+* Pelle Ingvast (industry)
 
 I sincerely thank the original project contributors for their foundational work, which made this thesis possible.
 
 ## Modifications
 
-The original project is modified to exclude all 'requirement-specific' contributions to the original default [`main`](https://github.com/Dna072/drl-jss/tree/main) branch following [the 16th squash commit](https://github.com/Dna072/drl-jss/commit/452446d5309e9930363359e25c004be46352466b) from [PR #27](https://github.com/University-Project-Repos/DataScienceProject/pull/27) since November 29th 2023! This is evident in commits [ed017b9](https://github.com/Dna072/drl-jss/commit/ed017b9a7064b084e716968d6fbc9d62cb96c24a) and [08d9ed8](https://github.com/Dna072/drl-jss/commit/08d9ed8532d06b7fd70e8441be78ff0405f6098d) in the new default `master` branch as they jump from #27 to #34 on Dec 2nd and #42 (including #41) on Dec 13th, respectively. The links to the PRs are dead in this clone repository with exception to the new ones since its creation starting again from #1, as is evident in the most recent merge commit in the new default `master` branch being from PR #10.  
+The original project is modified to exclude all 'requirement-specific' contributions to the original default [`main`](https://github.com/Dna072/drl-jss/tree/main) branch following [the 16th squash commit](https://github.com/Dna072/drl-jss/commit/452446d5309e9930363359e25c004be46352466b) from [PR #27](https://github.com/University-Project-Repos/DataScienceProject/pull/27) since merged on November 29th 2023! This is evident in commits [ed017b9](https://github.com/Dna072/drl-jss/commit/ed017b9a7064b084e716968d6fbc9d62cb96c24a) and [08d9ed8](https://github.com/Dna072/drl-jss/commit/08d9ed8532d06b7fd70e8441be78ff0405f6098d) in the new, since renamed default `master` branch as they jump from #27 to #34 on Dec 2nd and #42 (including #41) on Dec 13th, respectively. The links to the PRs are dead in this clone repository with exception to the new ones since its creation starting again from #1, as is evident in the most recent merge commit in the new default `master` branch being from PR #10.  
 
 # Instructions
  
