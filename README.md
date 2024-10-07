@@ -2,6 +2,10 @@
 
 Code repository for the _Uppsala University_ Thesis in _Data Science_
 
+#### Thesis URL
+
+For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891](http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891)
+
 #### Contributors
 
 * Derrick Adjei
