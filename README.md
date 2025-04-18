@@ -2,6 +2,10 @@
 
 Code repository for the _Uppsala University_ Thesis in _Data Science_
 
+> An obfuscated modification of the following [(more can be read here)](https://github.com/Dna072/drl-jss/issues/11):
+
+![123](https://github.com/user-attachments/assets/010f375d-0729-4241-a2c2-fc3b484e97dc)
+
 #### Thesis URL
 
 For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891](http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891)
