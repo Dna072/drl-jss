@@ -4,7 +4,11 @@ Code repository for the _Uppsala University_ Thesis in _Data Science_
 
 > An obfuscated modification of the following [(more can be read here)](https://github.com/Dna072/drl-jss/issues/11):
 
-![123](https://github.com/user-attachments/assets/010f375d-0729-4241-a2c2-fc3b484e97dc)
+![123](https://github.com/user-attachments/assets/d4e7e727-388c-471a-9aad-7438fbb63718)
+
+but not quite the following:
+
+![456](https://github.com/user-attachments/assets/f9db661f-5d7a-4203-923e-fd26581fc1d9)
 
 #### Thesis URL
 
@@ -13,6 +17,8 @@ For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:
 #### Contributors
 
 * Derrick Adjei
+* [Adam Ross](https://github.com/R055A)
+* [Nicolas Pablo Viola](https://github.com/nicoviola91)
  
 ### Install
 
