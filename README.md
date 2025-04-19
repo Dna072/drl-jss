@@ -6,7 +6,7 @@ Code repository for the _Uppsala University_ Thesis in _Data Science_
 
 ![123](https://github.com/user-attachments/assets/d4e7e727-388c-471a-9aad-7438fbb63718)
 
-but not quite the following:
+but not quite the following; only group to finish, intact (including this supervisor, bottom) & with #1 game engine:
 
 ![456](https://github.com/user-attachments/assets/f9db661f-5d7a-4203-923e-fd26581fc1d9)
 
