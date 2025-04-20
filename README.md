@@ -17,6 +17,9 @@ For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:
 #### Contributors
 
 * Derrick Adjei
+
+#### Unacknowledged Contributors
+
 * [Adam Ross](https://github.com/R055A)
 * [Nicolas Pablo Viola](https://github.com/nicoviola91)
  
