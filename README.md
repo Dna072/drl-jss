@@ -2,7 +2,7 @@
 
 Code repository for the _Uppsala University_ Thesis in _Data Science_
 
-> An obfuscated modification of the following [(more can be read here)](https://github.com/Dna072/drl-jss/issues/11):
+> An unauthorised obfuscated facade modification of the following [(more can be read here)](https://github.com/Dna072/drl-jss/issues/11):
 
 ![123](https://github.com/user-attachments/assets/d4e7e727-388c-471a-9aad-7438fbb63718)
 
