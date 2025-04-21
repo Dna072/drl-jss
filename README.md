@@ -12,7 +12,7 @@ but not quite the following; only group to finish, intact (including this superv
 
 #### Thesis URL
 
-For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891](http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891)
+For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891](http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891) 🤷
 
 #### Contributors
 
