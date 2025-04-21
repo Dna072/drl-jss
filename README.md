@@ -10,7 +10,7 @@ but not quite the following; only group to finish, intact (including this superv
 
 ![456](https://github.com/user-attachments/assets/f9db661f-5d7a-4203-923e-fd26581fc1d9)
 
-> Without those truly contributing to repetitvely teach the critical PR (& base code) material under consistent epistemic injustice scrutiny following being forced to wait throughout and only until the final moments of a sprint, and nobody to upstage present the contributions to immediately following, it can be assumed this will never be reviewed let alone merged.
+> Without those truly contributing to repetitvely teach the critical PR (& base code) material under consistent epistemic injustice scrutiny following being forced to wait throughout and only until the final moments of a sprint, and nobody to upstage present the controlled contributions to immediately following, it can be assumed this will never be reviewed let alone merged.
 
 #### Thesis URL
 
