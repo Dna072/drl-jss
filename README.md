@@ -20,7 +20,7 @@ For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:
 
 * Derrick Adjei
 
-#### Unacknowledged Contributors
+#### Unacknowledged Contributors (& researchers, etc)
 
 * [Adam Ross](https://github.com/R055A)
 * [Nicolas Pablo Viola](https://github.com/nicoviola91)
