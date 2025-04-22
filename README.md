@@ -2,13 +2,28 @@
 
 Code repository for the _Uppsala University_ Thesis in _Data Science_
 
+> An unauthorised obfuscated malicious usurp facade modification of the following [(more can be read here)](https://github.com/Dna072/drl-jss/issues/11):
+
+![123](https://github.com/user-attachments/assets/d4e7e727-388c-471a-9aad-7438fbb63718)
+
+but not quite the following; only group to finish, intact (including this supervisor, bottom) & with #1 game engine:
+
+![456](https://github.com/user-attachments/assets/f9db661f-5d7a-4203-923e-fd26581fc1d9)
+
+> Without those truly contributing to repetitvely teach the critical PR (& base code) material under consistent violent - epistemic injustice - scrutiny following being forced to wait throughout and only until the final moments of a sprint, and nobody to upstage present the controlled contributions to immediately following, it can be assumed this will never be reviewed let alone merged.
+
 #### Thesis URL
 
-For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891](http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891)
+For more details, refer to the full thesis at [http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891](http://urn.kb.se/resolve?urn=urn:nbn:se:uu:diva-538891) 🤷
 
 #### Contributors
 
 * Derrick Adjei
+
+#### Unacknowledged Contributors (& researchers, etc)
+
+* [Adam Ross](https://github.com/R055A)
+* [Nicolas Pablo Viola](https://github.com/nicoviola91)
  
 ### Install
 
