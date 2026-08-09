@@ -9,3 +9,5 @@ ruff~=0.1.6
 ipython~=8.17.2
 plotly~=5.18.0
 torch==2.1.0
+pillow~=10.2.0
+pytest~=8.0.0
