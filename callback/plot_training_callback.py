@@ -6,6 +6,7 @@ import numpy as np
 import pickle
 from datetime import datetime
 
+
 def get_trendline(data: list[float] = None):
     episode_numbers = np.arange(1, len(data) + 1)
     coefficients = np.polyfit(episode_numbers, data, 5)
@@ -22,7 +23,11 @@ class PlotTrainingCallback(BaseCallback):
     __FILE_NAME = "best_mean_return.pt"
 
     def __init__(
-        self, plot_freq: int, verbose: int = 1, is_save_best_model: bool = True, algorithm: str = 'DQN'
+        self,
+        plot_freq: int,
+        verbose: int = 1,
+        is_save_best_model: bool = True,
+        algorithm: str = "DQN",
     ) -> None:
         """
         Class constructor
@@ -34,18 +39,32 @@ class PlotTrainingCallback(BaseCallback):
         # Config
         self.__plot_freq: int = plot_freq
         # Rewards
-        self.__current_episode_rewards: list[float] = []  # Current episode rewards (gets reset when episode ends)
-        self.__current_policy_rewards: list[float] = []  # Current policy rewards (gets reset on_rollout_end)
-        self.__total_episodic_reward: list[float] = []  # Total reward for current episode
+        self.__current_episode_rewards: list[
+            float
+        ] = []  # Current episode rewards (gets reset when episode ends)
+        self.__current_policy_rewards: list[
+            float
+        ] = []  # Current policy rewards (gets reset on_rollout_end)
+        self.__total_episodic_reward: list[
+            float
+        ] = []  # Total reward for current episode
         self.__mean_episodic_reward: list[float] = []  # Mean reward per episode
         self.__total_policy_reward: list[float] = []  # Total reward for current policy
         self.__mean_policy_reward: list[float] = []  # Mean reward per policy
         # Tardiness
-        self.__current_episode_tardiness: list[float] = []  # Current episode tardiness (gets reset when episode ends)
-        self.__current_policy_tardiness: list[float] = []  # Current policy tardiness (gets reset on_rollout_end)
-        self.__total_episodic_tardiness: list[float] = []  # Total tardiness for current episode
+        self.__current_episode_tardiness: list[
+            float
+        ] = []  # Current episode tardiness (gets reset when episode ends)
+        self.__current_policy_tardiness: list[
+            float
+        ] = []  # Current policy tardiness (gets reset on_rollout_end)
+        self.__total_episodic_tardiness: list[
+            float
+        ] = []  # Total tardiness for current episode
         self.__mean_episodic_tardiness: list[float] = []  # Mean tardiness per episode
-        self.__total_policy_tardiness: list[float] = []  # Total tardiness for current policy
+        self.__total_policy_tardiness: list[
+            float
+        ] = []  # Total tardiness for current policy
         self.__mean_policy_tardiness: list[float] = []  # Mean tardiness per policy
 
         # Initialisation and others
@@ -63,12 +82,23 @@ class PlotTrainingCallback(BaseCallback):
         """
         Called by model after each call to ``env.step()``.
         """
-        self.__current_episode_rewards.append(self.training_env.get_attr("callback_step_reward")[0])
-        self.__current_episode_tardiness.append(self.training_env.get_attr("callback_step_tardiness")[0])
-        self.__current_policy_rewards.append(self.training_env.get_attr("callback_step_reward")[0])
-        self.__current_policy_tardiness.append(self.training_env.get_attr("callback_step_tardiness")[0])
+        self.__current_episode_rewards.append(
+            self.training_env.get_attr("callback_step_reward")[0]
+        )
+        self.__current_episode_tardiness.append(
+            self.training_env.get_attr("callback_step_tardiness")[0]
+        )
+        self.__current_policy_rewards.append(
+            self.training_env.get_attr("callback_step_reward")[0]
+        )
+        self.__current_policy_tardiness.append(
+            self.training_env.get_attr("callback_step_tardiness")[0]
+        )
 
-        if self.num_timesteps not in [0, 1] and self.training_env.get_attr("factory_time")[0] == 0:
+        if (
+            self.num_timesteps not in [0, 1]
+            and self.training_env.get_attr("factory_time")[0] == 0
+        ):
             # I remove the last value that belongs to this new episode and add it to the next episode's array.
             last_c_reward = self.__current_episode_rewards.pop(-1)
             last_c_tardiness = self.__current_episode_tardiness.pop(-1)
@@ -77,8 +107,12 @@ class PlotTrainingCallback(BaseCallback):
             self.__total_episodic_reward.append(sum(self.__current_episode_rewards))
             self.__mean_episodic_reward.append(np.mean(self.__current_episode_rewards))
             # Episodic Tardiness
-            self.__total_episodic_tardiness.append(sum(self.__current_episode_tardiness))
-            self.__mean_episodic_tardiness.append(np.mean(self.__current_episode_tardiness))
+            self.__total_episodic_tardiness.append(
+                sum(self.__current_episode_tardiness)
+            )
+            self.__mean_episodic_tardiness.append(
+                np.mean(self.__current_episode_tardiness)
+            )
             # Reset Episodic variables
             self.__current_episode_rewards = []
             self.__current_episode_tardiness = []
@@ -144,10 +178,20 @@ class PlotTrainingCallback(BaseCallback):
         plt.ylabel(ylabel="Mean Reward")
         # plt.plot(self.__mean_episodic_reward)
         plt.plot(episode_numbers, self.__mean_episodic_reward, label="Mean Reward")
-        plt.plot(episode_numbers, get_trendline(self.__mean_episodic_reward), label="Trend Line", linestyle="--",
-                 color="red")
+        plt.plot(
+            episode_numbers,
+            get_trendline(self.__mean_episodic_reward),
+            label="Trend Line",
+            linestyle="--",
+            color="red",
+        )
         plt.legend()
-        plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_rewards_"+timestamp+".png", format="png")
+        plt.savefig(
+            f"./files/plots/{self.__algo}_training_mean_episodic_rewards_"
+            + timestamp
+            + ".png",
+            format="png",
+        )
 
         # Plot Mean Policy Rewards
         policy_numbers = np.arange(1, len(self.__mean_policy_reward) + 1)
@@ -157,10 +201,20 @@ class PlotTrainingCallback(BaseCallback):
         plt.ylabel(ylabel="Mean Reward")
         # plt.plot(self.__mean_policy_reward)
         plt.plot(policy_numbers, self.__mean_policy_reward, label="Mean Policy Reward")
-        plt.plot(policy_numbers, get_trendline(self.__mean_policy_reward), label="Trend Line", linestyle="--",
-                 color="red")
+        plt.plot(
+            policy_numbers,
+            get_trendline(self.__mean_policy_reward),
+            label="Trend Line",
+            linestyle="--",
+            color="red",
+        )
         plt.legend()
-        plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_rewards_"+timestamp+".png", format="png")
+        plt.savefig(
+            f"./files/plots/{self.__algo}_training_mean_policy_rewards_"
+            + timestamp
+            + ".png",
+            format="png",
+        )
 
         # Plot Mean Episodic Tardiness
         plt.figure(figsize=(10, 6))
@@ -168,11 +222,23 @@ class PlotTrainingCallback(BaseCallback):
         plt.xlabel(xlabel="Episode")
         plt.ylabel(ylabel="Mean Tardiness")
         # plt.plot(self.__mean_episodic_tardiness)
-        plt.plot(episode_numbers, self.__mean_episodic_tardiness, label="Mean Tardiness")
-        plt.plot(episode_numbers, get_trendline(self.__mean_episodic_tardiness), label="Trend Line", linestyle="--",
-                 color="red")
+        plt.plot(
+            episode_numbers, self.__mean_episodic_tardiness, label="Mean Tardiness"
+        )
+        plt.plot(
+            episode_numbers,
+            get_trendline(self.__mean_episodic_tardiness),
+            label="Trend Line",
+            linestyle="--",
+            color="red",
+        )
         plt.legend()
-        plt.savefig(f"./files/plots/{self.__algo}_training_mean_episodic_tardiness_"+timestamp+".png", format="png")
+        plt.savefig(
+            f"./files/plots/{self.__algo}_training_mean_episodic_tardiness_"
+            + timestamp
+            + ".png",
+            format="png",
+        )
 
         # Plot Mean Policy Tardiness
         plt.figure(figsize=(10, 6))
@@ -180,11 +246,23 @@ class PlotTrainingCallback(BaseCallback):
         plt.xlabel(xlabel="Policy Nr")
         plt.ylabel(ylabel="Mean Tardiness")
         # plt.plot(self.__mean_policy_tardiness)
-        plt.plot(policy_numbers, self.__mean_policy_tardiness, label="Mean Policy Tardiness")
-        plt.plot(policy_numbers, get_trendline(self.__mean_policy_tardiness), label="Trend Line", linestyle="--",
-                 color="red")
+        plt.plot(
+            policy_numbers, self.__mean_policy_tardiness, label="Mean Policy Tardiness"
+        )
+        plt.plot(
+            policy_numbers,
+            get_trendline(self.__mean_policy_tardiness),
+            label="Trend Line",
+            linestyle="--",
+            color="red",
+        )
         plt.legend()
-        plt.savefig(f"./files/plots/{self.__algo}_training_mean_policy_tardiness_"+timestamp+".png", format="png")
+        plt.savefig(
+            f"./files/plots/{self.__algo}_training_mean_policy_tardiness_"
+            + timestamp
+            + ".png",
+            format="png",
+        )
 
         # There are also variables with total episodic rewards and tardiness and total policy rewards and tardiness
         # in case we want to plot them
@@ -195,9 +273,11 @@ class PlotTrainingCallback(BaseCallback):
             "mean_ep_reward": self.__mean_episodic_reward,
             "mean_pol_reward": self.__mean_policy_reward,
             "mean_ep_tardiness": self.__mean_episodic_tardiness,
-            "mean_pol_tardiness": self.__mean_policy_tardiness
+            "mean_pol_tardiness": self.__mean_policy_tardiness,
         }
-        with open(self.__FILE_PATH+"training_data_"+self.__algo+".pkl", "wb") as file:
+        with open(
+            self.__FILE_PATH + "training_data_" + self.__algo + ".pkl", "wb"
+        ) as file:
             pickle.dump(data, file)
 
 

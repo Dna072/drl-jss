@@ -9,11 +9,11 @@ from random import randint
 
 
 def create_job(
-        recipes: list[Recipe],
-        factory_id: str,
-        process_id: int,
-        deadline: int,
-        factory_time: int,
+    recipes: list[Recipe],
+    factory_id: str,
+    process_id: int,
+    deadline: int,
+    factory_time: int,
 ) -> Job:
     """
     Factory function for creating a Job object
@@ -32,10 +32,11 @@ def create_job(
         recipes=recipes,
         factory_id=factory_id,
         process_id=process_id,
-        deadline=deadline if deadline > int(corrected_deadline / deadline_ratio) else int(
-            corrected_deadline / deadline_ratio),
+        deadline=deadline
+        if deadline > int(corrected_deadline / deadline_ratio)
+        else int(corrected_deadline / deadline_ratio),
         factory_time=factory_time,
-        tray_capacity=tray_capacity
+        tray_capacity=tray_capacity,
     )
 
 

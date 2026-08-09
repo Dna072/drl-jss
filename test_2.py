@@ -38,7 +38,9 @@ from custom_environment.environment_factory import init_custom_factory_env
 
 def create_mean_array(input_array, group_size=10):
     # Reshape the array into a 2D array with the specified group size
-    reshaped_array = np.reshape(input_array, (len(input_array) // group_size, group_size))
+    reshaped_array = np.reshape(
+        input_array, (len(input_array) // group_size, group_size)
+    )
 
     # Calculate the mean along the second axis (axis=1)
     mean_array = np.mean(reshaped_array, axis=1)
@@ -55,24 +57,38 @@ if __name__ == "__main__":
     N_MACHINES: int = 4
     N_RECIPES: int = 2
     GAMMA: float = 0.99
-    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000)
+    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(
+        plot_freq=10_000
+    )
 
-    agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS,
-                                                     buffer_size=JOBS_BUFFER_SIZE,
-                                                     n_recipes=N_RECIPES, job_deadline_ratio=0.3,
-                                                     n_machines=N_MACHINES),
-                  gamma=GAMMA,
-                  exploration_fraction=0.58,
-                  )
+    agent = Agent(
+        custom_env=init_custom_factory_env(
+            max_steps=ENVIRONMENT_MAX_STEPS,
+            buffer_size=JOBS_BUFFER_SIZE,
+            n_recipes=N_RECIPES,
+            job_deadline_ratio=0.3,
+            n_machines=N_MACHINES,
+        ),
+        gamma=GAMMA,
+        exploration_fraction=0.58,
+    )
 
-    agent.load(file_path_name='files/trainedAgents/dqn_seco_4m_2r_0.99g_3b_ma_obs_130M_x2_70100000', gamma=0.99)
+    agent.load(
+        file_path_name="files/trainedAgents/dqn_seco_4m_2r_0.99g_3b_ma_obs_130M_x2_70100000",
+        gamma=0.99,
+    )
     # Start time
     start_time = time.time()
 
     agent.learn(
-        total_time_steps=LEARNING_MAX_STEPS, log_interval=1000, callback=plot_training_callback
+        total_time_steps=LEARNING_MAX_STEPS,
+        log_interval=1000,
+        callback=plot_training_callback,
     )
-    agent.save(file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_{JOBS_BUFFER_SIZE}b_ma_obs_130M_x3_"+str(LEARNING_MAX_STEPS))
+    agent.save(
+        file_path_name=f"files/trainedAgents/dqn_seco_{N_MACHINES}m_{N_RECIPES}r_{GAMMA}g_{JOBS_BUFFER_SIZE}b_ma_obs_130M_x3_"
+        + str(LEARNING_MAX_STEPS)
+    )
 
     # End time
     end_time = time.time()
