@@ -45,7 +45,9 @@ def test_action_space_and_step(env):
 def test_episode_can_run_without_crash(env):
     env.reset()
     for _ in range(50):
-        _obs, _reward, terminated, truncated, _info = env.step(env.action_space.sample())
+        _obs, _reward, terminated, truncated, _info = env.step(
+            env.action_space.sample()
+        )
         if terminated or truncated:
             env.reset()
     assert env.factory_time >= 0

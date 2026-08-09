@@ -3,8 +3,13 @@ from custom_environment.environment import FactoryEnv
 from matplotlib import pyplot as plt
 from random import randint
 import numpy as np
-from custom_environment.utils import (print_jobs, print_uncompleted_jobs,
-                                      print_scheduled_jobs, print_capacity_obs, print_uncompleted_jobs_buffer)
+from custom_environment.utils import (
+    print_jobs,
+    print_uncompleted_jobs,
+    print_scheduled_jobs,
+    print_capacity_obs,
+    print_uncompleted_jobs_buffer,
+)
 
 
 class TextColors:
@@ -24,8 +29,13 @@ s = 0
 
 tot_reward: int = 0
 
-env: FactoryEnv = init_custom_factory_env(is_verbose=False, buffer_size=jobs,
-                                              n_recipes=3, job_deadline_ratio=0.3, n_machines=machines)
+env: FactoryEnv = init_custom_factory_env(
+    is_verbose=False,
+    buffer_size=jobs,
+    n_recipes=3,
+    job_deadline_ratio=0.3,
+    n_machines=machines,
+)
 nr_pending_jobs: int = len(env.get_pending_jobs())
 
 r_values: list[int] = []
@@ -43,16 +53,17 @@ while s < max_steps and nr_pending_jobs > 0:
     act = input(TextColors.CYAN + "Select an action: " + TextColors.RESET)
     action: np.ndarray = int(act)
     o, r, te, tr, i = env.step(action)
-    print(f'Reward: {r}')
+    print(f"Reward: {r}")
 
-    #print_observation(o, machines)
+    # print_observation(o, machines)
 
     # env.render()
     print(
         f'Reward: {r}, Factory time: {i["CURRENT_TIME"]} '
         f'JOT: {i["JOBS_COMPLETED_ON_TIME"]}, JNOT: {i["JOBS_NOT_COMPLETED_ON_TIME"]} '
         f'UC_JOBS_BUFFER: {i["UNCOMPLETED_JOBS_BUFFER"]} '
-        f'LOST_JOBS: {i["LOST_JOBS"]}')
+        f'LOST_JOBS: {i["LOST_JOBS"]}'
+    )
 
     tot_reward += r
     r_values.append(r)
@@ -71,9 +82,13 @@ tr_values = []
 episodes: int = 100
 for e in range(episodes):
     j = 0
-    env = init_custom_factory_env(is_verbose=False,
-                                                     buffer_size=5,
-                                              n_recipes=5, job_deadline_ratio=0.3, n_machines=4)
+    env = init_custom_factory_env(
+        is_verbose=False,
+        buffer_size=5,
+        n_recipes=5,
+        job_deadline_ratio=0.3,
+        n_machines=4,
+    )
     tot_reward = 0
     while j < max_steps and nr_pending_jobs > 0:
         action = np.array(randint(0, 2 ** ((machines * jobs) - 1)))

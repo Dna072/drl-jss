@@ -22,7 +22,12 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 import numpy as np
 import matplotlib.pyplot as plt
-from custom_environment.utils import print_observation, print_jobs, print_scheduled_jobs, print_capacity_obs
+from custom_environment.utils import (
+    print_observation,
+    print_jobs,
+    print_scheduled_jobs,
+    print_capacity_obs,
+)
 
 
 class Agent:
@@ -39,7 +44,10 @@ class Agent:
     def __init__(self, custom_env: FactoryEnv | Monitor) -> None:
         self.custom_env: FactoryEnv = custom_env
         self.model: PPO = PPO(
-            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, batch_size=2048
+            policy=self.POLICY,
+            env=self.custom_env,
+            verbose=self.IS_VERBOSE,
+            batch_size=2048,
         )
 
     def learn(
@@ -60,7 +68,7 @@ class Agent:
     def load(self, file_path_name: str = FILE_PATH_NAME) -> None:
         self.model = PPO.load(path=file_path_name)
 
-    def evaluate(self,num_of_episodes: int = 10):
+    def evaluate(self, num_of_episodes: int = 10):
         obs, info = self.custom_env.reset()
         avg_returns_per_episode = []
         returns = []
@@ -103,21 +111,31 @@ class Agent:
         return ep_reward, ep_tardiness, ep_jobs_ot, ep_jobs_not
 
 
-def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/ppo_custom_factory_env_multi_job",
-                       env_max_steps: int = 100):
+def episodic_ppo_agent(
+    n_episodes: int = 10,
+    hp=None,
+    agent_path: str = "files/ppo_custom_factory_env_multi_job",
+    env_max_steps: int = 100,
+):
     ep_reward = []
     ep_tardiness = []
     ep_jobs_ot = []
     ep_jobs_not = []
-    dqn_agent = Agent(custom_env=init_custom_factory_env(max_steps=env_max_steps, is_evaluation=True))
+    dqn_agent = Agent(
+        custom_env=init_custom_factory_env(max_steps=env_max_steps, is_evaluation=True)
+    )
     dqn_agent.load(agent_path)
     for e in range(n_episodes):
         env = init_custom_factory_env(is_verbose=False)
         obs, info = env.reset()
         tot_reward = 0
         curr_tardiness = []
-        while 1:  # the environment has its own termination clauses, so it will trigger the break
-            action, _states = dqn_agent.model.predict(observation=obs, deterministic=True)
+        while (
+            1
+        ):  # the environment has its own termination clauses, so it will trigger the break
+            action, _states = dqn_agent.model.predict(
+                observation=obs, deterministic=True
+            )
             o, r, te, tr, i = env.step(action)
             curr_tardiness.append(env.get_tardiness_percentage())
             tot_reward += r
@@ -134,18 +152,33 @@ def episodic_ppo_agent(n_episodes: int = 10, hp=None, agent_path: str = "files/p
 
 if __name__ == "__main__":
     from callback.plot_training_callback import PlotTrainingCallback
+
     LEARNING_MAX_STEPS = 24_100_000
     ENVIRONMENT_MAX_STEPS = 50_000
     JOBS_BUFFER_SIZE: int = 10
-    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=10_000, algorithm="PPO")
+    plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(
+        plot_freq=10_000, algorithm="PPO"
+    )
 
-    agent = Agent(custom_env=init_custom_factory_env(max_steps=ENVIRONMENT_MAX_STEPS, buffer_size=JOBS_BUFFER_SIZE,
-                                              n_recipes=3, job_deadline_ratio=0.3, n_machines=4))
+    agent = Agent(
+        custom_env=init_custom_factory_env(
+            max_steps=ENVIRONMENT_MAX_STEPS,
+            buffer_size=JOBS_BUFFER_SIZE,
+            n_recipes=3,
+            job_deadline_ratio=0.3,
+            n_machines=4,
+        )
+    )
 
     agent.learn(
-        total_time_steps=LEARNING_MAX_STEPS, log_interval=10, callback=plot_training_callback
+        total_time_steps=LEARNING_MAX_STEPS,
+        log_interval=10,
+        callback=plot_training_callback,
     )
-    agent.save(file_path_name="files/trainedAgents/ppo_agent_seco_4_machines_"+str(LEARNING_MAX_STEPS))
+    agent.save(
+        file_path_name="files/trainedAgents/ppo_agent_seco_4_machines_"
+        + str(LEARNING_MAX_STEPS)
+    )
 
     # agent.load(file_path_name="files/trainedAgents/ppo_agent_multi_job_"+str(LEARNING_MAX_STEPS))
     # agent.evaluate()

@@ -1,0 +1,15 @@
+# Baseline lint config for CI (compatible with ruff~=0.1.6).
+line-length = 120
+target-version = "py311"
+select = ["E", "F"]
+ignore = [
+  "E501",  # line length handled by Black
+  "F401",  # unused imports common in interactive agent scripts
+  "F841",  # unused locals from iterative experiment scaffolding
+  "F541",  # f-strings without placeholders in legacy plot paths
+  "E402",  # late imports in scripts
+]
+
+[per-file-ignores]
+"test/*" = ["E", "F"]
+"test_*.py" = ["E", "F"]

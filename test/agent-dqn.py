@@ -39,9 +39,12 @@ class Agent:
 
     def __init__(self, custom_env: EnvWrapperDispatchRules) -> None:
         self.custom_env: EnvWrapperDispatchRules = custom_env
-        print(f'Custom env jobs: {len(self.custom_env.get_pending_jobs())}')
+        print(f"Custom env jobs: {len(self.custom_env.get_pending_jobs())}")
         self.model: DQN = DQN(
-            policy=self.POLICY, env=self.custom_env, verbose=self.IS_VERBOSE, learning_starts=10000
+            policy=self.POLICY,
+            env=self.custom_env,
+            verbose=self.IS_VERBOSE,
+            learning_starts=10000,
         )
 
     def learn(
@@ -72,9 +75,9 @@ class Agent:
         avg_machine_idle_time = []
         steps = 0
 
-        while steps < 10000 :
+        while steps < 10000:
             steps += 1
-            print(f'steps: {steps}')
+            print(f"steps: {steps}")
             action, _states = self.model.predict(observation=obs, deterministic=True)
             obs, reward, terminated, truncated, info = self.custom_env.step(
                 action=action
@@ -84,11 +87,13 @@ class Agent:
             avg_machine_utilization.append(
                 self.custom_env.get_average_machine_utilization_time_percentage()
             )
-            avg_machine_idle_time.append(self.custom_env.get_average_machine_idle_time_percentage())
+            avg_machine_idle_time.append(
+                self.custom_env.get_average_machine_idle_time_percentage()
+            )
             if terminated or truncated:
                 obs, info = self.custom_env.reset()
 
-         # plot rewards
+        # plot rewards
         fig, axs = plt.subplots(3, 1)
         fig.suptitle("Shortest deadline first rule")
         axs[0].plot(rewards)
@@ -105,9 +110,9 @@ class Agent:
 
         for ax in axs.flat:
             ax.set(xlabel="Time step")
-            
+
         plt.show()
-        plt.savefig('../files/plots/evaluation_plot_1.png', format='png')
+        plt.savefig("../files/plots/evaluation_plot_1.png", format="png")
 
 
 if __name__ == "__main__":
@@ -115,7 +120,7 @@ if __name__ == "__main__":
 
     plot_training_callback: PlotTrainingCallback = PlotTrainingCallback(plot_freq=100)
 
-    custom_env=init_custom_factory_env(is_verbose=True)
+    custom_env = init_custom_factory_env(is_verbose=True)
 
     for job in custom_env.get_pending_jobs():
         print(job)
@@ -123,9 +128,7 @@ if __name__ == "__main__":
 
     agent = Agent(custom_env=custom_env)
 
-    agent.learn(
-        total_time_steps=300_000, log_interval=5, callback=None
-    )
+    agent.learn(total_time_steps=300_000, log_interval=5, callback=None)
     # agent.learn()
 
     agent.save()
